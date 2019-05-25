@@ -2,16 +2,26 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 )
 
-func Parse(tokenStream <-chan Tok) []interface{} {
-	tokens := make([]Tok, 1)
+func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
+	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
-		tokens = append(tokens, tok)
 		fmt.Println("Token: " + tokKindToName(tok.kind) + " | " + tok.stringVal())
+		tokens = append(tokens, tok)
 	}
 
-	return []interface{}{}
+	idx, length := 0, len(tokens)
+	fmt.Println("tokens length", strconv.Itoa(length))
+	for idx < length && idx != -1 {
+		var expr interface{}
+		expr, idx = parseExpression(tokens[idx:])
+		nodes <- expr
+	}
+	close(nodes)
+
+	done <- true
 }
 
 type UnaryExprNode struct {
@@ -56,7 +66,8 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 	switch next.kind {
 	case Separator:
 		return atom, idx
-	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp, GreaterThanOp, LessThanOp, EqualOp, IsOp, DefineOp, AccessorOp:
+	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
+		GreaterThanOp, LessThanOp, EqualOp, IsOp, DefineOp, AccessorOp:
 		var rightOperand interface{}
 		rightOperand, idx = parseAtom(tokens[idx:])
 		return BinaryExprNode{
@@ -89,12 +100,21 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 		}, idx
 	default:
 		// error -- should not happen
+		return []interface{}{}, -1
 	}
 
-	return []interface{}{}, 0
+	return []interface{}{}, -1
 }
 
 type IdentifierNode struct {
+	val string
+}
+
+type NumberLiteralNode struct {
+	val float64
+}
+
+type StringLiteralNode struct {
 	val string
 }
 
@@ -105,6 +125,25 @@ type ListLiteralNode struct {
 }
 
 func parseAtom(tokens []Tok) (interface{}, int) {
+	tok := tokens[0]
+	switch tok.kind {
+	case Identifier:
+		return IdentifierNode{tok.stringVal()}, len(tok.stringVal())
+	case NumberLiteral:
+		return NumberLiteralNode{tok.numberVal()}, len(tok.stringVal())
+	case StringLiteral:
+		return StringLiteralNode{tok.stringVal()}, len(tok.stringVal())
+	case TrueLiteral, FalseLiteral, NullLiteral:
+		return tok, 0
+	case LeftParen:
+		// grouped expression
+	case LeftBrace:
+		// object literal
+	case LeftBracket:
+		// array literal
+	default:
+		// may be function literal
+	}
 	return IdentifierNode{}, 0
 }
 

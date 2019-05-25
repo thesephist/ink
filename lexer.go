@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	Block = iota
+	_ = iota
+	Block
 	UnaryExpr
 	BinaryExpr
 	FunctionCallExpr
@@ -93,7 +94,7 @@ func (tok *Tok) numberVal() float64 {
 	}
 }
 
-func Tokenize(input <-chan rune, tokens chan<- Tok) {
+func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	lastTokKind := Separator
 	buf := ""
 	strbuf := ""
@@ -234,6 +235,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok) {
 			}
 			colNo++
 		}
+
+		close(tokens)
+		done <- true
 	}()
 }
 

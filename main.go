@@ -10,9 +10,12 @@ func main() {
 	inputReader := bufio.NewReader(os.Stdin)
 
 	tokens := make(chan Tok)
+	nodes := make(chan interface{})
 
-	go Tokenize(input, tokens)
-	go Parse(tokens)
+	done := make(chan bool, 3)
+	go Tokenize(input, tokens, done)
+	go Parse(tokens, nodes, done)
+	go Eval(nodes, done)
 
 	for {
 		char, _, err := inputReader.ReadRune()
@@ -21,5 +24,9 @@ func main() {
 		}
 		input <- char
 	}
-	input <- '\n' // final line separator, hacky but does the job
+	close(input)
+
+	for i := 0; i < 3; i++ {
+		<-done
+	}
 }
