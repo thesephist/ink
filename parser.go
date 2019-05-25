@@ -183,10 +183,10 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		idx := 1 // LeftParen
 		var expr interface{}
 		var idxIncr int
-		if tokens[idx].kind != RightParen {
+		for tokens[idx].kind != RightParen {
 			expr, idxIncr = parseExpression(tokens[idx:])
+			idx += idxIncr
 		}
-		idx += idxIncr
 		idx++ // RightParen
 		if tokens[idx].kind == FunctionArrow {
 			expr, idxIncr = parseFunctionLiteral(tokens)
@@ -245,24 +245,33 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 	arguments := make([]IdentifierNode, 0)
 	switch tokens[0].kind {
 	case LeftParen:
-		idx++
-		for tokens[idx].kind == Identifier {
-			idNode := IdentifierNode{tokens[idx].stringVal()}
-			arguments = append(arguments, idNode)
-			idx++
+		idx++ // LeftParen
+		for tokens[idx].kind != RightParen {
+			if tokens[idx].kind == Identifier {
+				idNode := IdentifierNode{tokens[idx].stringVal()}
+				arguments = append(arguments, idNode)
+				idx++
+			} else {
+				log.Fatal("invalid syntax: expected an identifier in arguments list")
+			}
+
+			if tokens[idx].kind != Separator {
+				log.Fatal("invalid syntax: expected a comma separated arguments list")
+			}
+			idx++ // Separator
 		}
-		// next is right paren
-		idx++
+
+		idx++ // RightParen
 	case Identifier:
 		idNode := IdentifierNode{tokens[0].stringVal()}
 		arguments = append(arguments, idNode)
 		idx++
 	default:
-		log.Fatal("Invalid syntax")
+		log.Fatal("invalid syntax: malformed arguments list in function")
 	}
 
 	if tokens[idx].kind != FunctionArrow {
-		log.Fatal("Invalid syntax")
+		log.Fatal("invalid syntax: expected FunctionArrow")
 	}
 	idx++
 

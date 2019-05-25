@@ -183,6 +183,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 		})
 	}
 	ensureSeparator := func() {
+		log.Println("ENSURING", tokKindToName(lastTokKind))
 		switch lastTokKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace:
 			// do nothing
@@ -234,6 +235,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case char == '(':
 				commitChar(LeftParen)
 			case char == ')':
+				log.Println("LAST KIND:", tokKindToName(lastTokKind))
 				ensureSeparator()
 				commitChar(RightParen)
 			case char == '[':
