@@ -115,7 +115,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok) {
 			span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
-	commit := func(tok Tok) {
+	commitClear := func() {
 		if buf != "" {
 			switch buf {
 			case ".":
@@ -134,6 +134,8 @@ func Tokenize(input <-chan rune, tokens chan<- Tok) {
 				simpleCommitChar(SubtractOp)
 			case "->":
 				simpleCommitChar(CaseArrow)
+			case ">":
+				simpleCommitChar(GreaterThanOp)
 			case "true":
 				simpleCommitChar(TrueLiteral)
 			case "false":
@@ -158,9 +160,12 @@ func Tokenize(input <-chan rune, tokens chan<- Tok) {
 						span{lineNo, colNo - len(buf), lineNo, colNo + 1},
 					})
 				}
-				buf = ""
 			}
+			buf = ""
 		}
+	}
+	commit := func(tok Tok) {
+		commitClear()
 		simpleCommit(tok)
 	}
 	commitChar := func(kind int) {
@@ -197,21 +202,17 @@ func Tokenize(input <-chan rune, tokens chan<- Tok) {
 					commitChar(Separator)
 				}
 			case unicode.IsSpace(char):
-				// do nothing
+				commitClear()
 			case char == '_':
 				commitChar(EmptyIdentifier)
 			case char == '~':
 				commitChar(NegationOp)
 			case char == '+':
 				commitChar(AddOp)
-			case char == '-':
-				commitChar(SubtractOp)
 			case char == '*':
 				commitChar(MultiplyOp)
 			case char == '/':
 				commitChar(DivideOp)
-			case char == '>':
-				commitChar(GreaterThanOp)
 			case char == '<':
 				commitChar(LessThanOp)
 			case char == ',':

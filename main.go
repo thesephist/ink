@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 )
 
@@ -13,12 +12,7 @@ func main() {
 	tokens := make(chan Tok)
 
 	go Tokenize(input, tokens)
-	// temp
-	go func() {
-		for tok := range tokens {
-			fmt.Println("Token: " + tokKindToName(tok.kind) + " | " + tok.stringVal())
-		}
-	}()
+	go Parse(tokens)
 
 	for {
 		char, _, err := inputReader.ReadRune()
@@ -27,4 +21,5 @@ func main() {
 		}
 		input <- char
 	}
+	input <- '\n' // final line separator, hacky but does the job
 }

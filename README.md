@@ -32,10 +32,10 @@ Expression: (
     | MatchExpr
 ) ','
 
-UnaryExpr: Expression UnaryOp
-BinaryExpr: Expression BinaryOp Expression
-FunctionCallExpr: Expression '(' ExpressionList ')'
-MatchExpr: Expression '::' '{' MatchClause* '}'
+UnaryExpr: UnaryOp Atom
+BinaryExpr: Atom BinaryOp Atom
+FunctionCallExpr: Atom '(' ExpressionList ')'
+MatchExpr: Atom '::' '{' MatchClause* '}'
 
 MatchClause: Atom '->' Block [',']
 
