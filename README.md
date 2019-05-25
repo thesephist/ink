@@ -1,6 +1,13 @@
 # Ink
 
-Ink is a simple subset of modern JavaScript, reimagined as a standalone programming language.
+Ink is a functional programming language inspired by modern JavaScript.
+
+Ink has a few goals. In order, they are
+
+- Simple, minimal syntax
+- High readability and expressiveness
+- Small interpreter and runtime API
+- Performance (within reason)
 
 ## Setup and introduction
 
