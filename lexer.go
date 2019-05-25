@@ -2,34 +2,17 @@ package main
 
 import (
 	"fmt"
+	"unicode"
 )
 
-const (
-	Literal = iota
-	Ident
-	Atom
-	UnaryOp
-	BinaryOp
-	TernaryOp
-)
-
-const (
-	NumberType = iota
-	StringType
-	BooleanType
-	NullType
-	CompositeType
-	FunctionType
-)
-
-type srcslice struct {
+type span struct {
 	startLine, startCol int
 	endLine, endCol     int
 }
 
 type Tok struct {
 	val string
-	srcslice
+	span
 }
 
 func Tokenize(input <-chan rune) chan<- Tok {
@@ -41,4 +24,26 @@ func Tokenize(input <-chan rune) chan<- Tok {
 	}
 
 	return output
+}
+
+func isValidIdentifierChar(char rune) bool {
+	if unicode.IsDigit(char) || unicode.IsLetter(char) {
+		return true
+	}
+
+	switch char {
+	case '@', '!', '?':
+		return true
+	default:
+		return false
+	}
+}
+
+func isKeyword(tok string) bool {
+	switch tok {
+	case "true", "false", "null":
+		return true
+	default:
+		return false
+	}
 }

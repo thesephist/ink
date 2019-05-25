@@ -18,7 +18,7 @@ Ink's syntax is inspired by JavaScript, but much more minimal.
 As a side note here, all values and references are immutable.
 
 ```
-Program: Block*
+Program: ExpressionList
 
 Block: '{' ExpressionList '}' | Expression
 
@@ -26,11 +26,18 @@ ExpressionList: (Expression [','])*
 
 Expression: (
     Atom
-    | Expression UnaryOp
-    | Expression BinaryOp Expression
-    | Expression '(' ExpressionList ')'
-    | Expression '::' '{' (Atom '->' Block) '}'
+    | UnaryExpr
+    | BinaryExpr
+    | FunctionCallExpr
+    | MatchExpr
 ) ','
+
+UnaryExpr: Expression UnaryOp
+BinaryExpr: Expression BinaryOp Expression
+FunctionCallExpr: Expression '(' ExpressionList ')'
+MatchExpr: Expression '::' '{' MatchClause* '}'
+
+MatchClause: Atom '->' Block [',']
 
 
 Atom: Identifier | Literal
