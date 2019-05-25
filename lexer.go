@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"unicode"
@@ -92,6 +93,10 @@ func (tok *Tok) numberVal() float64 {
 	default:
 		return 0
 	}
+}
+
+func (tok Tok) String() string {
+	return fmt.Sprintf("Token %s: \t%s", tokKindToName(tok.kind), tok.stringVal())
 }
 
 func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {

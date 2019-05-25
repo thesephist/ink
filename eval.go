@@ -28,6 +28,7 @@ func Eval(nodes <-chan interface{}, done chan<- bool) {
 }
 
 func evalNode(hp *map[string]Value, node interface{}) {
+	fmt.Println("--- In eval ---")
 	switch node.(type) {
 	default:
 		fmt.Println(node)

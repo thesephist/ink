@@ -56,8 +56,8 @@ NullLiteral: 'null'
 
 ObjectLiteral: '{' (Identifier ':' Atom ',')* '}'
 ListLitereal: '[' (Atom ',')* ']'
-FunctionLiteral: Identifier* '=>' Block
-
+FunctionLiteral: Identifier '=>' Block
+        | '(' (Identifier [','])* ')' '=>' Block
 
 UnaryOp: (
     '~' // negation
@@ -122,7 +122,7 @@ fb := n => {
         _ -> out(string(n))
     }
 }
-fizzbuzzhelp := n, max => {
+fizzbuzzhelp := (n, max) => {
     n = max :: {
         true -> fb(n)
         false -> {
