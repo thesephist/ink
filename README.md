@@ -28,21 +28,22 @@ Expression: (
     Atom
     | UnaryExpr
     | BinaryExpr
-    | FunctionCallExpr
     | MatchExpr
 ) ','
 
 UnaryExpr: UnaryOp Atom
 BinaryExpr: Atom BinaryOp Atom
-FunctionCallExpr: Atom '(' ExpressionList ')'
 MatchExpr: Atom '::' '{' MatchClause* '}'
 
 MatchClause: Atom '->' Block [',']
 
 
-Atom: Identifier | Literal
+Atom: Identifier | FunctionCall | Literal | '(' Expression* ')'
 
 Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]* | _
+
+FunctionCall: (Identifier | FunctionLiteral
+        | '(' Expression* ')') '(' ExpressionList ')'
 
 Literal: NumberLiteral | StringLiteral
         | BooleanLiteral | NullLiteral

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 )
 
 const (
@@ -21,16 +21,21 @@ type Value struct {
 func Eval(nodes <-chan interface{}, done chan<- bool) {
 	heap := make(map[string]Value)
 	for node := range nodes {
-		evalNode(&heap, node)
+		evalNode(heap, node)
 	}
 
 	done <- true
 }
 
-func evalNode(hp *map[string]Value, node interface{}) {
-	fmt.Println("--- In eval ---")
-	switch node.(type) {
-	default:
-		fmt.Println(node)
+func evalNode(heap map[string]Value, node interface{}) interface{} {
+	log.Printf("--- Evaluating Node ---")
+	switch n := node.(type) {
+	case IdentifierNode:
+		return heap[n.val]
+	case BinaryExprNode:
+		// do something
 	}
+
+	log.Println(node)
+	return nil
 }

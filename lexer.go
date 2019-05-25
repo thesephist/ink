@@ -12,12 +12,13 @@ const (
 	Block
 	UnaryExpr
 	BinaryExpr
-	FunctionCallExpr
 	MatchExpr
 	MatchClause
 
 	Identifier
 	EmptyIdentifier
+
+	FunctionCall
 
 	NumberLiteral
 	StringLiteral
@@ -181,6 +182,14 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
+	ensureSeparator := func() {
+		switch lastTokKind {
+		case Separator, LeftParen, LeftBracket, LeftBrace:
+			// do nothing
+		default:
+			commitChar(Separator)
+		}
+	}
 
 	inStringLiteral := false
 
@@ -196,6 +205,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 						span{strbufStartLine, strbufStartCol, lineNo, colNo + 1},
 					})
 				} else {
+					strbuf = ""
 					strbufStartLine, strbufStartCol = lineNo, colNo
 				}
 				inStringLiteral = !inStringLiteral
@@ -204,9 +214,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case char == '\n':
 				lineNo++
 				colNo = 0
-				if lastTokKind != Separator {
-					commitChar(Separator)
-				}
+				ensureSeparator()
 			case unicode.IsSpace(char):
 				commitClear()
 			case char == '_':
@@ -226,14 +234,17 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case char == '(':
 				commitChar(LeftParen)
 			case char == ')':
+				ensureSeparator()
 				commitChar(RightParen)
 			case char == '[':
 				commitChar(LeftBracket)
 			case char == ']':
+				ensureSeparator()
 				commitChar(RightBracket)
 			case char == '{':
 				commitChar(LeftBrace)
 			case char == '}':
+				ensureSeparator()
 				commitChar(RightBrace)
 			default:
 				buf += string(char)
@@ -271,8 +282,6 @@ func tokKindToName(kind int) string {
 		return "UnaryExpr"
 	case BinaryExpr:
 		return "BinaryExpr"
-	case FunctionCallExpr:
-		return "FunctionCallExpr"
 	case MatchExpr:
 		return "MatchExpr"
 	case MatchClause:
@@ -282,6 +291,9 @@ func tokKindToName(kind int) string {
 		return "Identifier"
 	case EmptyIdentifier:
 		return "EmptyIdentifier"
+
+	case FunctionCall:
+		return "FunctionCall"
 
 	case NumberLiteral:
 		return "NumberLiteral"

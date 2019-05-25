@@ -16,7 +16,10 @@ func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
 		tokens = append(tokens, tok)
 	}
 
+	log.Println()
+
 	idx, length := 0, len(tokens)
+	log.Printf("TOKEN COUNT: %d", length)
 	for idx < length {
 		expr, idxIncr := parseExpression(tokens[idx:])
 		idx += idxIncr
@@ -38,7 +41,7 @@ type BinaryExprNode struct {
 	rightOperand interface{}
 }
 
-type FunctionCallExprNode struct {
+type FunctionCallNode struct {
 	function  interface{}
 	arguments []interface{}
 }
@@ -54,65 +57,78 @@ type MatchExprNode struct {
 }
 
 func parseExpression(tokens []Tok) (interface{}, int) {
-	tok := tokens[0]
-	if tok.kind == NegationOp {
-		atom, idx := parseAtom(tokens[1:])
-		return UnaryExprNode{
-			tok,
-			atom,
-		}, idx
+	idx := 0
+
+	consumeDanglingSeparator := func() {
+		if tokens[idx].kind == Separator {
+			idx++
+		}
 	}
 
-	atom, idx := parseAtom(tokens)
-	defer func() {
-		idx++ // clean up separator
-	}()
+	switch tokens[0].kind {
+	case NegationOp:
+		atom, idx := parseAtom(tokens[1:])
+		consumeDanglingSeparator()
+		return UnaryExprNode{
+			tokens[0],
+			atom,
+		}, idx
+	case Separator:
+		idx++
+	}
+
+	atom, idxIncr := parseAtom(tokens[idx:])
+	idx += idxIncr
+
+	log.Println("ATOM =============")
+	log.Println(atom)
 
 	next := tokens[idx]
+	log.Println(next)
 	idx++
 	switch next.kind {
 	case Separator:
+		consumeDanglingSeparator()
 		return atom, idx
+	case RightParen, RightBracket, RightBrace:
+		consumeDanglingSeparator()
+		return atom, idx - 1
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, IsOp, DefineOp, AccessorOp:
 		rightOperand, idxIncr := parseAtom(tokens[idx:])
 		idx += idxIncr
+		consumeDanglingSeparator()
 		return BinaryExprNode{
 			next,
 			atom,
 			rightOperand,
 		}, idx
-	case LeftParen:
-		arguments := make([]interface{}, 0)
-		for tokens[idx].kind != RightParen {
-			exprNode, idxIncr := parseExpression(tokens[idx:])
-			idxIncr += idx
-			arguments = append(arguments, exprNode)
-		}
-		return FunctionCallExprNode{
-			atom,
-			arguments,
-		}, idx
 	case MatchColon:
-		idx++ // assume next token is RightBrace for now
+		idx++ // assume next token is LeftBrace for now
 		clauses := make([]MatchClauseNode, 0)
 		for tokens[idx].kind != RightBrace {
 			clauseNode, idxIncr := parseMatchClause(tokens[idx:])
 			idx += idxIncr
 			clauses = append(clauses, clauseNode)
 		}
+		idx++ // RightBrace
+		consumeDanglingSeparator()
 		return MatchExprNode{
 			atom,
 			clauses,
 		}, idx
 	default:
-		log.Fatal("syntax error")
+		log.Fatal("syntax error: unexpected end of expression")
+		consumeDanglingSeparator()
 		return []interface{}{}, infty
 	}
 
-	log.Fatal("syntax error")
+	log.Fatal("syntax error: unexpected end of expression")
+	consumeDanglingSeparator()
 	return []interface{}{}, infty
 }
+
+type EmptyIdentifierNode struct{}
 
 type IdentifierNode struct {
 	val string
@@ -126,11 +142,9 @@ type StringLiteralNode struct {
 	val string
 }
 
-type ObjectLiteralNode struct {
-}
+type ObjectLiteralNode struct{}
 
-type ListLiteralNode struct {
-}
+type ListLiteralNode struct{}
 
 type FunctionLiteralNode struct {
 	arguments []IdentifierNode
@@ -140,11 +154,23 @@ type FunctionLiteralNode struct {
 func parseAtom(tokens []Tok) (interface{}, int) {
 	tok := tokens[0]
 	switch tok.kind {
+	case EmptyIdentifier:
+		return EmptyIdentifierNode{}, 1
 	case Identifier:
+		var atom interface{}
+		var idx int
 		if tokens[1].kind == FunctionArrow {
-			return parseFunctionLiteral(tokens)
+			atom, idx = parseFunctionLiteral(tokens)
 		} else {
-			return IdentifierNode{tok.stringVal()}, 1
+			atom, idx = IdentifierNode{tok.stringVal()}, 1
+		}
+		if tokens[idx].kind == LeftParen {
+			// may be a function call
+			fnCall, idxIncr := parseFunctionCall(atom, tokens[idx:])
+			idx += idxIncr
+			return fnCall, idx
+		} else {
+			return atom, idx
 		}
 	case NumberLiteral:
 		return NumberLiteralNode{tok.numberVal()}, 1
@@ -153,23 +179,57 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 	case TrueLiteral, FalseLiteral, NullLiteral:
 		return tok, 1
 	case LeftParen:
-		// grouped expression
-		return IdentifierNode{}, infty
+		// grouped expression or function literal
+		idx := 1 // LeftParen
+		var expr interface{}
+		var idxIncr int
+		if tokens[idx].kind != RightParen {
+			expr, idxIncr = parseExpression(tokens[idx:])
+		}
+		idx += idxIncr
+		idx++ // RightParen
+		if tokens[idx].kind == FunctionArrow {
+			expr, idxIncr = parseFunctionLiteral(tokens)
+			idx += idxIncr
+		}
+		if tokens[idx].kind == LeftParen {
+			fnCall, idxIncr := parseFunctionCall(expr, tokens[idx:])
+			idx += idxIncr
+			return fnCall, idx
+		} else {
+			return expr, idx
+		}
 	case LeftBrace:
 		// object literal
+		log.Fatal("syntax error: atom::LeftBrace not implemented")
 		return IdentifierNode{}, infty
 	case LeftBracket:
 		// array literal
-		return IdentifierNode{}, infty
-	default:
-		// may be function literal
+		log.Fatal("syntax error: atom::LeftBracket not implemented")
 		return IdentifierNode{}, infty
 	}
+
+	log.Fatalf("syntax error: unexpected end of atom, found %s", tok)
 	return IdentifierNode{}, infty
 }
 
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
-	return MatchClauseNode{}, infty
+	idx := 0
+	atom, idxIncr := parseAtom(tokens)
+	idx += idxIncr
+
+	if tokens[idx].kind != CaseArrow {
+		log.Fatalf("expected CaseArrow, but got %s", tokens[idx])
+	}
+	idx++
+
+	block, idxIncr := parseBlock(tokens[idx:])
+	idx += idxIncr
+
+	return MatchClauseNode{
+		atom,
+		block,
+	}, idx
 }
 
 func parseObjectLiteral(tokens []Tok) (interface{}, int) {
@@ -212,6 +272,22 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 		arguments,
 		blockResult,
 	}, idx
+}
+
+func parseFunctionCall(function interface{}, tokens []Tok) (FunctionCallNode, int) {
+	idx := 1 // LeftParen
+	arguments := make([]interface{}, 0)
+	for tokens[idx].kind != RightParen {
+		exprNode, idxIncr := parseExpression(tokens[idx:])
+		idx += idxIncr
+		arguments = append(arguments, exprNode)
+	}
+	idx++ // RightParen
+	return FunctionCallNode{
+		function,
+		arguments,
+	}, idx
+
 }
 
 func parseBlock(tokens []Tok) ([]interface{}, int) {
