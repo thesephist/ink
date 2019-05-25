@@ -42,7 +42,7 @@ MatchClause: Atom '->' Block [',']
 
 Atom: Identifier | Literal
 
-Identifier: (A-Za-z0-9@!?)* | _
+Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]* | _
 
 Literal: NumberLiteral | StringLiteral
         | BooleanLiteral | NullLiteral
@@ -63,9 +63,9 @@ UnaryOp: (
     '~' // negation
 )
 BinaryOp: (
-    '+' | '-' | '/' | '*' | '%' // arithmetic
+    '+' | '-' | '*' | '/' | '%' // arithmetic
     | '>' | '<' // arithmetic comparisons
-    | '==' // value comparison operator
+    | '=' // value comparison operator
     | 'is' // reference comparison operator
     | ':=' // assignment operator
     | '.' // property accessor
@@ -123,7 +123,7 @@ fb := n => {
     }
 }
 fizzbuzzhelp := n, max => {
-    n == max :: {
+    n = max :: {
         true -> fb(n)
         false -> {
             fb(n)

@@ -1,26 +1,5 @@
 package main
 
-const (
-	Block = iota
-	UnaryExpr
-	BinaryExpr
-	FunctionCallExpr
-	MatchExpr
-	MatchClause
-	Identifier
-
-	NumberLiteral
-	StringLiteral
-	BooleanLiteral
-	NullLiteral
-	ObjectLiteral
-	ListLiteral
-	FunctionLiteral
-
-	UnaryOp
-	BinaryOp
-)
-
 type Node struct {
 	kind int
 }
@@ -68,22 +47,4 @@ func parseListLiteral(input <-chan Tok) Node {
 
 func parseFunctionLiteral(input <-chan Tok) Node {
 	return Node{}
-}
-
-func isUnaryOp(tok string) bool {
-	switch tok {
-	case "~":
-		return true
-	default:
-		return false
-	}
-}
-
-func isBinaryOp(tok string) bool {
-	switch tok {
-	case "+", "-", "/", "*", "%", ">", "<", "==", "is", ":=", ".":
-		return true
-	default:
-		return false
-	}
 }
