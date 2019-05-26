@@ -206,6 +206,7 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 	case LeftBracket:
 		// array literal
 		log.Fatal("syntax error: atom::LeftBracket not implemented")
+		// list of expressions
 		return IdentifierNode{}, infty
 	}
 
