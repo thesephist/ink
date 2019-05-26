@@ -10,6 +10,8 @@ const (
 )
 
 func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
 		log.Println(tok)
@@ -60,7 +62,7 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 	idx := 0
 
 	consumeDanglingSeparator := func() {
-		if tokens[idx].kind == Separator {
+		if idx < len(tokens) && tokens[idx].kind == Separator {
 			idx++
 		}
 	}
@@ -80,11 +82,7 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 	atom, idxIncr := parseAtom(tokens[idx:])
 	idx += idxIncr
 
-	log.Println("ATOM =============")
-	log.Println(atom)
-
 	next := tokens[idx]
-	log.Println(next)
 	idx++
 	switch next.kind {
 	case Separator:
@@ -164,7 +162,7 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		} else {
 			atom, idx = IdentifierNode{tok.stringVal()}, 1
 		}
-		if tokens[idx].kind == LeftParen {
+		if idx < len(tokens) && tokens[idx].kind == LeftParen {
 			// may be a function call
 			fnCall, idxIncr := parseFunctionCall(atom, tokens[idx:])
 			idx += idxIncr
@@ -190,9 +188,11 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		idx++ // RightParen
 		if tokens[idx].kind == FunctionArrow {
 			expr, idxIncr = parseFunctionLiteral(tokens)
-			idx += idxIncr
+			// we assign instead of incrementing here because
+			// 	we started from index 0
+			idx = idxIncr
 		}
-		if tokens[idx].kind == LeftParen {
+		if idx < len(tokens) && tokens[idx].kind == LeftParen {
 			fnCall, idxIncr := parseFunctionCall(expr, tokens[idx:])
 			idx += idxIncr
 			return fnCall, idx
@@ -312,6 +312,9 @@ func parseBlock(tokens []Tok) ([]interface{}, int) {
 			expressions = append(expressions, exprResult)
 		}
 		idx++ // right brace
+		if tokens[idx].kind == Separator {
+			idx++
+		}
 	default:
 		var exprResult interface{}
 		exprResult, idx = parseExpression(tokens)
