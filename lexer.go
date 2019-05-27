@@ -33,13 +33,14 @@ const (
 	// ambiguous operators and symbols
 	AccessorOp
 
-	IsOp
+	EqRefOp
 
 	// =
 	EqualOp
 	FunctionArrow
 
 	// :
+	KeyValueSeparator
 	DefineOp
 	MatchColon
 
@@ -103,7 +104,10 @@ func (tok *Tok) numberVal() float64 {
 }
 
 func (tok Tok) String() string {
-	return fmt.Sprintf("Token %s: \t%s", tokKindToName(tok.kind), tok.stringVal())
+	return fmt.Sprintf("%s[%s] - %s",
+		tokKindToName(tok.kind),
+		tok.stringVal(),
+		tok.span.String())
 }
 
 func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
@@ -112,8 +116,8 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	strbuf := ""
 	var strbufStartLine, strbufStartCol int
 
-	lineNo := 0
-	colNo := 0
+	lineNo := 1
+	colNo := 1
 
 	simpleCommit := func(tok Tok) {
 		lastTokKind = tok.kind
@@ -128,17 +132,23 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
+	// TODO: Tokenize correctly when all unnecessary whitespace
+	// 	(anything not in a string literal; not around is, true, false, null)
+	// 	is removed. This probably involves stopping at non-number and
+	// 	non-identifier characters while scanning for those below.
 	commitClear := func() {
 		if buf != "" {
 			switch buf {
 			case ".":
 				simpleCommitChar(AccessorOp)
 			case "is":
-				simpleCommitChar(IsOp)
+				simpleCommitChar(EqRefOp)
 			case "=":
 				simpleCommitChar(EqualOp)
 			case "=>":
 				simpleCommitChar(FunctionArrow)
+			case ":":
+				simpleCommitChar(KeyValueSeparator)
 			case ":=":
 				simpleCommitChar(DefineOp)
 			case "::":
@@ -225,7 +235,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				}
 			case char == '\n':
 				lineNo++
-				colNo = 0
+				colNo = 1
 				ensureSeparator()
 			case unicode.IsSpace(char):
 				commitClear()
@@ -239,6 +249,8 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				commitChar(MultiplyOp)
 			case char == '/':
 				commitChar(DivideOp)
+			case char == '%':
+				commitChar(ModulusOp)
 			case char == '<':
 				commitChar(LessThanOp)
 			case char == ',':
@@ -328,14 +340,16 @@ func tokKindToName(kind int) string {
 	case AccessorOp:
 		return "AccessorOp"
 
-	case IsOp:
-		return "IsOp"
+	case EqRefOp:
+		return "EqRefOp"
 
 	case EqualOp:
 		return "EqualOp"
 	case FunctionArrow:
 		return "FunctionArrow"
 
+	case KeyValueSeparator:
+		return "KeyValueSeparator"
 	case DefineOp:
 		return "DefineOp"
 	case MatchColon:

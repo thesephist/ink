@@ -21,10 +21,9 @@ func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
 	log.Println()
 
 	idx, length := 0, len(tokens)
-	log.Printf("TOKEN COUNT: %d", length)
 	for idx < length {
-		expr, idxIncr := parseExpression(tokens[idx:])
-		idx += idxIncr
+		expr, incr := parseExpression(tokens[idx:])
+		idx += incr
 		nodes <- expr
 	}
 	close(nodes)
@@ -79,22 +78,27 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 		idx++
 	}
 
-	atom, idxIncr := parseAtom(tokens[idx:])
-	idx += idxIncr
+	atom, incr := parseAtom(tokens[idx:])
+	idx += incr
 
 	next := tokens[idx]
 	idx++
 	switch next.kind {
 	case Separator:
+		// TODO: is this call to consumeDanglingSeparator() necessary?
 		consumeDanglingSeparator()
 		return atom, idx
+	case KeyValueSeparator:
+		// we don't consume the ':' because it's not
+		// 	implicit in an expression
+		return atom, idx - 1
 	case RightParen, RightBracket, RightBrace:
 		consumeDanglingSeparator()
 		return atom, idx - 1
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
-		GreaterThanOp, LessThanOp, EqualOp, IsOp, DefineOp, AccessorOp:
-		rightOperand, idxIncr := parseAtom(tokens[idx:])
-		idx += idxIncr
+		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+		rightOperand, incr := parseAtom(tokens[idx:])
+		idx += incr
 		// TODO: impl order of operations.
 		// 	'.' > '%' > '*/' > '+-' > everything else
 		consumeDanglingSeparator()
@@ -107,8 +111,8 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 		idx++ // assume next token is LeftBrace for now
 		clauses := make([]MatchClauseNode, 0)
 		for tokens[idx].kind != RightBrace {
-			clauseNode, idxIncr := parseMatchClause(tokens[idx:])
-			idx += idxIncr
+			clauseNode, incr := parseMatchClause(tokens[idx:])
+			idx += incr
 			clauses = append(clauses, clauseNode)
 		}
 		idx++ // RightBrace
@@ -118,12 +122,12 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 			clauses,
 		}, idx
 	default:
-		log.Fatal("syntax error: unexpected end of expression")
+		log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
 		consumeDanglingSeparator()
 		return []interface{}{}, infty
 	}
 
-	log.Fatal("syntax error: unexpected end of expression")
+	log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
 	consumeDanglingSeparator()
 	return []interface{}{}, infty
 }
@@ -142,7 +146,14 @@ type StringLiteralNode struct {
 	val string
 }
 
-type ObjectLiteralNode struct{}
+type ObjectLiteralNode struct {
+	entries []ObjectEntryNode
+}
+
+type ObjectEntryNode struct {
+	key interface{}
+	val interface{}
+}
 
 type ListLiteralNode struct {
 	vals []interface{}
@@ -168,8 +179,8 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		}
 		if idx < len(tokens) && tokens[idx].kind == LeftParen {
 			// may be a function call
-			fnCall, idxIncr := parseFunctionCall(atom, tokens[idx:])
-			idx += idxIncr
+			fnCall, incr := parseFunctionCall(atom, tokens[idx:])
+			idx += incr
 			return fnCall, idx
 		} else {
 			return atom, idx
@@ -184,57 +195,67 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		// grouped expression or function literal
 		idx := 1 // LeftParen
 		var expr interface{}
-		var idxIncr int
+		var incr int
 		for tokens[idx].kind != RightParen {
-			expr, idxIncr = parseExpression(tokens[idx:])
-			idx += idxIncr
+			expr, incr = parseExpression(tokens[idx:])
+			idx += incr
 		}
 		idx++ // RightParen
 		if tokens[idx].kind == FunctionArrow {
-			expr, idxIncr = parseFunctionLiteral(tokens)
+			expr, incr = parseFunctionLiteral(tokens)
 			// we assign instead of incrementing here because
 			// 	we started from index 0
-			idx = idxIncr
+			idx = incr
 		}
 		if idx < len(tokens) && tokens[idx].kind == LeftParen {
-			fnCall, idxIncr := parseFunctionCall(expr, tokens[idx:])
-			idx += idxIncr
+			fnCall, incr := parseFunctionCall(expr, tokens[idx:])
+			idx += incr
 			return fnCall, idx
 		} else {
 			return expr, idx
 		}
 	case LeftBrace:
-		// object literal
-		log.Fatal("syntax error: atom::LeftBrace not implemented")
-		return IdentifierNode{}, infty
+		idx := 1
+		entries := make([]ObjectEntryNode, 0)
+		for tokens[idx].kind != RightBrace {
+			keyExpr, keyIncr := parseExpression(tokens[idx:])
+			idx += keyIncr
+			idx++ // KeyValueSeparator
+			valExpr, valIncr := parseExpression(tokens[idx:])
+			// Separator consumed by parseExpression
+			idx += valIncr
+			entries = append(entries, ObjectEntryNode{keyExpr, valExpr})
+		}
+		idx++ // RightBrace
+		return ObjectLiteralNode{entries}, idx
 	case LeftBracket:
-		// list literal
 		idx := 1 // LeftBracket
 		vals := make([]interface{}, 0)
 		for tokens[idx].kind != RightBracket {
-			expr, idxIncr := parseExpression(tokens[idx:])
-			idx += idxIncr
+			expr, incr := parseExpression(tokens[idx:])
+			idx += incr
 			vals = append(vals, expr)
 		}
-		return ListLiteralNode{vals}, infty
+		idx++ // RightBracket
+		return ListLiteralNode{vals}, idx
 	}
 
-	log.Fatalf("syntax error: unexpected end of atom, found %s at %s", tok, tok.span.String())
+	log.Fatalf("syntax error: unexpected end of atom, found %s", tok)
 	return IdentifierNode{}, infty
 }
 
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 	idx := 0
-	atom, idxIncr := parseAtom(tokens)
-	idx += idxIncr
+	atom, incr := parseAtom(tokens)
+	idx += incr
 
 	if tokens[idx].kind != CaseArrow {
 		log.Fatalf("expected CaseArrow, but got %s", tokens[idx])
 	}
 	idx++
 
-	block, idxIncr := parseBlock(tokens[idx:])
-	idx += idxIncr
+	block, incr := parseBlock(tokens[idx:])
+	idx += incr
 
 	return MatchClauseNode{
 		atom,
@@ -281,8 +302,8 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 	}
 	idx++
 
-	blockResult, idxIncr := parseBlock(tokens[idx:])
-	idx += idxIncr
+	blockResult, incr := parseBlock(tokens[idx:])
+	idx += incr
 	return FunctionLiteralNode{
 		arguments,
 		blockResult,
@@ -293,8 +314,8 @@ func parseFunctionCall(function interface{}, tokens []Tok) (FunctionCallNode, in
 	idx := 1 // LeftParen
 	arguments := make([]interface{}, 0)
 	for tokens[idx].kind != RightParen {
-		exprNode, idxIncr := parseExpression(tokens[idx:])
-		idx += idxIncr
+		exprNode, incr := parseExpression(tokens[idx:])
+		idx += incr
 		arguments = append(arguments, exprNode)
 	}
 	idx++ // RightParen
@@ -313,8 +334,8 @@ func parseBlock(tokens []Tok) ([]interface{}, int) {
 		// parse until rlight brace
 		idx++ // left brace
 		for tokens[idx].kind != RightBrace {
-			exprResult, idxIncr := parseExpression(tokens[idx:])
-			idx += idxIncr
+			exprResult, incr := parseExpression(tokens[idx:])
+			idx += incr
 			expressions = append(expressions, exprResult)
 		}
 		idx++ // right brace

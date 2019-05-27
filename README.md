@@ -24,7 +24,7 @@ Program: ExpressionList
 
 Block: '{' ExpressionList '}' | Expression
 
-ExpressionList: (Expression [','])*
+ExpressionList: (Expression ',')*
 
 Expression: (
     Atom
@@ -37,7 +37,7 @@ UnaryExpr: UnaryOp Atom
 BinaryExpr: Atom BinaryOp Atom
 MatchExpr: Atom '::' '{' MatchClause* '}'
 
-MatchClause: Atom '->' Block [',']
+MatchClause: Atom '->' Block ','
 
 
 Atom: Identifier | FunctionCall | Literal | '(' ExpressionList ')'
@@ -57,10 +57,11 @@ StringLiteral: '\'' (Escaped unicode bytes) '\''
 BooleanLiteral: 'true' | 'false'
 NullLiteral: 'null'
 
-ObjectLiteral: '{' (Identifier ':' Atom ',')* '}'
+ObjectLiteral: '{' ObjectEntry* '}'
+ObjectEntry: Expression ':' Expression ','
 ListLiteral: '[' (Expression ',')* ']'
 FunctionLiteral: Identifier '=>' Block
-        | '(' (Identifier [','])* ')' '=>' Block
+        | '(' (Identifier ',')* ')' '=>' Block
 
 UnaryOp: (
     '~' // negation
@@ -77,6 +78,8 @@ BinaryOp: (
 
 A few quirks of this syntax:
 
+- All variables use lexical binding and scope, and are bound to the block
+- Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, so few are required after expressions and before delimiters.
 - String literals cannot contain comments. Backticks inside string literals are counted as a part of the string literal. String literals are also multiline.
     - This also allows the programmer to comment out a block with an explanation, simply like this:
     ```
@@ -87,6 +90,7 @@ A few quirks of this syntax:
     moreRealCode()
     ```
 - List and object property/element access have the same syntax, which is the reference to the list/object followed by the `.` (property access) operator. This means we access array indexes with `arr.1`, `arr.(index + 1)`, etc. and object property with `obj.propName`, `obj.(computed + propName)`, etc.
+- Object (dictionary) keys can be arbitrary expressions, including variable names. If the key is a single identifier, the identifier's name will be used as a key in the dict, and if it's not an identifier (an atom, expression, etc.) the value of the expression will be computed and used as the key. This seems like it may cause trouble conceptually, but turns out to be intuitive in practice.
 
 ## Types
 
@@ -139,7 +143,7 @@ fb := n => {
     }
 }
 fizzbuzzhelp := (n, max) => {
-    n = max :: {
+    (n = max) :: {
         true -> fb(n)
         false -> {
             fb(n)

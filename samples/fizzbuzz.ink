@@ -1,5 +1,3 @@
-arr := [1, 2 + 3.52, functionCall('hi')]
-` commented out below
 fb := n => {
     [n % 3, n % 5] :: {
         [0, 0] -> out('FizzBuzz')
@@ -9,7 +7,7 @@ fb := n => {
     }
 }
 fizzbuzzhelp := (n, max) => {
-    n = max :: {
+    (n = max) :: {
         true -> fb(n)
         false -> {
             fb(n)
@@ -21,4 +19,3 @@ fizzbuzz := max => {
     fizzbuzzhelp(1, max)
 }
 fizzbuzz(100)
-`
