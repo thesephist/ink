@@ -1,5 +1,5 @@
-arr := [1, 2, 3]
-`
+arr := [1, 2 + 3.52, functionCall('hi')]
+` commented out below
 fb := n => {
     [n % 3, n % 5] :: {
         [0, 0] -> out('FizzBuzz')

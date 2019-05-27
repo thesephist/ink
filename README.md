@@ -15,7 +15,7 @@ Ink has a few goals. In order, they are
 
 Ink's syntax is inspired by JavaScript, but much more minimal.
 
-Comments are delimited on both sides with the backtick `\`` character, and can contain newlines. The only exception to this rule is that strings cannot contain any comments.
+Comments are delimited on both sides with the backtick `\`` character.
 
 As a side note here, all values and references are immutable.
 
@@ -40,7 +40,7 @@ MatchExpr: Atom '::' '{' MatchClause* '}'
 MatchClause: Atom '->' Block [',']
 
 
-Atom: Identifier | FunctionCall | Literal | '(' Expression* ')'
+Atom: Identifier | FunctionCall | Literal | '(' ExpressionList ')'
 
 Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]* | _
 
@@ -58,7 +58,7 @@ BooleanLiteral: 'true' | 'false'
 NullLiteral: 'null'
 
 ObjectLiteral: '{' (Identifier ':' Atom ',')* '}'
-ListLitereal: '[' (Atom ',')* ']'
+ListLiteral: '[' (Expression ',')* ']'
 FunctionLiteral: Identifier '=>' Block
         | '(' (Identifier [','])* ')' '=>' Block
 
@@ -74,6 +74,19 @@ BinaryOp: (
     | '.' // property accessor
 )
 ```
+
+A few quirks of this syntax:
+
+- String literals cannot contain comments. Backticks inside string literals are counted as a part of the string literal. String literals are also multiline.
+    - This also allows the programmer to comment out a block with an explanation, simply like this:
+    ```
+    realCode()
+    ` this block is commented out for testing reasons
+    someOtherCode()
+    `
+    moreRealCode()
+    ```
+- List and object property/element access have the same syntax, which is the reference to the list/object followed by the `.` (property access) operator. This means we access array indexes with `arr.1`, `arr.(index + 1)`, etc. and object property with `obj.propName`, `obj.(computed + propName)`, etc.
 
 ## Types
 

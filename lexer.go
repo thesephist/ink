@@ -70,6 +70,12 @@ type span struct {
 	endLine, endCol     int
 }
 
+func (sp *span) String() string {
+	return fmt.Sprintf("%d:%d - %d:%d",
+		sp.startLine, sp.startCol,
+		sp.endLine, sp.endCol)
+}
+
 type Tok struct {
 	val  interface{}
 	kind int

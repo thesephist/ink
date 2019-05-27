@@ -95,6 +95,8 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 		GreaterThanOp, LessThanOp, EqualOp, IsOp, DefineOp, AccessorOp:
 		rightOperand, idxIncr := parseAtom(tokens[idx:])
 		idx += idxIncr
+		// TODO: impl order of operations.
+		// 	'.' > '%' > '*/' > '+-' > everything else
 		consumeDanglingSeparator()
 		return BinaryExprNode{
 			next,
@@ -142,7 +144,9 @@ type StringLiteralNode struct {
 
 type ObjectLiteralNode struct{}
 
-type ListLiteralNode struct{}
+type ListLiteralNode struct {
+	vals []interface{}
+}
 
 type FunctionLiteralNode struct {
 	arguments []IdentifierNode
@@ -204,13 +208,18 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		log.Fatal("syntax error: atom::LeftBrace not implemented")
 		return IdentifierNode{}, infty
 	case LeftBracket:
-		// array literal
-		log.Fatal("syntax error: atom::LeftBracket not implemented")
-		// list of expressions
-		return IdentifierNode{}, infty
+		// list literal
+		idx := 1 // LeftBracket
+		vals := make([]interface{}, 0)
+		for tokens[idx].kind != RightBracket {
+			expr, idxIncr := parseExpression(tokens[idx:])
+			idx += idxIncr
+			vals = append(vals, expr)
+		}
+		return ListLiteralNode{vals}, infty
 	}
 
-	log.Fatalf("syntax error: unexpected end of atom, found %s", tok)
+	log.Fatalf("syntax error: unexpected end of atom, found %s at %s", tok, tok.span.String())
 	return IdentifierNode{}, infty
 }
 
@@ -235,10 +244,6 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 
 func parseObjectLiteral(tokens []Tok) (interface{}, int) {
 	return ObjectLiteralNode{}, infty
-}
-
-func parseListLiteral(tokens []Tok) (interface{}, int) {
-	return ListLiteralNode{}, infty
 }
 
 func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
