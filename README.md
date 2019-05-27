@@ -15,6 +15,8 @@ Ink has a few goals. In order, they are
 
 Ink's syntax is inspired by JavaScript, but much more minimal.
 
+Comments are delimited on both sides with the backtick `\`` character, and can contain newlines. The only exception to this rule is that strings cannot contain any comments.
+
 As a side note here, all values and references are immutable.
 
 ```

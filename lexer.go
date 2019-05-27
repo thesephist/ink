@@ -212,6 +212,11 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				inStringLiteral = !inStringLiteral
 			case inStringLiteral:
 				strbuf += string(char)
+			case char == '`':
+				nextChar := <-input
+				for nextChar != '`' {
+					nextChar = <-input
+				}
 			case char == '\n':
 				lineNo++
 				colNo = 0

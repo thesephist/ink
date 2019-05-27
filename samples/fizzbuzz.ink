@@ -1,3 +1,5 @@
+arr := [1, 2, 3]
+`
 fb := n => {
     [n % 3, n % 5] :: {
         [0, 0] -> out('FizzBuzz')
@@ -19,3 +21,4 @@ fizzbuzz := max => {
     fizzbuzzhelp(1, max)
 }
 fizzbuzz(100)
+`
