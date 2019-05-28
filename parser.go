@@ -9,7 +9,7 @@ const (
 	infty = math.MaxInt32
 )
 
-func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
+func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	tokens := make([]Tok, 0)
@@ -33,31 +33,31 @@ func Parse(tokenStream <-chan Tok, nodes chan<- interface{}, done chan<- bool) {
 
 type UnaryExprNode struct {
 	operator Tok
-	operand  interface{}
+	operand  Node
 }
 
 type BinaryExprNode struct {
 	operator     Tok
-	leftOperand  interface{}
-	rightOperand interface{}
+	leftOperand  Node
+	rightOperand Node
 }
 
 type FunctionCallNode struct {
-	function  interface{}
-	arguments []interface{}
+	function  Node
+	arguments []Node
 }
 
 type MatchClauseNode struct {
-	target      interface{}
-	expressions []interface{}
+	target      Node
+	expressions []Node
 }
 
 type MatchExprNode struct {
-	condition interface{}
+	condition Node
 	clauses   []MatchClauseNode
 }
 
-func parseExpression(tokens []Tok) (interface{}, int) {
+func parseExpression(tokens []Tok) (Node, int) {
 	idx := 0
 
 	consumeDanglingSeparator := func() {
@@ -124,12 +124,12 @@ func parseExpression(tokens []Tok) (interface{}, int) {
 	default:
 		log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
 		consumeDanglingSeparator()
-		return []interface{}{}, infty
+		return nil, infty
 	}
 
 	log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
 	consumeDanglingSeparator()
-	return []interface{}{}, infty
+	return nil, infty
 }
 
 type EmptyIdentifierNode struct{}
@@ -146,31 +146,37 @@ type StringLiteralNode struct {
 	val string
 }
 
+type BooleanLiteralNode struct {
+	val bool
+}
+
+type NullLiteralNode struct{}
+
 type ObjectLiteralNode struct {
 	entries []ObjectEntryNode
 }
 
 type ObjectEntryNode struct {
-	key interface{}
-	val interface{}
+	key Node
+	val Node
 }
 
 type ListLiteralNode struct {
-	vals []interface{}
+	vals []Node
 }
 
 type FunctionLiteralNode struct {
 	arguments []IdentifierNode
-	body      []interface{}
+	body      []Node
 }
 
-func parseAtom(tokens []Tok) (interface{}, int) {
+func parseAtom(tokens []Tok) (Node, int) {
 	tok := tokens[0]
 	switch tok.kind {
 	case EmptyIdentifier:
 		return EmptyIdentifierNode{}, 1
 	case Identifier:
-		var atom interface{}
+		var atom Node
 		var idx int
 		if tokens[1].kind == FunctionArrow {
 			atom, idx = parseFunctionLiteral(tokens)
@@ -189,12 +195,16 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		return NumberLiteralNode{tok.numberVal()}, 1
 	case StringLiteral:
 		return StringLiteralNode{tok.stringVal()}, 1
-	case TrueLiteral, FalseLiteral, NullLiteral:
-		return tok, 1
+	case TrueLiteral:
+		return BooleanLiteralNode{true}, 1
+	case FalseLiteral:
+		return BooleanLiteralNode{false}, 1
+	case NullLiteral:
+		return NullLiteralNode{}, 1
 	case LeftParen:
 		// grouped expression or function literal
 		idx := 1 // LeftParen
-		var expr interface{}
+		var expr Node
 		var incr int
 		for tokens[idx].kind != RightParen {
 			expr, incr = parseExpression(tokens[idx:])
@@ -230,7 +240,7 @@ func parseAtom(tokens []Tok) (interface{}, int) {
 		return ObjectLiteralNode{entries}, idx
 	case LeftBracket:
 		idx := 1 // LeftBracket
-		vals := make([]interface{}, 0)
+		vals := make([]Node, 0)
 		for tokens[idx].kind != RightBracket {
 			expr, incr := parseExpression(tokens[idx:])
 			idx += incr
@@ -263,7 +273,7 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 	}, idx
 }
 
-func parseObjectLiteral(tokens []Tok) (interface{}, int) {
+func parseObjectLiteral(tokens []Tok) (Node, int) {
 	return ObjectLiteralNode{}, infty
 }
 
@@ -310,9 +320,9 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 	}, idx
 }
 
-func parseFunctionCall(function interface{}, tokens []Tok) (FunctionCallNode, int) {
+func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
 	idx := 1 // LeftParen
-	arguments := make([]interface{}, 0)
+	arguments := make([]Node, 0)
 	for tokens[idx].kind != RightParen {
 		exprNode, incr := parseExpression(tokens[idx:])
 		idx += incr
@@ -326,9 +336,9 @@ func parseFunctionCall(function interface{}, tokens []Tok) (FunctionCallNode, in
 
 }
 
-func parseBlock(tokens []Tok) ([]interface{}, int) {
+func parseBlock(tokens []Tok) ([]Node, int) {
 	idx := 0
-	expressions := make([]interface{}, 0)
+	expressions := make([]Node, 0)
 	switch tokens[0].kind {
 	case LeftBrace:
 		// parse until rlight brace
@@ -343,7 +353,7 @@ func parseBlock(tokens []Tok) ([]interface{}, int) {
 			idx++
 		}
 	default:
-		var exprResult interface{}
+		var exprResult Node
 		exprResult, idx = parseExpression(tokens)
 		expressions = append(expressions, exprResult)
 	}

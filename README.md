@@ -17,8 +17,6 @@ Ink's syntax is inspired by JavaScript, but much more minimal.
 
 Comments are delimited on both sides with the backtick `\`` character.
 
-As a side note here, all values and references are immutable.
-
 ```
 Program: ExpressionList
 

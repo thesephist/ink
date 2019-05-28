@@ -10,7 +10,7 @@ func main() {
 	inputReader := bufio.NewReader(os.Stdin)
 
 	tokens := make(chan Tok)
-	nodes := make(chan interface{})
+	nodes := make(chan Node)
 
 	done := make(chan bool, 3)
 	iso := Isolate{}
