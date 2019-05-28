@@ -104,10 +104,17 @@ func (tok *Tok) numberVal() float64 {
 }
 
 func (tok Tok) String() string {
-	return fmt.Sprintf("%s[%s] - %s",
-		tokKindToName(tok.kind),
-		tok.stringVal(),
-		tok.span.String())
+	str := tok.stringVal()
+	if str == "" {
+		return fmt.Sprintf("%s - %s",
+			tokKindToName(tok.kind),
+			tok.span.String())
+	} else {
+		return fmt.Sprintf("%s %s - %s",
+			tokKindToName(tok.kind),
+			str,
+			tok.span.String())
+	}
 }
 
 func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {

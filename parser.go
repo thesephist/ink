@@ -10,8 +10,6 @@ const (
 )
 
 func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
 		log.Println(tok)
