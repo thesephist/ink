@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 type Value interface {
@@ -14,9 +15,8 @@ type NumberValue struct {
 	val float64
 }
 
-// TODO: update these String() methods to be correct impls
 func (v NumberValue) String() string {
-	return "NumberValue"
+	return fmt.Sprintf("%f", v.val)
 }
 
 func (v NumberValue) Equals(other Value) bool {
@@ -33,7 +33,7 @@ type StringValue struct {
 }
 
 func (v StringValue) String() string {
-	return "StringValue"
+	return fmt.Sprintf("%s", v.val)
 }
 
 func (v StringValue) Equals(other Value) bool {
@@ -50,7 +50,11 @@ type BooleanValue struct {
 }
 
 func (v BooleanValue) String() string {
-	return "BooleanValue"
+	if v.val {
+		return "true"
+	} else {
+		return "false"
+	}
 }
 
 func (v BooleanValue) Equals(other Value) bool {
@@ -65,7 +69,7 @@ func (v BooleanValue) Equals(other Value) bool {
 type NullValue struct{}
 
 func (v NullValue) String() string {
-	return "NullValue"
+	return "null"
 }
 
 func (v NullValue) Equals(other Value) bool {
@@ -78,7 +82,18 @@ type CompositeValue struct {
 }
 
 func (v CompositeValue) String() string {
-	return "CompositeValue"
+	if len(v.entries) == 0 {
+		return "{}"
+	} else {
+		entries := make([]string, 0)
+		for key, ent := range v.entries {
+			entries = append(
+				entries,
+				fmt.Sprintf("%s: %s", key, ent.String()),
+			)
+		}
+		return fmt.Sprintf("{%s}", strings.Join(entries, ", "))
+	}
 }
 
 func (v CompositeValue) Equals(other Value) bool {
@@ -111,7 +126,8 @@ type FunctionValue struct {
 }
 
 func (v FunctionValue) String() string {
-	return "FunctionValue"
+	// XXX: improve this notation
+	return v.defNode.String()
 }
 
 func (v FunctionValue) Equals(other Value) bool {
