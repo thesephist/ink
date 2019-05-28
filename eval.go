@@ -7,14 +7,25 @@ import (
 
 type Value interface {
 	String() string
+	Equals(Value) bool // deep, value equality
 }
 
 type NumberValue struct {
 	val float64
 }
 
+// TODO: update these String() methods to be correct impls
 func (v NumberValue) String() string {
 	return "NumberValue"
+}
+
+func (v NumberValue) Equals(other Value) bool {
+	ov, ok := other.(NumberValue)
+	if ok {
+		return v.val == ov.val
+	} else {
+		return false
+	}
 }
 
 type StringValue struct {
@@ -25,6 +36,15 @@ func (v StringValue) String() string {
 	return "StringValue"
 }
 
+func (v StringValue) Equals(other Value) bool {
+	ov, ok := other.(StringValue)
+	if ok {
+		return v.val == ov.val
+	} else {
+		return false
+	}
+}
+
 type BooleanValue struct {
 	val bool
 }
@@ -33,10 +53,24 @@ func (v BooleanValue) String() string {
 	return "BooleanValue"
 }
 
+func (v BooleanValue) Equals(other Value) bool {
+	ov, ok := other.(BooleanValue)
+	if ok {
+		return v.val == ov.val
+	} else {
+		return false
+	}
+}
+
 type NullValue struct{}
 
 func (v NullValue) String() string {
 	return "NullValue"
+}
+
+func (v NullValue) Equals(other Value) bool {
+	_, ok := other.(NullValue)
+	return ok
 }
 
 type CompositeValue struct {
@@ -47,18 +81,46 @@ func (v CompositeValue) String() string {
 	return "CompositeValue"
 }
 
+func (v CompositeValue) Equals(other Value) bool {
+	ov, ok := other.(CompositeValue)
+	if ok {
+		if len(v.entries) != len(ov.entries) {
+			return false
+		}
+
+		for key, val := range v.entries {
+			otherVal, prs := ov.entries[key]
+			if prs && !val.Equals(otherVal) {
+				return false
+			}
+		}
+		return true
+	} else {
+		return false
+	}
+}
+
 // XXX: for now, our GC heuristic is simply to dump/free
 //	heaps from functions that are no longer referenced in the
 //	main isolate's heap, and keep all other heaps, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
-	node       Node
+	defNode    Node
 	parentHeap map[string]Value
 	heap       map[string]Value
 }
 
 func (v FunctionValue) String() string {
 	return "FunctionValue"
+}
+
+func (v FunctionValue) Equals(other Value) bool {
+	ov, ok := other.(FunctionValue)
+	if ok {
+		return v.defNode == ov.defNode
+	} else {
+		return false
+	}
 }
 
 type Node interface {
@@ -85,7 +147,7 @@ func (n UnaryExprNode) Eval(heap map[string]Value) Value {
 			return nil
 		}
 	}
-
+	log.Fatal("Unrecognized unary operation", n)
 	return nil
 }
 
@@ -121,6 +183,7 @@ func (n BinaryExprNode) String() string {
 		n.rightOperand.String())
 }
 
+// TODO
 func (n BinaryExprNode) Eval(heap map[string]Value) Value {
 	return nil
 }
@@ -138,7 +201,16 @@ func (n FunctionCallNode) String() string {
 }
 
 func (n FunctionCallNode) Eval(heap map[string]Value) Value {
-	return nil
+	fn := n.function.Eval(heap)
+	_, ok := fn.(FunctionValue)
+	if ok {
+		// TODO
+		return NullValue{}
+	} else {
+		log.Fatalf("runtime error: attempted to call a non-function value %s",
+			fn.String())
+		return NullValue{}
+	}
 }
 
 func (n MatchClauseNode) String() string {
@@ -168,7 +240,12 @@ func (n MatchExprNode) String() string {
 
 func (n MatchExprNode) Eval(heap map[string]Value) Value {
 	conditionVal := n.condition.Eval(heap)
-	return conditionVal
+	for _, cl := range n.clauses {
+		if conditionVal.Equals(cl.target.Eval(heap)) {
+			return cl.expression.Eval(heap)
+		}
+	}
+	return NullValue{}
 }
 
 func (n ExpressionListNode) String() string {
@@ -207,7 +284,7 @@ func (n IdentifierNode) String() string {
 func (n IdentifierNode) Eval(heap map[string]Value) Value {
 	val, prs := heap[n.val]
 	if !prs {
-		log.Fatal("%s is not defined", n.val)
+		log.Fatalf("%s is not defined", n.val)
 	}
 	return val
 }
@@ -287,7 +364,15 @@ func (n ObjectEntryNode) Eval(heap map[string]Value) Value {
 }
 
 func (n ListLiteralNode) String() string {
-	return "ListLiteralNode"
+	if len(n.vals) == 0 {
+		return fmt.Sprintf("List []")
+	} else {
+		vals := n.vals[0].String()
+		for _, v := range n.vals[1:] {
+			vals += ", " + v.String()
+		}
+		return fmt.Sprintf("List [%s]", vals)
+	}
 }
 
 func (n ListLiteralNode) Eval(heap map[string]Value) Value {
