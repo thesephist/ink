@@ -13,9 +13,10 @@ func main() {
 	nodes := make(chan interface{})
 
 	done := make(chan bool, 3)
+	iso := Isolate{}
 	go Tokenize(input, tokens, done)
 	go Parse(tokens, nodes, done)
-	go Eval(nodes, done)
+	go iso.Eval(nodes, done)
 
 	for {
 		char, _, err := inputReader.ReadRune()
