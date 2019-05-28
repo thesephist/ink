@@ -144,9 +144,6 @@ type Node interface {
 	Eval(map[string]Value) Value
 }
 
-// TODO: we should pull node definitions and these impls out
-//	to node.go
-
 func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
@@ -199,8 +196,173 @@ func (n BinaryExprNode) String() string {
 		n.rightOperand.String())
 }
 
-// TODO
+func operandToStringKey(rightOperand Node, heap map[string]Value) string {
+	var rightValue string
+	switch right := rightOperand.(type) {
+	case IdentifierNode:
+		rightValue = right.val
+	case NumberLiteralNode:
+		rightValue = string(int(right.val))
+	default:
+		rightEvaluatedValue := rightOperand.Eval(heap)
+		rv, ok := rightEvaluatedValue.(StringValue)
+		if ok {
+			rightValue = rv.val
+		} else {
+			log.Fatalf("runtime error: cannot access property %s of an object",
+				rightEvaluatedValue.String())
+		}
+	}
+	return rightValue
+}
+
 func (n BinaryExprNode) Eval(heap map[string]Value) Value {
+	if n.operator.kind == DefineOp {
+		leftIdent, okIdent := n.leftOperand.(IdentifierNode)
+		leftAccess, okAccess := n.leftOperand.(BinaryExprNode)
+		if okIdent {
+			rightValue := n.rightOperand.Eval(heap)
+			heap[leftIdent.val] = rightValue
+			return rightValue
+		} else if okAccess && leftAccess.operator.kind == AccessorOp {
+			leftObject := n.leftOperand.Eval(heap)
+			leftKey := operandToStringKey(n.rightOperand, heap)
+			leftObjectComposite, ok := leftObject.(CompositeValue)
+			if ok {
+				rightValue := n.rightOperand.Eval(heap)
+				leftObjectComposite.entries[leftKey] = rightValue
+				return rightValue
+			} else {
+				log.Fatalf("runtime error: cannot set property of a non-object %s",
+					leftObject)
+			}
+		} else {
+			log.Fatalf("runtime error: cannot assign value to non-identifier %s",
+				n.leftOperand.Eval(heap).String())
+			return nil
+		}
+	} else if n.operator.kind == AccessorOp {
+		leftValue := n.leftOperand.Eval(heap)
+		rightValue := operandToStringKey(n.rightOperand, heap)
+		leftValueComposite, ok := leftValue.(CompositeValue)
+		if ok {
+			return leftValueComposite.entries[rightValue]
+		} else {
+			log.Fatalf("runtime error: cannot access property of a non-object %s",
+				leftValue)
+		}
+	}
+
+	leftValue := n.leftOperand.Eval(heap)
+	rightValue := n.rightOperand.Eval(heap)
+	switch n.operator.kind {
+	case AddOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return NumberValue{left.val + right.val}
+			}
+		case StringValue:
+			right, ok := rightValue.(StringValue)
+			if ok {
+				return StringValue{left.val + right.val}
+			}
+		case BooleanValue:
+			right, ok := rightValue.(BooleanValue)
+			if ok {
+				return BooleanValue{left.val || right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support addition",
+			leftValue, rightValue)
+	case SubtractOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return NumberValue{left.val - right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support subtraction",
+			leftValue, rightValue)
+	case MultiplyOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return NumberValue{left.val * right.val}
+			}
+		case BooleanValue:
+			right, ok := rightValue.(BooleanValue)
+			if ok {
+				return BooleanValue{left.val && right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support multiplication",
+			leftValue, rightValue)
+	case DivideOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return NumberValue{left.val / right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support division",
+			leftValue, rightValue)
+	case ModulusOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				// XXX: warn if not integers
+				return NumberValue{float64(
+					int(left.val) % int(right.val),
+				)}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support modulus",
+			leftValue, rightValue)
+	case GreaterThanOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return BooleanValue{left.val > right.val}
+			}
+		case StringValue:
+			right, ok := rightValue.(StringValue)
+			if ok {
+				return BooleanValue{left.val > right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support comparison",
+			leftValue, rightValue)
+	case LessThanOp:
+		switch left := leftValue.(type) {
+		case NumberValue:
+			right, ok := rightValue.(NumberValue)
+			if ok {
+				return BooleanValue{left.val < right.val}
+			}
+		case StringValue:
+			right, ok := rightValue.(StringValue)
+			if ok {
+				return BooleanValue{left.val < right.val}
+			}
+		}
+		log.Fatal("runtime error: values %s and %s do not support comparison",
+			leftValue, rightValue)
+	case EqualOp:
+		return BooleanValue{leftValue.Equals(rightValue)}
+	case EqRefOp:
+		// XXX: this is probably not 100% true. To make a 100% faithful
+		//	implementation would require us to roll our own
+		//	name table, which isn't a short-term todo item.
+		return BooleanValue{leftValue == rightValue}
+	}
+	log.Fatal("Unknown binary operation %s", n.String())
 	return nil
 }
 
@@ -350,7 +512,9 @@ func (n ObjectLiteralNode) String() string {
 }
 
 func (n ObjectLiteralNode) Eval(heap map[string]Value) Value {
-	obj := CompositeValue{}
+	obj := CompositeValue{
+		make(map[string]Value),
+	}
 	es := obj.entries
 	for _, entry := range n.entries {
 		k, ok := entry.key.(IdentifierNode)
@@ -391,14 +555,24 @@ func (n ListLiteralNode) String() string {
 	}
 }
 
+// TODO: implement
 func (n ListLiteralNode) Eval(heap map[string]Value) Value {
 	return nil
 }
 
 func (n FunctionLiteralNode) String() string {
-	return "FunctionLiteralNode"
+	if len(n.arguments) == 0 {
+		return fmt.Sprintf("Function () => (%s)", n.body.String())
+	} else {
+		args := n.arguments[0].String()
+		for _, a := range n.arguments[1:] {
+			args += ", " + a.String()
+		}
+		return fmt.Sprintf("Function (%s) => (%s)", args, n.body.String())
+	}
 }
 
+// TODO: implement
 func (n FunctionLiteralNode) Eval(heap map[string]Value) Value {
 	return nil
 }
@@ -408,6 +582,9 @@ type Isolate struct {
 }
 
 func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
+	if iso.Heap == nil {
+		iso.Heap = make(map[string]Value)
+	}
 	for node := range nodes {
 		evalNode(iso.Heap, node)
 	}
