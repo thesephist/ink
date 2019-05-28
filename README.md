@@ -6,23 +6,21 @@ Ink has a few goals. In order, they are
 
 - Simple, minimal syntax
 - High readability and expressiveness
-- Small interpreter and runtime API
+- Small efficient interpreter and runtime API
 - Performance (within reason)
 
 ## Setup and introduction
 
+(This section is to be written as the project matures.)
+
 ## Syntax
 
-Ink's syntax is inspired by JavaScript, but much more minimal.
+Ink's syntax is inspired by JavaScript and Go, but much more minimal.
 
 Comments are delimited on both sides with the backtick `\`` character.
 
 ```
-Program: ExpressionList
-
-Block: '{' ExpressionList '}' | Expression
-
-ExpressionList: (Expression ',')*
+Program: Expression*
 
 Expression: (
     Atom
@@ -35,31 +33,35 @@ UnaryExpr: UnaryOp Atom
 BinaryExpr: Atom BinaryOp Atom
 MatchExpr: Atom '::' '{' MatchClause* '}'
 
-MatchClause: Atom '->' Block ','
+MatchClause: Atom '->' Expression
 
 
-Atom: Identifier | FunctionCall | Literal | '(' ExpressionList ')'
+Atom: EmptyIdentifier | Identifier | Literal
+        | FunctionCall | '(' Expression* ')'
 
+EmptyIdentifier: '_'
 Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]* | _
 
-FunctionCall: (Identifier | FunctionLiteral
-        | '(' Expression* ')') '(' ExpressionList ')'
+FunctionCall: (Identifier
+        | FunctionLiteral
+        | FunctionCall
+        | '(' Expression* ')') '(' Expression* ')'
 
 Literal: NumberLiteral | StringLiteral
         | BooleanLiteral | NullLiteral
         | ObjectLiteral | ListLiteral | FunctionLiteral
 
 NumberLiteral: (0-9)+ ['.' (0-9)*]
-StringLiteral: '\'' (Escaped unicode bytes) '\''
+StringLiteral: '\'' (.*) '\''
 
 BooleanLiteral: 'true' | 'false'
 NullLiteral: 'null'
 
 ObjectLiteral: '{' ObjectEntry* '}'
-ObjectEntry: Expression ':' Expression ','
-ListLiteral: '[' (Expression ',')* ']'
-FunctionLiteral: Identifier '=>' Block
-        | '(' (Identifier ',')* ')' '=>' Block
+ObjectEntry: Expression ':' Expression
+ListLiteral: '[' Expression* ']'
+FunctionLiteral: (Identifier | '(' (Identifier ',')* ')')
+        '=>' Expression 
 
 UnaryOp: (
     '~' // negation
@@ -77,7 +79,7 @@ BinaryOp: (
 A few quirks of this syntax:
 
 - All variables use lexical binding and scope, and are bound to the block
-- Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, so few are required after expressions and before delimiters.
+- Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, so few are required after expressions, before delimiters, and before the ':' in an Object literal. Here, they are auto-inserted during tokenization.
 - String literals cannot contain comments. Backticks inside string literals are counted as a part of the string literal. String literals are also multiline.
     - This also allows the programmer to comment out a block with an explanation, simply like this:
     ```
@@ -119,46 +121,5 @@ Ink is strongly and statically typed, and has six non-extendable types.
 
 ## Samples
 
-// Fibonacci
-```ink
-fib := n => {
-    n :: {
-        0 -> 0
-        1 -> 1
-        _ -> fib(n - 1) + fib(n - 2)
-    }
-}
-```
-
-// fizzbuzz
-```ink
-fb := n => {
-    [n % 3, n % 5] :: {
-        [0, 0] -> out('FizzBuzz')
-        [0, _] -> out('Fizz')
-        [_, 0] -> out('Buzz')
-        _ -> out(string(n))
-    }
-}
-fizzbuzzhelp := (n, max) => {
-    (n = max) :: {
-        true -> fb(n)
-        false -> {
-            fb(n)
-            fizzbuzzhelp(n + 1, max)
-        }
-    }
-}
-fizzbuzz := max => {
-    fizzbuzzhelp(1, max)
-}
-fizzbuzz(100)
-```
-
-// Reading input
-```ink
-out('What\'s your name?')
-username := in()
-out('Your name is ' + username)
-```
+You can find up-to-date code samples in `samples/`.
 

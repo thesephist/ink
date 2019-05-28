@@ -128,16 +128,19 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 
 	simpleCommit := func(tok Tok) {
 		lastTokKind = tok.kind
-		tok.endLine = lineNo
-		tok.endCol = colNo
 		tokens <- tok
 	}
 	simpleCommitChar := func(kind int) {
+		// TODO: make this understand token width correctly for double-width
+		//	(2-char) symbols
 		simpleCommit(Tok{
 			"",
 			kind,
 			span{lineNo, colNo, lineNo, colNo + 1},
 		})
+	}
+	ensureSeparator := func() {
+		// no-op, re-bound below
 	}
 	// TODO: Tokenize correctly when all unnecessary whitespace
 	// 	(anything not in a string literal; not around is, true, false, null)
@@ -145,7 +148,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	// 	non-identifier characters while scanning for those below.
 	commitClear := func() {
 		if buf != "" {
-			switch buf {
+			cbuf := buf
+			buf = ""
+			switch cbuf {
 			case ".":
 				simpleCommitChar(AccessorOp)
 			case "is":
@@ -155,6 +160,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case "=>":
 				simpleCommitChar(FunctionArrow)
 			case ":":
+				ensureSeparator()
 				simpleCommitChar(KeyValueSeparator)
 			case ":=":
 				simpleCommitChar(DefineOp)
@@ -173,25 +179,24 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case "null":
 				simpleCommitChar(NullLiteral)
 			default:
-				if unicode.IsDigit(rune(buf[0])) {
-					f, err := strconv.ParseFloat(buf, 64)
+				if unicode.IsDigit(rune(cbuf[0])) {
+					f, err := strconv.ParseFloat(cbuf, 64)
 					if err != nil {
 						log.Fatalf("Parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
 					}
 					simpleCommit(Tok{
 						f,
 						NumberLiteral,
-						span{lineNo, colNo - len(buf), lineNo, colNo + 1},
+						span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
 					})
 				} else {
 					simpleCommit(Tok{
-						buf,
+						cbuf,
 						Identifier,
-						span{lineNo, colNo - len(buf), lineNo, colNo + 1},
+						span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
 					})
 				}
 			}
-			buf = ""
 		}
 	}
 	commit := func(tok Tok) {
@@ -205,7 +210,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
-	ensureSeparator := func() {
+	ensureSeparator = func() {
 		commitClear()
 		switch lastTokKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace:

@@ -142,16 +142,9 @@ func (n FunctionCallNode) Eval(heap map[string]Value) Value {
 }
 
 func (n MatchClauseNode) String() string {
-	return "MatchClauseNode"
-	if len(n.expressions) == 0 {
-		return fmt.Sprintf("Clause (%s) -> noop", n.target.String())
-	} else {
-		exprs := n.expressions[0].String()
-		for _, e := range n.expressions[1:] {
-			exprs += ", " + e.String()
-		}
-		return fmt.Sprintf("Clause (%s) -> {%s}", n.target.String(), exprs)
-	}
+	return fmt.Sprintf("Clause (%s) -> (%s)",
+		n.target.String(),
+		n.expression.String())
 }
 
 func (n MatchClauseNode) Eval(heap map[string]Value) Value {
@@ -174,7 +167,28 @@ func (n MatchExprNode) String() string {
 }
 
 func (n MatchExprNode) Eval(heap map[string]Value) Value {
-	return nil
+	conditionVal := n.condition.Eval(heap)
+	return conditionVal
+}
+
+func (n ExpressionListNode) String() string {
+	if len(n.expressions) == 0 {
+		return "Expression List ()"
+	} else {
+		exprs := n.expressions[0].String()
+		for _, expr := range n.expressions[1:] {
+			exprs += ", " + expr.String()
+		}
+		return fmt.Sprintf("Expression List (%s)", exprs)
+	}
+}
+
+func (n ExpressionListNode) Eval(heap map[string]Value) Value {
+	var retVal Value
+	for _, expr := range n.expressions {
+		retVal = expr.Eval(heap)
+	}
+	return retVal
 }
 
 func (n EmptyIdentifierNode) String() string {

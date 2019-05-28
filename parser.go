@@ -12,11 +12,9 @@ const (
 func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
-		log.Println(tok)
+		// log.Println(tok)
 		tokens = append(tokens, tok)
 	}
-
-	log.Println()
 
 	idx, length := 0, len(tokens)
 	for idx < length {
@@ -46,8 +44,8 @@ type FunctionCallNode struct {
 }
 
 type MatchClauseNode struct {
-	target      Node
-	expressions []Node
+	target     Node
+	expression Node
 }
 
 type MatchExprNode struct {
@@ -55,58 +53,52 @@ type MatchExprNode struct {
 	clauses   []MatchClauseNode
 }
 
+type ExpressionListNode struct {
+	expressions []Node
+}
+
 func parseExpression(tokens []Tok) (Node, int) {
 	idx := 0
 
 	consumeDanglingSeparator := func() {
+		// bounds check in case parseExpress() called at some point
+		//	consumed end token
 		if idx < len(tokens) && tokens[idx].kind == Separator {
 			idx++
 		}
 	}
 
-	switch tokens[0].kind {
-	case NegationOp:
+	if tokens[0].kind == NegationOp {
 		atom, idx := parseAtom(tokens[1:])
 		consumeDanglingSeparator()
-		return UnaryExprNode{
-			tokens[0],
-			atom,
-		}, idx
-	case Separator:
-		idx++
+		return UnaryExprNode{tokens[0], atom}, idx
 	}
 
 	atom, incr := parseAtom(tokens[idx:])
 	idx += incr
 
-	next := tokens[idx]
+	nextTok := tokens[idx]
 	idx++
-	switch next.kind {
+
+	switch nextTok.kind {
 	case Separator:
-		// TODO: is this call to consumeDanglingSeparator() necessary?
-		consumeDanglingSeparator()
-		return atom, idx
+		return atom, idx // consuming separator
 	case KeyValueSeparator:
-		// we don't consume the ':' because it's not
-		// 	implicit in an expression
-		return atom, idx - 1
-	case RightParen, RightBracket, RightBrace:
-		consumeDanglingSeparator()
-		return atom, idx - 1
+		return atom, idx - 1 // not consuming KeyValueSeparator
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
 		rightOperand, incr := parseAtom(tokens[idx:])
 		idx += incr
-		// TODO: impl order of operations.
+		// TODO: implement order of operations.
 		// 	'.' > '%' > '*/' > '+-' > everything else
 		consumeDanglingSeparator()
 		return BinaryExprNode{
-			next,
+			nextTok,
 			atom,
 			rightOperand,
 		}, idx
 	case MatchColon:
-		idx++ // assume next token is LeftBrace for now
+		idx++ // LeftBrace
 		clauses := make([]MatchClauseNode, 0)
 		for tokens[idx].kind != RightBrace {
 			clauseNode, incr := parseMatchClause(tokens[idx:])
@@ -120,12 +112,12 @@ func parseExpression(tokens []Tok) (Node, int) {
 			clauses,
 		}, idx
 	default:
-		log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
+		log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
 		consumeDanglingSeparator()
 		return nil, infty
 	}
 
-	log.Fatalf("syntax error: unexpected end of expression with %s", tokens[idx])
+	log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
 	consumeDanglingSeparator()
 	return nil, infty
 }
@@ -165,65 +157,51 @@ type ListLiteralNode struct {
 
 type FunctionLiteralNode struct {
 	arguments []IdentifierNode
-	body      []Node
+	body      Node
 }
 
 func parseAtom(tokens []Tok) (Node, int) {
-	tok := tokens[0]
+	tok, idx := tokens[0], 1
+
+	var atom Node
 	switch tok.kind {
 	case EmptyIdentifier:
-		return EmptyIdentifierNode{}, 1
+		return EmptyIdentifierNode{}, idx
+	case NumberLiteral:
+		return NumberLiteralNode{tok.numberVal()}, idx
+	case StringLiteral:
+		return StringLiteralNode{tok.stringVal()}, idx
+	case TrueLiteral:
+		return BooleanLiteralNode{true}, idx
+	case FalseLiteral:
+		return BooleanLiteralNode{false}, idx
+	case NullLiteral:
+		return NullLiteralNode{}, idx
 	case Identifier:
-		var atom Node
-		var idx int
-		if tokens[1].kind == FunctionArrow {
+		if tokens[idx].kind == FunctionArrow {
 			atom, idx = parseFunctionLiteral(tokens)
 		} else {
-			atom, idx = IdentifierNode{tok.stringVal()}, 1
+			atom = IdentifierNode{tok.stringVal()}
 		}
-		if idx < len(tokens) && tokens[idx].kind == LeftParen {
-			// may be a function call
-			fnCall, incr := parseFunctionCall(atom, tokens[idx:])
-			idx += incr
-			return fnCall, idx
-		} else {
-			return atom, idx
-		}
-	case NumberLiteral:
-		return NumberLiteralNode{tok.numberVal()}, 1
-	case StringLiteral:
-		return StringLiteralNode{tok.stringVal()}, 1
-	case TrueLiteral:
-		return BooleanLiteralNode{true}, 1
-	case FalseLiteral:
-		return BooleanLiteralNode{false}, 1
-	case NullLiteral:
-		return NullLiteralNode{}, 1
+		// may be called as a function, so flows beyodn
+		//	switch case
 	case LeftParen:
 		// grouped expression or function literal
-		idx := 1 // LeftParen
-		var expr Node
-		var incr int
+		exprs := make([]Node, 0)
 		for tokens[idx].kind != RightParen {
-			expr, incr = parseExpression(tokens[idx:])
+			expr, incr := parseExpression(tokens[idx:])
 			idx += incr
+			exprs = append(exprs, expr)
 		}
 		idx++ // RightParen
 		if tokens[idx].kind == FunctionArrow {
-			expr, incr = parseFunctionLiteral(tokens)
-			// we assign instead of incrementing here because
-			// 	we started from index 0
-			idx = incr
-		}
-		if idx < len(tokens) && tokens[idx].kind == LeftParen {
-			fnCall, incr := parseFunctionCall(expr, tokens[idx:])
-			idx += incr
-			return fnCall, idx
+			atom, idx = parseFunctionLiteral(tokens)
 		} else {
-			return expr, idx
+			atom = ExpressionListNode{exprs}
 		}
+		// may be called as a function, so flows beyodn
+		//	switch case
 	case LeftBrace:
-		idx := 1
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {
 			keyExpr, keyIncr := parseExpression(tokens[idx:])
@@ -237,7 +215,6 @@ func parseAtom(tokens []Tok) (Node, int) {
 		idx++ // RightBrace
 		return ObjectLiteralNode{entries}, idx
 	case LeftBracket:
-		idx := 1 // LeftBracket
 		vals := make([]Node, 0)
 		for tokens[idx].kind != RightBracket {
 			expr, incr := parseExpression(tokens[idx:])
@@ -246,85 +223,88 @@ func parseAtom(tokens []Tok) (Node, int) {
 		}
 		idx++ // RightBracket
 		return ListLiteralNode{vals}, idx
+	default:
+		log.Fatalf("syntax error: unexpected start of atom, found %s", tok)
+		return IdentifierNode{}, infty
 	}
 
-	log.Fatalf("syntax error: unexpected end of atom, found %s", tok)
-	return IdentifierNode{}, infty
+	// bounds check here because parseExpression may have
+	//	consumed all tokens before this
+	for idx < len(tokens) && tokens[idx].kind == LeftParen {
+		var incr int
+		atom, incr = parseFunctionCall(atom, tokens[idx:])
+		idx += incr
+	}
+
+	return atom, idx
 }
 
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
-	idx := 0
-	atom, incr := parseAtom(tokens)
-	idx += incr
+	atom, idx := parseAtom(tokens)
 
 	if tokens[idx].kind != CaseArrow {
-		log.Fatalf("expected CaseArrow, but got %s", tokens[idx])
+		log.Fatalf("expected CaseArrow, but got %s", tokens[idx].String())
 	}
 	idx++
 
-	block, incr := parseBlock(tokens[idx:])
+	expr, incr := parseExpression(tokens[idx:])
 	idx += incr
 
 	return MatchClauseNode{
 		atom,
-		block,
+		expr,
 	}, idx
 }
 
-func parseObjectLiteral(tokens []Tok) (Node, int) {
-	return ObjectLiteralNode{}, infty
-}
-
 func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
-	idx := 0
+	tok, idx := tokens[0], 1
 	arguments := make([]IdentifierNode, 0)
-	switch tokens[0].kind {
+
+	switch tok.kind {
 	case LeftParen:
-		idx++ // LeftParen
-		for tokens[idx].kind != RightParen {
-			if tokens[idx].kind == Identifier {
-				idNode := IdentifierNode{tokens[idx].stringVal()}
-				arguments = append(arguments, idNode)
-				idx++
-			} else {
-				log.Fatal("invalid syntax: expected an identifier in arguments list")
-			}
+		for tokens[idx].kind == Identifier {
+			idNode := IdentifierNode{tokens[idx].stringVal()}
+			arguments = append(arguments, idNode)
+			idx++
 
 			if tokens[idx].kind != Separator {
-				log.Fatal("invalid syntax: expected a comma separated arguments list")
+				log.Fatalf("invalid syntax: expected a comma separated arguments list, found %s",
+					tokens[idx].String())
 			}
 			idx++ // Separator
 		}
-
+		if tokens[idx].kind != RightParen {
+			log.Fatalf("invalid syntax: expected arguments list to terminate with a RightParen, found %s",
+				tokens[idx].String())
+		}
 		idx++ // RightParen
 	case Identifier:
-		idNode := IdentifierNode{tokens[0].stringVal()}
+		idNode := IdentifierNode{tok.stringVal()}
 		arguments = append(arguments, idNode)
-		idx++
 	default:
-		log.Fatal("invalid syntax: malformed arguments list in function")
+		log.Fatalf("invalid syntax: malformed arguments list in function at %s", tok.String())
 	}
 
 	if tokens[idx].kind != FunctionArrow {
-		log.Fatal("invalid syntax: expected FunctionArrow")
+		log.Fatalf("invalid syntax: expected FunctionArrow but found %s", tokens[idx].String())
 	}
 	idx++
 
-	blockResult, incr := parseBlock(tokens[idx:])
+	body, incr := parseExpression(tokens[idx:])
 	idx += incr
 	return FunctionLiteralNode{
 		arguments,
-		blockResult,
+		body,
 	}, idx
 }
 
 func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
-	idx := 1 // LeftParen
+	idx := 1
 	arguments := make([]Node, 0)
 	for tokens[idx].kind != RightParen {
-		exprNode, incr := parseExpression(tokens[idx:])
+		expr, incr := parseExpression(tokens[idx:])
 		idx += incr
-		arguments = append(arguments, exprNode)
+		arguments = append(arguments, expr)
 	}
 	idx++ // RightParen
 	return FunctionCallNode{
@@ -332,29 +312,4 @@ func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
 		arguments,
 	}, idx
 
-}
-
-func parseBlock(tokens []Tok) ([]Node, int) {
-	idx := 0
-	expressions := make([]Node, 0)
-	switch tokens[0].kind {
-	case LeftBrace:
-		// parse until rlight brace
-		idx++ // left brace
-		for tokens[idx].kind != RightBrace {
-			exprResult, incr := parseExpression(tokens[idx:])
-			idx += incr
-			expressions = append(expressions, exprResult)
-		}
-		idx++ // right brace
-		if tokens[idx].kind == Separator {
-			idx++
-		}
-	default:
-		var exprResult Node
-		exprResult, idx = parseExpression(tokens)
-		expressions = append(expressions, exprResult)
-	}
-
-	return expressions, idx
 }
