@@ -470,7 +470,7 @@ func (n EmptyIdentifierNode) String() string {
 }
 
 func (n EmptyIdentifierNode) Eval(heap ValueTable) Value {
-	return EmptyValue
+	return EmptyValue{}
 }
 
 func (n IdentifierNode) String() string {
