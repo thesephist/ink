@@ -6,16 +6,17 @@ fb := n => (
         _ -> out(string(n))
     }
 )
-fizzbuzzhelp := (n, max) => (
-    (n = max) :: {
-        true -> fb(n)
-        false -> (
+
+fizzbuzzhelper := (n, max) => (
+    n :: {
+        max -> fb(n)
+        _ -> (
             fb(n)
             fizzbuzzhelp(n + 1, max)
         )
     }
 )
-fizzbuzz := max => (
-    fizbuzzhelp(1, max)
-)
+
+fizzbuzz := max => fizbuzzhelper(1, max)
+
 fizzbuzz(100)

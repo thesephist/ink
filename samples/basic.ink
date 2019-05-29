@@ -1,7 +1,7 @@
 fn1 := n => out('Hello, World!')
 
 fn2 := () => (
-    out('Hello, World!')
+    out('Hello, World 2!')
 )
 
 (

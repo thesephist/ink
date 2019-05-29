@@ -18,6 +18,18 @@ type Value interface {
 //	let's do L3-style Result types that are composite values
 //	with an error value returned with the return value.
 
+// The EmptyValue is the value of the empty identifier.
+//	it is globally unique and matches everything in equality.
+type EmptyValue struct{}
+
+func (v EmptyValue) String() string {
+	return ""
+}
+
+func (v EmptyValue) Equals(other Value) bool {
+	return true
+}
+
 type NumberValue struct {
 	val float64
 }
@@ -458,8 +470,7 @@ func (n EmptyIdentifierNode) String() string {
 }
 
 func (n EmptyIdentifierNode) Eval(heap ValueTable) Value {
-	log.Fatal("Cannot evaluate an EmptyIdentifierNode")
-	return nil
+	return EmptyValue
 }
 
 func (n IdentifierNode) String() string {
