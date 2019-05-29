@@ -585,6 +585,7 @@ func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 	if iso.Heap == nil {
 		iso.Heap = make(map[string]Value)
 	}
+	iso.LoadEnvironment()
 	for node := range nodes {
 		evalNode(iso.Heap, node)
 	}
