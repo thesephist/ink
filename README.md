@@ -94,10 +94,11 @@ A few quirks of this syntax:
 
 ## Types
 
-Ink is strongly and statically typed, and has six non-extendable types.
+Ink is strongly and statically typed, and has seven non-extendable types.
 
 - Number
 - String
+- Bytes
 - Boolean
 - Null
 - Composite (including Objects and Lists)
@@ -107,17 +108,28 @@ Ink is strongly and statically typed, and has six non-extendable types.
 
 ### Constants
 
-- `@time`: Millisecond timestamp. By convention, global constants begin with `@`.
+- `pi`: Millisecond timestamp. By convention, global constants begin with `@`.
 
 ### Functions
 
-- `in()`: Read until ENTER key (might change later)
-- `out()`
-- `read()`: Read from given file descriptor
-- `write()`: Write to given file descriptor
-- `string()`
-- `number()`
-- `boolean()`
+- `in() => string`: Read from stdin or until ENTER key (might change later)
+- `out(string)`: Print to stdout
+- `read(string, number, number) => bytes`: Read from given file descriptor from some offset for some bytes
+- `write(string, number, bytes)`: Write to given file descriptor at some offset
+- `time() => number`: Current millisecond (since UNIX epoch) timestamp
+
+### Math
+
+- `sin(number) => number`: sine
+- `cos(number) => number`: cosine
+- `ln(number) => number`: natural log
+
+### Type casts (implemented as functions)
+
+- `string(any) => string`
+- `number(any) => number`
+- `bytes(any) => bytes`
+- `boolean(any) => boolean`
 
 ## Samples
 

@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	infty = math.MaxInt32
+	maxIdx = math.MaxInt32
 )
 
 func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
@@ -114,12 +114,12 @@ func parseExpression(tokens []Tok) (Node, int) {
 	default:
 		log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
 		consumeDanglingSeparator()
-		return nil, infty
+		return nil, maxIdx
 	}
 
 	log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
 	consumeDanglingSeparator()
-	return nil, infty
+	return nil, maxIdx
 }
 
 type EmptyIdentifierNode struct{}
@@ -225,7 +225,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 		return ListLiteralNode{vals}, idx
 	default:
 		log.Fatalf("syntax error: unexpected start of atom, found %s", tok)
-		return IdentifierNode{}, infty
+		return IdentifierNode{}, maxIdx
 	}
 
 	// bounds check here because parseExpression may have

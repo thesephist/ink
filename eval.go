@@ -11,6 +11,13 @@ type Value interface {
 	Equals(Value) bool // deep, value equality
 }
 
+// TODO: implement bytes literal and values, and make
+//	file read/write APIs on that, rather than text
+
+// TODO: implement exception handling / error values
+//	let's do L3-style Result types that are composite values
+//	with an error value returned with the return value.
+
 type NumberValue struct {
 	val float64
 }
@@ -78,7 +85,7 @@ func (v NullValue) Equals(other Value) bool {
 }
 
 type CompositeValue struct {
-	entries map[string]Value
+	entries ValueTable
 }
 
 func (v CompositeValue) String() string {
@@ -121,8 +128,8 @@ func (v CompositeValue) Equals(other Value) bool {
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
 	defNode    Node
-	parentHeap map[string]Value
-	heap       map[string]Value
+	parentHeap ValueTable
+	heap       ValueTable
 }
 
 func (v FunctionValue) String() string {
@@ -141,14 +148,14 @@ func (v FunctionValue) Equals(other Value) bool {
 
 type Node interface {
 	String() string
-	Eval(map[string]Value) Value
+	Eval(ValueTable) Value
 }
 
 func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
 
-func (n UnaryExprNode) Eval(heap map[string]Value) Value {
+func (n UnaryExprNode) Eval(heap ValueTable) Value {
 	switch n.operator.kind {
 	case NegationOp:
 		operand := heap[n.operand.Eval(heap).String()]
@@ -196,7 +203,7 @@ func (n BinaryExprNode) String() string {
 		n.rightOperand.String())
 }
 
-func operandToStringKey(rightOperand Node, heap map[string]Value) string {
+func operandToStringKey(rightOperand Node, heap ValueTable) string {
 	var rightValue string
 	switch right := rightOperand.(type) {
 	case IdentifierNode:
@@ -216,7 +223,7 @@ func operandToStringKey(rightOperand Node, heap map[string]Value) string {
 	return rightValue
 }
 
-func (n BinaryExprNode) Eval(heap map[string]Value) Value {
+func (n BinaryExprNode) Eval(heap ValueTable) Value {
 	if n.operator.kind == DefineOp {
 		leftIdent, okIdent := n.leftOperand.(IdentifierNode)
 		leftAccess, okAccess := n.leftOperand.(BinaryExprNode)
@@ -378,7 +385,7 @@ func (n FunctionCallNode) String() string {
 	}
 }
 
-func (n FunctionCallNode) Eval(heap map[string]Value) Value {
+func (n FunctionCallNode) Eval(heap ValueTable) Value {
 	fn := n.function.Eval(heap)
 	_, ok := fn.(FunctionValue)
 	if ok {
@@ -397,7 +404,7 @@ func (n MatchClauseNode) String() string {
 		n.expression.String())
 }
 
-func (n MatchClauseNode) Eval(heap map[string]Value) Value {
+func (n MatchClauseNode) Eval(heap ValueTable) Value {
 	log.Fatal("Cannot evaluate a MatchClauseNode")
 	return nil
 }
@@ -416,7 +423,7 @@ func (n MatchExprNode) String() string {
 	}
 }
 
-func (n MatchExprNode) Eval(heap map[string]Value) Value {
+func (n MatchExprNode) Eval(heap ValueTable) Value {
 	conditionVal := n.condition.Eval(heap)
 	for _, cl := range n.clauses {
 		if conditionVal.Equals(cl.target.Eval(heap)) {
@@ -438,7 +445,7 @@ func (n ExpressionListNode) String() string {
 	}
 }
 
-func (n ExpressionListNode) Eval(heap map[string]Value) Value {
+func (n ExpressionListNode) Eval(heap ValueTable) Value {
 	var retVal Value
 	for _, expr := range n.expressions {
 		retVal = expr.Eval(heap)
@@ -450,7 +457,7 @@ func (n EmptyIdentifierNode) String() string {
 	return "Empty Identifier"
 }
 
-func (n EmptyIdentifierNode) Eval(heap map[string]Value) Value {
+func (n EmptyIdentifierNode) Eval(heap ValueTable) Value {
 	log.Fatal("Cannot evaluate an EmptyIdentifierNode")
 	return nil
 }
@@ -459,7 +466,7 @@ func (n IdentifierNode) String() string {
 	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
-func (n IdentifierNode) Eval(heap map[string]Value) Value {
+func (n IdentifierNode) Eval(heap ValueTable) Value {
 	val, prs := heap[n.val]
 	if !prs {
 		log.Fatalf("%s is not defined", n.val)
@@ -471,7 +478,7 @@ func (n NumberLiteralNode) String() string {
 	return fmt.Sprintf("Number %f", n.val)
 }
 
-func (n NumberLiteralNode) Eval(heap map[string]Value) Value {
+func (n NumberLiteralNode) Eval(heap ValueTable) Value {
 	return NumberValue{n.val}
 }
 
@@ -479,7 +486,7 @@ func (n StringLiteralNode) String() string {
 	return fmt.Sprintf("String %s", n.val)
 }
 
-func (n StringLiteralNode) Eval(heap map[string]Value) Value {
+func (n StringLiteralNode) Eval(heap ValueTable) Value {
 	return StringValue{n.val}
 }
 
@@ -487,7 +494,7 @@ func (n BooleanLiteralNode) String() string {
 	return fmt.Sprintf("Boolean %t", n.val)
 }
 
-func (n BooleanLiteralNode) Eval(heap map[string]Value) Value {
+func (n BooleanLiteralNode) Eval(heap ValueTable) Value {
 	return BooleanValue{n.val}
 }
 
@@ -495,7 +502,7 @@ func (n NullLiteralNode) String() string {
 	return "Null"
 }
 
-func (n NullLiteralNode) Eval(heap map[string]Value) Value {
+func (n NullLiteralNode) Eval(heap ValueTable) Value {
 	return NullValue{}
 }
 
@@ -511,9 +518,9 @@ func (n ObjectLiteralNode) String() string {
 	}
 }
 
-func (n ObjectLiteralNode) Eval(heap map[string]Value) Value {
+func (n ObjectLiteralNode) Eval(heap ValueTable) Value {
 	obj := CompositeValue{
-		make(map[string]Value),
+		make(ValueTable),
 	}
 	es := obj.entries
 	for _, entry := range n.entries {
@@ -538,7 +545,7 @@ func (n ObjectEntryNode) String() string {
 	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
 }
 
-func (n ObjectEntryNode) Eval(heap map[string]Value) Value {
+func (n ObjectEntryNode) Eval(heap ValueTable) Value {
 	log.Fatal("Cannot evaluate ObjectEntryNode")
 	return nil
 }
@@ -556,7 +563,7 @@ func (n ListLiteralNode) String() string {
 }
 
 // TODO: implement
-func (n ListLiteralNode) Eval(heap map[string]Value) Value {
+func (n ListLiteralNode) Eval(heap ValueTable) Value {
 	return nil
 }
 
@@ -573,17 +580,19 @@ func (n FunctionLiteralNode) String() string {
 }
 
 // TODO: implement
-func (n FunctionLiteralNode) Eval(heap map[string]Value) Value {
+func (n FunctionLiteralNode) Eval(heap ValueTable) Value {
 	return nil
 }
 
+type ValueTable map[string]Value
+
 type Isolate struct {
-	Heap map[string]Value
+	Heap ValueTable
 }
 
 func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 	if iso.Heap == nil {
-		iso.Heap = make(map[string]Value)
+		iso.Heap = make(ValueTable)
 	}
 	iso.LoadEnvironment()
 	for node := range nodes {
@@ -593,7 +602,7 @@ func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 	done <- true
 }
 
-func evalNode(heap map[string]Value, node Node) Value {
+func evalNode(heap ValueTable, node Node) Value {
 	log.Printf("Evaluating Node: %s", node.String())
 	switch n := node.(type) {
 	case Node:
