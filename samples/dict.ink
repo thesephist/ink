@@ -4,4 +4,4 @@ obj := {
     what3 : 3.14,
 }
 
-print(obj)
+out(obj)

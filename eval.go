@@ -399,11 +399,16 @@ func (n FunctionCallNode) String() string {
 
 func (n FunctionCallNode) Eval(heap ValueTable) Value {
 	fn := n.function.Eval(heap)
-	_, ok := fn.(FunctionValue)
-	if ok {
+	switch fn.(type) {
+	case FunctionValue:
 		// TODO
+		log.Printf("Calling %s", fn.String())
 		return NullValue{}
-	} else {
+	case NativeFunctionValue:
+		// TODO
+		log.Printf("Calling %s", fn.String())
+		return NullValue{}
+	default:
 		log.Fatalf("runtime error: attempted to call a non-function value %s",
 			fn.String())
 		return NullValue{}
