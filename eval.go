@@ -175,11 +175,11 @@ func (n UnaryExprNode) Eval(heap ValueTable) Value {
 		case NumberValue:
 			return &NumberValue{-o.val}
 		default:
-			log.Fatal("Cannot negate non-number value %s", o.String())
+			log.Fatalf("Cannot negate non-number value %s", o.String())
 			return nil
 		}
 	}
-	log.Fatal("Unrecognized unary operation", n)
+	log.Fatalf("Unrecognized unary operation %s", n)
 	return nil
 }
 
@@ -293,7 +293,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return BooleanValue{left.val || right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support addition",
+		log.Fatalf("runtime error: values %s and %s do not support addition",
 			leftValue, rightValue)
 	case SubtractOp:
 		switch left := leftValue.(type) {
@@ -303,7 +303,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return NumberValue{left.val - right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support subtraction",
+		log.Fatalf("runtime error: values %s and %s do not support subtraction",
 			leftValue, rightValue)
 	case MultiplyOp:
 		switch left := leftValue.(type) {
@@ -318,7 +318,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return BooleanValue{left.val && right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support multiplication",
+		log.Fatalf("runtime error: values %s and %s do not support multiplication",
 			leftValue, rightValue)
 	case DivideOp:
 		switch left := leftValue.(type) {
@@ -328,7 +328,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return NumberValue{left.val / right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support division",
+		log.Fatalf("runtime error: values %s and %s do not support division",
 			leftValue, rightValue)
 	case ModulusOp:
 		switch left := leftValue.(type) {
@@ -341,7 +341,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				)}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support modulus",
+		log.Fatalf("runtime error: values %s and %s do not support modulus",
 			leftValue, rightValue)
 	case GreaterThanOp:
 		switch left := leftValue.(type) {
@@ -356,7 +356,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return BooleanValue{left.val > right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support comparison",
+		log.Fatalf("runtime error: values %s and %s do not support comparison",
 			leftValue, rightValue)
 	case LessThanOp:
 		switch left := leftValue.(type) {
@@ -371,7 +371,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 				return BooleanValue{left.val < right.val}
 			}
 		}
-		log.Fatal("runtime error: values %s and %s do not support comparison",
+		log.Fatalf("runtime error: values %s and %s do not support comparison",
 			leftValue, rightValue)
 	case EqualOp:
 		return BooleanValue{leftValue.Equals(rightValue)}
@@ -381,7 +381,7 @@ func (n BinaryExprNode) Eval(heap ValueTable) Value {
 		//	name table, which isn't a short-term todo item.
 		return BooleanValue{leftValue == rightValue}
 	}
-	log.Fatal("Unknown binary operation %s", n.String())
+	log.Fatalf("Unknown binary operation %s", n.String())
 	return nil
 }
 
@@ -549,7 +549,7 @@ func (n ObjectLiteralNode) Eval(heap ValueTable) Value {
 			if ok {
 				es[keyStrVal.val] = entry.val.Eval(heap)
 			} else {
-				log.Fatal("Cannot access non-string property %s of object",
+				log.Fatalf("Cannot access non-string property %s of object",
 					key.String())
 			}
 		}

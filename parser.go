@@ -116,10 +116,6 @@ func parseExpression(tokens []Tok) (Node, int) {
 		consumeDanglingSeparator()
 		return nil, maxIdx
 	}
-
-	log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
-	consumeDanglingSeparator()
-	return nil, maxIdx
 }
 
 type EmptyIdentifierNode struct{}
