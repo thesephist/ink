@@ -195,8 +195,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 		} else {
 			atom = ExpressionListNode{exprs}
 		}
-		// may be called as a function, so flows beyodn
-		//	switch case
+		return atom, idx
 	case LeftBrace:
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {

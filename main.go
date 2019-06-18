@@ -13,6 +13,9 @@ func main() {
 	nodes := make(chan Node)
 
 	done := make(chan bool, 3)
+
+	// Ideally, we don't have to use this to do async because
+	// 	all the info are included in the channels... TODO: fix.
 	iso := Isolate{}
 	go Tokenize(input, tokens, done)
 	go Parse(tokens, nodes, done)
