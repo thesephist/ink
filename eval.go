@@ -141,7 +141,6 @@ func (v CompositeValue) Equals(other Value) bool {
 type FunctionValue struct {
 	defNode    Node
 	parentHeap ValueTable
-	heap       ValueTable
 }
 
 func (v FunctionValue) String() string {
@@ -399,18 +398,35 @@ func (n FunctionCallNode) String() string {
 
 func (n FunctionCallNode) Eval(heap ValueTable) Value {
 	fn := n.function.Eval(heap)
-	switch fn.(type) {
+
+	if fn == nil {
+		// improve error message
+		log.Fatalf("runtime error: attempted to call an unknown function")
+	}
+
+	switch fnt := fn.(type) {
 	case FunctionValue:
+		argResults := make([]Value, len(n.arguments))
+		for i, arg := range n.arguments {
+			argResults[i] = arg.Eval(heap)
+		}
+
+		// callHeap := ValueTable{}
+		// assign local variables into the heap
+
 		// TODO
-		log.Printf("Calling %s", fn.String())
+		log.Printf("Calling %s", fnt.String())
 		return NullValue{}
 	case NativeFunctionValue:
-		// TODO
-		log.Printf("Calling %s", fn.String())
-		return NullValue{}
+		// eval all arguments
+		argResults := make([]Value, len(n.arguments))
+		for i, arg := range n.arguments {
+			argResults[i] = arg.Eval(heap)
+		}
+		return fnt.exec(argResults)
 	default:
 		log.Fatalf("runtime error: attempted to call a non-function value %s",
-			fn.String())
+			fnt.String())
 		return NullValue{}
 	}
 }
@@ -595,9 +611,11 @@ func (n FunctionLiteralNode) String() string {
 	}
 }
 
-// TODO: implement
 func (n FunctionLiteralNode) Eval(heap ValueTable) Value {
-	return nil
+	return FunctionValue{
+		defNode:    n,
+		parentHeap: heap,
+	}
 }
 
 type ValueTable map[string]Value
