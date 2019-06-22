@@ -27,20 +27,20 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 func (iso *Isolate) LoadEnvironment() {
 	heap := iso.Heap
 
-	heap["in"] = NativeFunctionValue{"in", inkIn}
-	heap["out"] = NativeFunctionValue{"out", inkOut}
-	heap["read"] = NativeFunctionValue{"read", inkRead}
-	heap["write"] = NativeFunctionValue{"write", inkWrite}
-	heap["time"] = NativeFunctionValue{"time", inkTime}
+	heap.setValue("in", NativeFunctionValue{"in", inkIn})
+	heap.setValue("out", NativeFunctionValue{"out", inkOut})
+	heap.setValue("read", NativeFunctionValue{"read", inkRead})
+	heap.setValue("write", NativeFunctionValue{"write", inkWrite})
+	heap.setValue("time", NativeFunctionValue{"time", inkTime})
 
-	heap["sin"] = NativeFunctionValue{"sin", inkSin}
-	heap["cos"] = NativeFunctionValue{"cos", inkCos}
-	heap["ln"] = NativeFunctionValue{"ln", inkLn}
+	heap.setValue("sin", NativeFunctionValue{"sin", inkSin})
+	heap.setValue("cos", NativeFunctionValue{"cos", inkCos})
+	heap.setValue("ln", NativeFunctionValue{"ln", inkLn})
 
-	heap["string"] = NativeFunctionValue{"string", inkString}
-	heap["number"] = NativeFunctionValue{"number", inkString}
-	heap["bytes"] = NativeFunctionValue{"bytes", inkString}
-	heap["boolean"] = NativeFunctionValue{"boolean", inkString}
+	heap.setValue("string", NativeFunctionValue{"string", inkString})
+	heap.setValue("number", NativeFunctionValue{"number", inkNumber})
+	heap.setValue("bytes", NativeFunctionValue{"bytes", inkBytes})
+	heap.setValue("boolean", NativeFunctionValue{"boolean", inkBoolean})
 }
 
 func inkIn(_ []Value) Value {
