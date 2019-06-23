@@ -8,7 +8,6 @@ import (
 // The runtime defines any builtin functions and constants
 
 type NativeFunctionValue struct {
-	// TODO: get rid of this, we don't ever use it
 	name string
 	exec func([]Value) Value
 }
@@ -27,23 +26,25 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 }
 
 func (iso *Isolate) LoadEnvironment() {
-	heap := iso.Heap
+	iso.LoadFunc(NativeFunctionValue{"in", inkIn})
+	iso.LoadFunc(NativeFunctionValue{"out", inkOut})
+	iso.LoadFunc(NativeFunctionValue{"log", inkLog})
+	iso.LoadFunc(NativeFunctionValue{"read", inkRead})
+	iso.LoadFunc(NativeFunctionValue{"write", inkWrite})
+	iso.LoadFunc(NativeFunctionValue{"time", inkTime})
 
-	heap.setValue("in", NativeFunctionValue{"in", inkIn})
-	heap.setValue("out", NativeFunctionValue{"out", inkOut})
-	heap.setValue("log", NativeFunctionValue{"log", inkLog})
-	heap.setValue("read", NativeFunctionValue{"read", inkRead})
-	heap.setValue("write", NativeFunctionValue{"write", inkWrite})
-	heap.setValue("time", NativeFunctionValue{"time", inkTime})
+	iso.LoadFunc(NativeFunctionValue{"sin", inkSin})
+	iso.LoadFunc(NativeFunctionValue{"cos", inkCos})
+	iso.LoadFunc(NativeFunctionValue{"ln", inkLn})
 
-	heap.setValue("sin", NativeFunctionValue{"sin", inkSin})
-	heap.setValue("cos", NativeFunctionValue{"cos", inkCos})
-	heap.setValue("ln", NativeFunctionValue{"ln", inkLn})
+	iso.LoadFunc(NativeFunctionValue{"string", inkString})
+	iso.LoadFunc(NativeFunctionValue{"number", inkNumber})
+	iso.LoadFunc(NativeFunctionValue{"bytes", inkBytes})
+	iso.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
+}
 
-	heap.setValue("string", NativeFunctionValue{"string", inkString})
-	heap.setValue("number", NativeFunctionValue{"number", inkNumber})
-	heap.setValue("bytes", NativeFunctionValue{"bytes", inkBytes})
-	heap.setValue("boolean", NativeFunctionValue{"boolean", inkBoolean})
+func (iso *Isolate) LoadFunc(nf NativeFunctionValue) {
+	iso.Heap.setValue(nf.name, nf)
 }
 
 func inkIn(_ []Value) Value {
