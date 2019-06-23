@@ -97,6 +97,26 @@ type FunctionLiteralNode struct {
 	body      Node
 }
 
+func getOpPriority(op int) int {
+	// higher == greater priority
+	switch op {
+	case AccessorOp:
+		return 100
+	case ModulusOp:
+		return 80
+	case MultiplyOp, DivideOp:
+		return 50
+	case AddOp, SubtractOp:
+		return 20
+	default:
+		return 10
+	}
+}
+
+func shouldReverseOpOrder(opA, opB Tok) bool {
+	return getOpPriority(opA.kind) >= getOpPriority(opB.kind)
+}
+
 func parseExpression(tokens []Tok) (Node, int) {
 	idx := 0
 
@@ -132,11 +152,26 @@ func parseExpression(tokens []Tok) (Node, int) {
 		return atom, idx - 1
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
-		rightOperand, incr := parseAtom(tokens[idx:])
+		rightOperand, incr := parseExpression(tokens[idx:])
 		idx += incr
-		// TODO: implement order of operations.
-		// 	'.' > '%' > '*/' > '+-' > everything else
 		consumeDanglingSeparator()
+
+		// check if right side is a BinaryExprNode, to do order of ops
+		ben, isBinary := rightOperand.(BinaryExprNode)
+		if isBinary {
+			if shouldReverseOpOrder(nextTok, ben.operator) {
+				return BinaryExprNode{
+					operator: ben.operator,
+					leftOperand: BinaryExprNode{
+						operator:     nextTok,
+						leftOperand:  atom,
+						rightOperand: ben.leftOperand,
+					},
+					rightOperand: ben.rightOperand,
+				}, idx
+			}
+		}
+
 		return BinaryExprNode{
 			operator:     nextTok,
 			leftOperand:  atom,
@@ -183,6 +218,10 @@ func parseAtom(tokens []Tok) (Node, int) {
 	case Identifier:
 		if tokens[idx].kind == FunctionArrow {
 			atom, idx = parseFunctionLiteral(tokens)
+			// parseAtom should not consume trailing Separators, but
+			// 	parseFunctionLiteral does because it ends with expressions.
+			// 	so we backtrack one token.
+			idx--
 		} else {
 			atom = IdentifierNode{tok.stringVal()}
 		}
@@ -199,6 +238,10 @@ func parseAtom(tokens []Tok) (Node, int) {
 		idx++ // RightParen
 		if tokens[idx].kind == FunctionArrow {
 			atom, idx = parseFunctionLiteral(tokens)
+			// parseAtom should not consume trailing Separators, but
+			// 	parseFunctionLiteral does because it ends with expressions.
+			// 	so we backtrack one token.
+			idx--
 		} else {
 			atom = ExpressionListNode{exprs}
 		}

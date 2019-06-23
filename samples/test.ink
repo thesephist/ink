@@ -15,10 +15,10 @@ log('what wow')
 
 log(log2)
 
-kl := ([5, 4, 3, 2, 1].2)
-ol := ({
+kl := [5, 4, 3, 2, 1].2
+ol := {
     ('te' + '-st'): 'magic'
-}.('te-st'))
+}.('te-st')
 
 log(ol)
 log(string(kl))
