@@ -1,10 +1,12 @@
-log := (str => (
+log :=
+(str => (
     out(str)
     out('
 ')
 ))
 
-log2 := (str => (
+log2 :=
+    (str => (
     out(str)
     out('
 ')

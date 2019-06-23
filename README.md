@@ -79,7 +79,7 @@ BinaryOp: (
 A few quirks of this syntax:
 
 - All variables use lexical binding and scope, and are bound to the block
-- Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, so few are required after expressions, before delimiters, and before the ':' in an Object literal. Here, they are auto-inserted during tokenization.
+- Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, except after binary operators, so few are required after expressions, before delimiters, and before the ':' in an Object literal. Here, they are auto-inserted during tokenization.
 - String literals cannot contain comments. Backticks inside string literals are counted as a part of the string literal. String literals are also multiline.
     - This also allows the programmer to comment out a block with an explanation, simply like this:
     ```
