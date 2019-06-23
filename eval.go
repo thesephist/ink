@@ -441,7 +441,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 		}
 
 		callHeap := &StackHeap{
-			parent: heap,
+			parent: fnt.parentHeap,
 			vt:     ValueTable{},
 		}
 		for i, identNode := range fnt.defNode.arguments {
@@ -686,6 +686,10 @@ func (sh *StackHeap) setValue(name string, val Value) {
 	sh.vt[name] = val
 }
 
+func (sh *StackHeap) String() string {
+	return fmt.Sprintf("heap: %s --prnt-> (%s)", sh.vt, sh.parent)
+}
+
 type Isolate struct {
 	Heap *StackHeap
 }
@@ -702,7 +706,7 @@ func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 		evalNode(iso.Heap, node)
 	}
 	if dumpHeap {
-		log.Println("DEBUG - heap dump:", iso.Heap.vt)
+		log.Println("DEBUG - heap dump:", iso.Heap)
 	}
 
 	done <- true
