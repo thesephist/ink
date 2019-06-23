@@ -97,9 +97,9 @@ type FunctionLiteralNode struct {
 	body      Node
 }
 
-func getOpPriority(op int) int {
+func getOpPriority(t Tok) int {
 	// higher == greater priority
-	switch op {
+	switch t.kind {
 	case AccessorOp:
 		return 100
 	case ModulusOp:
@@ -117,8 +117,68 @@ func getOpPriority(op int) int {
 	}
 }
 
-func leftOpShouldBeforeRight(opA, opB Tok) bool {
-	return getOpPriority(opA.kind) >= getOpPriority(opB.kind)
+func isBinaryOp(t Tok) bool {
+	switch t.kind {
+	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
+		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+		return true
+	default:
+		return false
+	}
+}
+
+func parseBinaryExpression(
+	leftOperand Node,
+	operator Tok,
+	tokens []Tok,
+	previousPriority int,
+) (Node, int) {
+	rightAtom, idx := parseAtom(tokens)
+	incr := 0
+
+	ops := make([]Tok, 1)
+	nodes := make([]Node, 2)
+	ops[0] = operator
+	nodes[0] = leftOperand
+	nodes[1] = rightAtom
+
+	// build up a list of binary operations, with tree nodes
+	//	where there are higher-priority binary ops
+	for len(tokens) > idx && isBinaryOp(tokens[idx]) {
+		if previousPriority >= getOpPriority(tokens[idx]) {
+			break
+		} else if getOpPriority(ops[len(ops)-1]) >= getOpPriority(tokens[idx]) {
+			ops = append(ops, tokens[idx])
+			idx++
+			rightAtom, incr = parseAtom(tokens[idx:])
+			nodes = append(nodes, rightAtom)
+			idx += incr
+		} else {
+			subtree, incr := parseBinaryExpression(
+				nodes[len(nodes)-1],
+				tokens[idx],
+				tokens[idx+1:],
+				getOpPriority(ops[len(ops)-1]),
+			)
+			nodes[len(nodes)-1] = subtree
+			idx += incr + 1
+		}
+	}
+
+	// ops, nodes -> left-biased binary expression tree
+	tree := nodes[0]
+	nodes = nodes[1:]
+	for len(ops) > 0 {
+		tree = BinaryExprNode{
+			operator:     ops[0],
+			leftOperand:  tree,
+			rightOperand: nodes[0],
+		}
+		ops = ops[1:]
+		nodes = nodes[1:]
+	}
+
+	return tree, idx
 }
 
 func parseExpression(tokens []Tok) (Node, int) {
@@ -156,31 +216,10 @@ func parseExpression(tokens []Tok) (Node, int) {
 		return atom, idx - 1
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
-		rightOperand, incr := parseExpression(tokens[idx:])
+		n, incr := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
 		idx += incr
 		consumeDanglingSeparator()
-
-		// check if right side is a BinaryExprNode, to do order of ops
-		ben, isBinary := rightOperand.(BinaryExprNode)
-		if isBinary {
-			if leftOpShouldBeforeRight(nextTok, ben.operator) {
-				return BinaryExprNode{
-					operator: ben.operator,
-					leftOperand: BinaryExprNode{
-						operator:     nextTok,
-						leftOperand:  atom,
-						rightOperand: ben.leftOperand,
-					},
-					rightOperand: ben.rightOperand,
-				}, idx
-			}
-		}
-
-		return BinaryExprNode{
-			operator:     nextTok,
-			leftOperand:  atom,
-			rightOperand: rightOperand,
-		}, idx
+		return n, idx
 	case MatchColon:
 		idx++ // LeftBrace
 		clauses := make([]MatchClauseNode, 0)
