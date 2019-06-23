@@ -26,8 +26,6 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 func (iso *Isolate) LoadEnvironment() {
 	iso.LoadFunc(NativeFunctionValue{"in", inkIn})
 	iso.LoadFunc(NativeFunctionValue{"out", inkOut})
-	// TODO: log() should be in the stdlib, not native func
-	iso.LoadFunc(NativeFunctionValue{"log", inkLog})
 	iso.LoadFunc(NativeFunctionValue{"read", inkRead})
 	iso.LoadFunc(NativeFunctionValue{"write", inkWrite})
 	iso.LoadFunc(NativeFunctionValue{"time", inkTime})
@@ -47,7 +45,8 @@ func (iso *Isolate) LoadFunc(nf NativeFunctionValue) {
 }
 
 func inkIn(_ []Value) Value {
-	// TODO
+	// TODO: probably take in one char of input at a time?
+	//	this is probably unix/posix specific. hm.
 	fmt.Println("Returning some input: TBD")
 	return StringValue{"input"}
 }
@@ -63,12 +62,6 @@ func inkOut(in []Value) Value {
 
 	fmt.Println("runtime error: out() takes one string parameter")
 	return NullValue{}
-}
-
-func inkLog(in []Value) Value {
-	rv := inkOut(in)
-	fmt.Printf("\n")
-	return rv
 }
 
 func inkRead(in []Value) Value {

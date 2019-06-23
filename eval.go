@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -247,7 +246,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) string {
 	case IdentifierNode:
 		rightValue = right.val
 	case NumberLiteralNode:
-		rightValue = string(int(right.val))
+		rightValue = fmt.Sprintf("%f", right.val)
 	default:
 		rightEvaluatedValue := rightOperand.Eval(heap)
 		rv, ok := rightEvaluatedValue.(StringValue)
@@ -594,9 +593,12 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap) Value {
 			es[k.val] = entry.val.Eval(heap)
 		} else {
 			key := entry.key.Eval(heap)
-			keyStrVal, ok := key.(StringValue)
-			if ok {
+			keyStrVal, sok := key.(StringValue)
+			keyNumVal, nok := key.(NumberValue)
+			if sok {
 				es[keyStrVal.val] = entry.val.Eval(heap)
+			} else if nok {
+				es[fmt.Sprintf("%f", keyNumVal.val)] = entry.val.Eval(heap)
 			} else {
 				log.Fatalf("Cannot access non-string property %s of object",
 					key.String())
@@ -632,7 +634,7 @@ func (n ListLiteralNode) Eval(heap *StackHeap) Value {
 		entries: ValueTable{},
 	}
 	for i, n := range n.vals {
-		listVal.entries[strconv.Itoa(i)] = n.Eval(heap)
+		listVal.entries[fmt.Sprintf("%f", float64(i))] = n.Eval(heap)
 	}
 	return listVal
 }

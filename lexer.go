@@ -103,11 +103,11 @@ func (tok *Tok) numberVal() float64 {
 func (tok Tok) String() string {
 	str := tok.stringVal()
 	if str == "" {
-		return fmt.Sprintf("%s \tat %s",
+		return fmt.Sprintf("%s [%s]",
 			tokKindToName(tok.kind),
 			tok.position.String())
 	} else {
-		return fmt.Sprintf("%s %s at %s",
+		return fmt.Sprintf("%s %s [%s]",
 			tokKindToName(tok.kind),
 			str,
 			tok.position.String())
@@ -229,6 +229,10 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				}
 				inStringLiteral = !inStringLiteral
 			case inStringLiteral:
+				if char == '\n' {
+					lineNo++
+					colNo = 0
+				}
 				strbuf += string(char)
 			case char == '`':
 				nextChar := <-input
@@ -237,7 +241,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				}
 			case char == '\n':
 				lineNo++
-				colNo = 1
+				colNo = 0
 				ensureSeparator()
 			case unicode.IsSpace(char):
 				commitClear()
@@ -271,13 +275,29 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 					lastChar = nextChar
 				}
 			case char == '.':
-				nextChar := <-input
-				if unicode.IsDigit(nextChar) {
-					buf += "."
-				} else {
-					commitChar(AccessorOp)
+				// only non-AccessorOp case is [Number token] . [Number],
+				//	so we commit and bail early if the buf is empty or contains
+				//	a clearly non-numeric token. Note that this means all numbers
+				//	must start with a digit. i.e. .5 is not 0.5 but a syntax error.
+				//	This is the case since we don't know what the last token was,
+				//	and I think streaming parse is worth the tradeoffs of losing
+				//	that context.
+				committed := false
+				for _, d := range buf {
+					// XXX: there's probably a faster way
+					if !unicode.IsDigit(d) {
+						commitChar(AccessorOp)
+						committed = true
+						break
+					}
 				}
-				lastChar = nextChar
+				if !committed {
+					if buf == "" {
+						commitChar(AccessorOp)
+					} else {
+						buf += "."
+					}
+				}
 			case char == '=':
 				nextChar := <-input
 				if nextChar == '>' {

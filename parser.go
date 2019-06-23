@@ -126,8 +126,10 @@ func parseExpression(tokens []Tok) (Node, int) {
 	switch nextTok.kind {
 	case Separator:
 		return atom, idx // consuming separator
-	case KeyValueSeparator:
-		return atom, idx - 1 // not consuming KeyValueSeparator
+	case KeyValueSeparator, RightParen:
+		// these belong to the parent atom that contains this expression,
+		//	so return without consuming token (idx - 1)
+		return atom, idx - 1
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
 		rightOperand, incr := parseAtom(tokens[idx:])
@@ -155,7 +157,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 			clauses:   clauses,
 		}, idx
 	default:
-		log.Fatalf("syntax error: unexpected token in expression with %s", tokens[idx])
+		log.Fatalf("syntax error: unexpected token %s following an expression", nextTok)
 		consumeDanglingSeparator()
 		return nil, maxIdx
 	}
@@ -184,7 +186,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 		} else {
 			atom = IdentifierNode{tok.stringVal()}
 		}
-		// may be called as a function, so flows beyodn
+		// may be called as a function, so flows beyond
 		//	switch case
 	case LeftParen:
 		// grouped expression or function literal
@@ -200,7 +202,8 @@ func parseAtom(tokens []Tok) (Node, int) {
 		} else {
 			atom = ExpressionListNode{exprs}
 		}
-		return atom, idx
+		// may be called as a function, so flows beyond
+		//	switch case
 	case LeftBrace:
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {
