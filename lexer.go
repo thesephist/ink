@@ -134,9 +134,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 		// TODO: make this understand token width correctly for double-width
 		//	(2-char) symbols
 		simpleCommit(Tok{
-			"",
-			kind,
-			span{lineNo, colNo, lineNo, colNo + 1},
+			val:  "",
+			kind: kind,
+			span: span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
 	ensureSeparator := func() {
@@ -185,15 +185,15 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 						log.Fatalf("Parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
 					}
 					simpleCommit(Tok{
-						f,
-						NumberLiteral,
-						span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
+						val:  f,
+						kind: NumberLiteral,
+						span: span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
 					})
 				} else {
 					simpleCommit(Tok{
-						cbuf,
-						Identifier,
-						span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
+						val:  cbuf,
+						kind: Identifier,
+						span: span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
 					})
 				}
 			}
@@ -205,9 +205,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	}
 	commitChar := func(kind int) {
 		commit(Tok{
-			"",
-			kind,
-			span{lineNo, colNo, lineNo, colNo + 1},
+			val:  "",
+			kind: kind,
+			span: span{lineNo, colNo, lineNo, colNo + 1},
 		})
 	}
 	ensureSeparator = func() {
@@ -229,9 +229,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 			case char == '\'':
 				if inStringLiteral {
 					commit(Tok{
-						strbuf,
-						StringLiteral,
-						span{strbufStartLine, strbufStartCol, lineNo, colNo + 1},
+						val:  strbuf,
+						kind: StringLiteral,
+						span: span{strbufStartLine, strbufStartCol, lineNo, colNo + 1},
 					})
 				} else {
 					strbuf = ""

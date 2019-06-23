@@ -57,67 +57,6 @@ type ExpressionListNode struct {
 	expressions []Node
 }
 
-func parseExpression(tokens []Tok) (Node, int) {
-	idx := 0
-
-	consumeDanglingSeparator := func() {
-		// bounds check in case parseExpress() called at some point
-		//	consumed end token
-		if idx < len(tokens) && tokens[idx].kind == Separator {
-			idx++
-		}
-	}
-
-	if tokens[0].kind == NegationOp {
-		atom, idx := parseAtom(tokens[1:])
-		consumeDanglingSeparator()
-		return UnaryExprNode{tokens[0], atom}, idx
-	}
-
-	atom, incr := parseAtom(tokens[idx:])
-	idx += incr
-
-	nextTok := tokens[idx]
-	idx++
-
-	switch nextTok.kind {
-	case Separator:
-		return atom, idx // consuming separator
-	case KeyValueSeparator:
-		return atom, idx - 1 // not consuming KeyValueSeparator
-	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
-		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
-		rightOperand, incr := parseAtom(tokens[idx:])
-		idx += incr
-		// TODO: implement order of operations.
-		// 	'.' > '%' > '*/' > '+-' > everything else
-		consumeDanglingSeparator()
-		return BinaryExprNode{
-			nextTok,
-			atom,
-			rightOperand,
-		}, idx
-	case MatchColon:
-		idx++ // LeftBrace
-		clauses := make([]MatchClauseNode, 0)
-		for tokens[idx].kind != RightBrace {
-			clauseNode, incr := parseMatchClause(tokens[idx:])
-			idx += incr
-			clauses = append(clauses, clauseNode)
-		}
-		idx++ // RightBrace
-		consumeDanglingSeparator()
-		return MatchExprNode{
-			atom,
-			clauses,
-		}, idx
-	default:
-		log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
-		consumeDanglingSeparator()
-		return nil, maxIdx
-	}
-}
-
 type EmptyIdentifierNode struct{}
 
 type IdentifierNode struct {
@@ -154,6 +93,70 @@ type ListLiteralNode struct {
 type FunctionLiteralNode struct {
 	arguments []IdentifierNode
 	body      Node
+}
+
+func parseExpression(tokens []Tok) (Node, int) {
+	idx := 0
+
+	consumeDanglingSeparator := func() {
+		// bounds check in case parseExpress() called at some point
+		//	consumed end token
+		if idx < len(tokens) && tokens[idx].kind == Separator {
+			idx++
+		}
+	}
+
+	if tokens[0].kind == NegationOp {
+		atom, idx := parseAtom(tokens[1:])
+		consumeDanglingSeparator()
+		return UnaryExprNode{
+			operator: tokens[0],
+			operand:  atom,
+		}, idx
+	}
+
+	atom, incr := parseAtom(tokens[idx:])
+	idx += incr
+
+	nextTok := tokens[idx]
+	idx++
+
+	switch nextTok.kind {
+	case Separator:
+		return atom, idx // consuming separator
+	case KeyValueSeparator:
+		return atom, idx - 1 // not consuming KeyValueSeparator
+	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
+		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+		rightOperand, incr := parseAtom(tokens[idx:])
+		idx += incr
+		// TODO: implement order of operations.
+		// 	'.' > '%' > '*/' > '+-' > everything else
+		consumeDanglingSeparator()
+		return BinaryExprNode{
+			operator:     nextTok,
+			leftOperand:  atom,
+			rightOperand: rightOperand,
+		}, idx
+	case MatchColon:
+		idx++ // LeftBrace
+		clauses := make([]MatchClauseNode, 0)
+		for tokens[idx].kind != RightBrace {
+			clauseNode, incr := parseMatchClause(tokens[idx:])
+			idx += incr
+			clauses = append(clauses, clauseNode)
+		}
+		idx++ // RightBrace
+		consumeDanglingSeparator()
+		return MatchExprNode{
+			condition: atom,
+			clauses:   clauses,
+		}, idx
+	default:
+		log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
+		consumeDanglingSeparator()
+		return nil, maxIdx
+	}
 }
 
 func parseAtom(tokens []Tok) (Node, int) {
@@ -205,7 +208,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 			valExpr, valIncr := parseExpression(tokens[idx:])
 			// Separator consumed by parseExpression
 			idx += valIncr
-			entries = append(entries, ObjectEntryNode{keyExpr, valExpr})
+			entries = append(entries, ObjectEntryNode{key: keyExpr, val: valExpr})
 		}
 		idx++ // RightBrace
 		return ObjectLiteralNode{entries}, idx
@@ -246,8 +249,8 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 	idx += incr
 
 	return MatchClauseNode{
-		atom,
-		expr,
+		target:     atom,
+		expression: expr,
 	}, idx
 }
 
@@ -288,8 +291,8 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 	body, incr := parseExpression(tokens[idx:])
 	idx += incr
 	return FunctionLiteralNode{
-		arguments,
-		body,
+		arguments: arguments,
+		body:      body,
 	}, idx
 }
 
@@ -303,8 +306,8 @@ func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
 	}
 	idx++ // RightParen
 	return FunctionCallNode{
-		function,
-		arguments,
+		function:  function,
+		arguments: arguments,
 	}, idx
 
 }
