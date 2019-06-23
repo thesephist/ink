@@ -66,22 +66,18 @@ const (
 	RightBrace
 )
 
-// TODO: use just line and col with span, not an actual span. It's good enough.
-type span struct {
+type position struct {
 	startLine, startCol int
-	endLine, endCol     int
 }
 
-func (sp *span) String() string {
-	return fmt.Sprintf("%d:%d - %d:%d",
-		sp.startLine, sp.startCol,
-		sp.endLine, sp.endCol)
+func (sp *position) String() string {
+	return fmt.Sprintf("%d:%d", sp.startLine, sp.startCol)
 }
 
 type Tok struct {
 	val  interface{}
 	kind int
-	span
+	position
 }
 
 func (tok *Tok) stringVal() string {
@@ -107,14 +103,14 @@ func (tok *Tok) numberVal() float64 {
 func (tok Tok) String() string {
 	str := tok.stringVal()
 	if str == "" {
-		return fmt.Sprintf("%s - %s",
+		return fmt.Sprintf("%s \tat %s",
 			tokKindToName(tok.kind),
-			tok.span.String())
+			tok.position.String())
 	} else {
-		return fmt.Sprintf("%s %s - %s",
+		return fmt.Sprintf("%s %s at %s",
 			tokKindToName(tok.kind),
 			str,
-			tok.span.String())
+			tok.position.String())
 	}
 }
 
@@ -136,9 +132,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 	}
 	simpleCommitChar := func(kind int) {
 		simpleCommit(Tok{
-			val:  "",
-			kind: kind,
-			span: span{lineNo, colNo, lineNo, colNo + 1},
+			val:      "",
+			kind:     kind,
+			position: position{lineNo, colNo},
 		})
 	}
 	ensureSeparator := func() {
@@ -165,15 +161,15 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 						log.Fatalf("Parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
 					}
 					simpleCommit(Tok{
-						val:  f,
-						kind: NumberLiteral,
-						span: span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
+						val:      f,
+						kind:     NumberLiteral,
+						position: position{lineNo, colNo - len(cbuf)},
 					})
 				} else {
 					simpleCommit(Tok{
-						val:  cbuf,
-						kind: Identifier,
-						span: span{lineNo, colNo - len(cbuf), lineNo, colNo + 1},
+						val:      cbuf,
+						kind:     Identifier,
+						position: position{lineNo, colNo - len(cbuf)},
 					})
 				}
 			}
@@ -185,9 +181,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 	}
 	commitChar := func(kind int) {
 		commit(Tok{
-			val:  "",
-			kind: kind,
-			span: span{lineNo, colNo, lineNo, colNo + 1},
+			val:      "",
+			kind:     kind,
+			position: position{lineNo, colNo},
 		})
 	}
 	ensureSeparator = func() {
@@ -223,9 +219,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 			case char == '\'':
 				if inStringLiteral {
 					commit(Tok{
-						val:  strbuf,
-						kind: StringLiteral,
-						span: span{strbufStartLine, strbufStartCol, lineNo, colNo + 1},
+						val:      strbuf,
+						kind:     StringLiteral,
+						position: position{strbufStartLine, strbufStartCol},
 					})
 				} else {
 					strbuf = ""
