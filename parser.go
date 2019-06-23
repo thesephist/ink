@@ -153,7 +153,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 			clauses:   clauses,
 		}, idx
 	default:
-		log.Fatalf("syntax error: unexpected token in  expression with %s", tokens[idx])
+		log.Fatalf("syntax error: unexpected token in expression with %s", tokens[idx])
 		consumeDanglingSeparator()
 		return nil, maxIdx
 	}

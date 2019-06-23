@@ -200,7 +200,22 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	inStringLiteral := false
 
 	go func() {
-		for char := range input {
+		var char rune
+		// Ink requires max 1 lookahead, so rather than allowing backtracking
+		//	from the lexer's reader, we implement a streaming lexer with a buffer
+		//	of 1, implemented as this lastChar character. Every loop we take char
+		//	from lastChar if not null, from input channel otherwise.
+		var lastChar rune = 0
+		for {
+			if lastChar != 0 {
+				char = lastChar
+				lastChar = 0
+			} else {
+				char = <-input
+				if char == 0 {
+					break
+				}
+			}
 			switch {
 			case char == '\'':
 				if inStringLiteral {
@@ -247,15 +262,14 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				commitChar(Separator)
 			case char == ':':
 				nextChar := <-input
-				if unicode.IsSpace(nextChar) {
-					ensureSeparator()
-					commitChar(KeyValueSeparator)
-				} else if nextChar == '=' {
+				if nextChar == '=' {
 					commitChar(DefineOp)
 				} else if nextChar == ':' {
 					commitChar(MatchColon)
 				} else {
-					buf += ":" + string(nextChar)
+					ensureSeparator()
+					commitChar(KeyValueSeparator)
+					lastChar = nextChar
 				}
 			case char == '.':
 				nextChar := <-input
@@ -264,24 +278,22 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				} else {
 					commitChar(AccessorOp)
 				}
-				buf += string(nextChar)
+				lastChar = nextChar
 			case char == '=':
 				nextChar := <-input
 				if nextChar == '>' {
 					commitChar(FunctionArrow)
-				} else if unicode.IsSpace(nextChar) {
-					commitChar(EqualOp)
 				} else {
-					buf += "=" + string(nextChar)
+					commitChar(EqualOp)
+					lastChar = nextChar
 				}
 			case char == '-':
 				nextChar := <-input
 				if nextChar == '>' {
 					commitChar(CaseArrow)
-				} else if unicode.IsSpace(nextChar) {
-					commitChar(SubtractOp)
 				} else {
-					buf += "-" + string(nextChar)
+					commitChar(SubtractOp)
+					lastChar = nextChar
 				}
 			case char == '(':
 				commitChar(LeftParen)
