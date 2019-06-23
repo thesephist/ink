@@ -19,7 +19,8 @@ log(log2)
 
 kl := [5, 4, 3, 2, 1].2
 ol := {
-    ('te' + '-st'): 'magic'
+    ('te' +
+        '-st'): 'magic'
 }.('te-st')
 
 log(ol)

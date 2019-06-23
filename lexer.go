@@ -191,7 +191,8 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 		switch lastTokKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace,
 			AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
-			GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+			GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp,
+			FunctionArrow, MatchColon, CaseArrow:
 			// do nothing
 		default:
 			commitChar(Separator)
