@@ -448,7 +448,6 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 			}
 		}
 
-		log.Printf("Calling %s", fnt.String())
 		return fnt.defNode.body.Eval(callHeap)
 	case NativeFunctionValue:
 		// eval all arguments
@@ -629,7 +628,9 @@ func (n ListLiteralNode) String() string {
 }
 
 func (n ListLiteralNode) Eval(heap *StackHeap) Value {
-	listVal := CompositeValue{}
+	listVal := CompositeValue{
+		entries: ValueTable{},
+	}
 	for i, n := range n.vals {
 		listVal.entries[strconv.Itoa(i)] = n.Eval(heap)
 	}

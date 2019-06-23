@@ -1,9 +1,9 @@
 fb := n => (
     [n % 3, n % 5] :: {
-        [0, 0] -> out('FizzBuzz')
-        [0, _] -> out('Fizz')
-        [_, 0] -> out('Buzz')
-        _ -> out(string(n))
+        [0, 0] -> log('FizzBuzz')
+        [0, _] -> log('Fizz')
+        [_, 0] -> log('Buzz')
+        _ -> log(string(n))
     }
 )
 
@@ -12,11 +12,11 @@ fizzbuzzhelper := (n, max) => (
         max -> fb(n)
         _ -> (
             fb(n)
-            fizzbuzzhelp(n + 1, max)
+            fizzbuzzhelper(n + 1, max)
         )
     }
 )
 
-fizzbuzz := max => fizbuzzhelper(1, max)
+fizzbuzz := max => fizzbuzzhelper(1, max)
 
 fizzbuzz(100)
