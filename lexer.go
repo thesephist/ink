@@ -263,17 +263,6 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				commitChar(GreaterThanOp)
 			case char == ',':
 				commitChar(Separator)
-			case char == ':':
-				nextChar := <-input
-				if nextChar == '=' {
-					commitChar(DefineOp)
-				} else if nextChar == ':' {
-					commitChar(MatchColon)
-				} else {
-					ensureSeparator()
-					commitChar(KeyValueSeparator)
-					lastChar = nextChar
-				}
 			case char == '.':
 				// only non-AccessorOp case is [Number token] . [Number],
 				//	so we commit and bail early if the buf is empty or contains
@@ -298,8 +287,21 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 						buf += "."
 					}
 				}
+			case char == ':':
+				nextChar := <-input
+				colNo++
+				if nextChar == '=' {
+					commitChar(DefineOp)
+				} else if nextChar == ':' {
+					commitChar(MatchColon)
+				} else {
+					ensureSeparator()
+					commitChar(KeyValueSeparator)
+					lastChar = nextChar
+				}
 			case char == '=':
 				nextChar := <-input
+				colNo++
 				if nextChar == '>' {
 					commitChar(FunctionArrow)
 				} else {
@@ -308,6 +310,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				}
 			case char == '-':
 				nextChar := <-input
+				colNo++
 				if nextChar == '>' {
 					commitChar(CaseArrow)
 				} else {
