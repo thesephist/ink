@@ -108,12 +108,16 @@ func getOpPriority(op int) int {
 		return 50
 	case AddOp, SubtractOp:
 		return 20
-	default:
+	case GreaterThanOp, LessThanOp, EqualOp, EqRefOp:
 		return 10
+	case DefineOp:
+		return 0
+	default:
+		return -1
 	}
 }
 
-func shouldReverseOpOrder(opA, opB Tok) bool {
+func leftOpShouldBeforeRight(opA, opB Tok) bool {
 	return getOpPriority(opA.kind) >= getOpPriority(opB.kind)
 }
 
@@ -159,7 +163,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 		// check if right side is a BinaryExprNode, to do order of ops
 		ben, isBinary := rightOperand.(BinaryExprNode)
 		if isBinary {
-			if shouldReverseOpOrder(nextTok, ben.operator) {
+			if leftOpShouldBeforeRight(nextTok, ben.operator) {
 				return BinaryExprNode{
 					operator: ben.operator,
 					leftOperand: BinaryExprNode{

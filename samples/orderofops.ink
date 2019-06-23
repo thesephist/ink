@@ -1,8 +1,12 @@
-log(string(1 + 2 - 3 + 5 - 3))
-log('should be 2')
+compare := (num, exp) => (
+    out(string(num))
+    log(' should be ' + string(exp))
+)
 
-log(string(10 - 2 * 16/4))
-log('should be 2')
+compare(1 + 2 - 3 + 5 - 3, 2)
 
-log(string((10 - 2) * 4))
-log('should be 32, b/c parens')
+compare(1 + 2 * 3 + 5 - 3, 9)
+
+compare(10 - 2 * 16/4 + 3, 5)
+
+compare((10 - 2) * 4, 32)
