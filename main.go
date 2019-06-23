@@ -22,9 +22,10 @@ func (i *inkFiles) String() string {
 
 func main() {
 	// cli arguments
-	verbose := flag.Bool("verbose", false, "Log all interpreter steps")
+	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
 	debugLexer := flag.Bool("debug-lex", false, "Log lexer output")
 	debugParser := flag.Bool("debug-parse", false, "Log parser output")
+	dump := flag.Bool("dump", false, "Dump heap after eval")
 
 	var files inkFiles
 	flag.Var(&files, "input", "Source code to execute")
@@ -40,7 +41,7 @@ func main() {
 	nodes := make(chan Node)
 	go Tokenize(input, tokens, *debugLexer || *verbose, done)
 	go Parse(tokens, nodes, *debugParser || *verbose, done)
-	go iso.Eval(nodes, done)
+	go iso.Eval(nodes, *dump || *verbose, done)
 
 	if len(files) > 0 {
 		for _, path := range files {

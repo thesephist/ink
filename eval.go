@@ -686,7 +686,7 @@ type Isolate struct {
 	Heap *StackHeap
 }
 
-func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
+func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 	if iso.Heap == nil {
 		iso.Heap = &StackHeap{
 			parent: nil,
@@ -697,7 +697,9 @@ func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 	for node := range nodes {
 		evalNode(iso.Heap, node)
 	}
-	// TODO: debug option to dump heap at the end
+	if dumpHeap {
+		log.Println("DEBUG - heap dump:", iso.Heap.vt)
+	}
 
 	done <- true
 }

@@ -126,7 +126,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 	simpleCommit := func(tok Tok) {
 		lastTokKind = tok.kind
 		if debugLexer {
-			log.Println(tok)
+			log.Println("DEBUG - lex:", tok)
 		}
 		tokens <- tok
 	}

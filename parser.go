@@ -20,7 +20,7 @@ func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool, done cha
 		expr, incr := parseExpression(tokens[idx:])
 		idx += incr
 		if debugParser {
-			log.Println(expr)
+			log.Println("DEBUG - parse:", expr)
 		}
 		nodes <- expr
 	}
