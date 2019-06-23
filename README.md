@@ -22,12 +22,7 @@ Comments are delimited on both sides with the backtick `\`` character.
 ```
 Program: Expression*
 
-Expression: (
-    Atom
-    | UnaryExpr
-    | BinaryExpr
-    | MatchExpr
-) ','
+Expression: (Atom | BinaryExpr | MatchExpr) ','
 
 UnaryExpr: UnaryOp Atom
 BinaryExpr: Atom BinaryOp Atom
@@ -36,7 +31,7 @@ MatchExpr: Atom '::' '{' MatchClause* '}'
 MatchClause: Atom '->' Expression
 
 
-Atom: EmptyIdentifier | Identifier | Literal
+Atom: UnaryExpr | EmptyIdentifier | Identifier | Literal
         | FunctionCall | '(' Expression* ')'
 
 EmptyIdentifier: '_'

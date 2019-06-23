@@ -146,14 +146,20 @@ func parseBinaryExpression(
 	//	where there are higher-priority binary ops
 	for len(tokens) > idx && isBinaryOp(tokens[idx]) {
 		if previousPriority >= getOpPriority(tokens[idx]) {
+			// Priority is lower than the calling function's last op,
+			//  so return control to the parent binary op
 			break
 		} else if getOpPriority(ops[len(ops)-1]) >= getOpPriority(tokens[idx]) {
+			// Priority is lower than the previous op (but higher than parent),
+			//	so it's ok to be left-heavy in this tree
 			ops = append(ops, tokens[idx])
 			idx++
 			rightAtom, incr = parseAtom(tokens[idx:])
 			nodes = append(nodes, rightAtom)
 			idx += incr
 		} else {
+			// Priority is higher than previous ops,
+			//	so make it a right-heavy tree
 			subtree, incr := parseBinaryExpression(
 				nodes[len(nodes)-1],
 				tokens[idx],
@@ -192,15 +198,6 @@ func parseExpression(tokens []Tok) (Node, int) {
 		}
 	}
 
-	if tokens[0].kind == NegationOp {
-		atom, idx := parseAtom(tokens[1:])
-		consumeDanglingSeparator()
-		return UnaryExprNode{
-			operator: tokens[0],
-			operand:  atom,
-		}, idx
-	}
-
 	atom, incr := parseAtom(tokens[idx:])
 	idx += incr
 
@@ -209,7 +206,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 
 	switch nextTok.kind {
 	case Separator:
-		return atom, idx // consuming separator
+		return atom, idx // consuming dangling separator
 	case KeyValueSeparator, RightParen:
 		// these belong to the parent atom that contains this expression,
 		//	so return without consuming token (idx - 1)
@@ -243,6 +240,14 @@ func parseExpression(tokens []Tok) (Node, int) {
 
 func parseAtom(tokens []Tok) (Node, int) {
 	tok, idx := tokens[0], 1
+
+	if tok.kind == NegationOp {
+		atom, idx := parseAtom(tokens[1:])
+		return UnaryExprNode{
+			operator: tok,
+			operand:  atom,
+		}, idx + 1
+	}
 
 	var atom Node
 	switch tok.kind {

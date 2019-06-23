@@ -198,14 +198,16 @@ func (n UnaryExprNode) Eval(heap *StackHeap) Value {
 		operand := n.operand.Eval(heap)
 		switch o := operand.(type) {
 		case NumberValue:
-			return &NumberValue{-o.val}
+			return NumberValue{-o.val}
+		case BooleanValue:
+			return BooleanValue{!o.val}
 		default:
 			log.Fatalf("Cannot negate non-number value %s", o.String())
-			return nil
+			return NullValue{}
 		}
 	}
 	log.Fatalf("Unrecognized unary operation %s", n)
-	return nil
+	return NullValue{}
 }
 
 func (n BinaryExprNode) String() string {
@@ -695,12 +697,12 @@ func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 	for node := range nodes {
 		evalNode(iso.Heap, node)
 	}
+	// TODO: debug option to dump heap at the end
 
 	done <- true
 }
 
 func evalNode(heap *StackHeap, node Node) Value {
-	// log.Printf("Evaluating Node: %s", node.String())
 	switch n := node.(type) {
 	case Node:
 		return n.Eval(heap)
