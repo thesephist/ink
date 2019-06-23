@@ -9,10 +9,9 @@ const (
 	maxIdx = math.MaxInt32
 )
 
-func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
+func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool, done chan<- bool) {
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
-		// log.Println(tok)
 		tokens = append(tokens, tok)
 	}
 
@@ -20,6 +19,9 @@ func Parse(tokenStream <-chan Tok, nodes chan<- Node, done chan<- bool) {
 	for idx < length {
 		expr, incr := parseExpression(tokens[idx:])
 		idx += incr
+		if debugParser {
+			log.Println(expr)
+		}
 		nodes <- expr
 	}
 	close(nodes)

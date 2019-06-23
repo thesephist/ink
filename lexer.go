@@ -118,7 +118,7 @@ func (tok Tok) String() string {
 	}
 }
 
-func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
+func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<- bool) {
 	lastTokKind := Separator
 	buf := ""
 	strbuf := ""
@@ -129,6 +129,9 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 
 	simpleCommit := func(tok Tok) {
 		lastTokKind = tok.kind
+		if debugLexer {
+			log.Println(tok)
+		}
 		tokens <- tok
 	}
 	simpleCommitChar := func(kind int) {
