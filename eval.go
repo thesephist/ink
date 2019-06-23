@@ -698,7 +698,7 @@ func (iso *Isolate) Eval(nodes <-chan Node, done chan<- bool) {
 }
 
 func evalNode(heap *StackHeap, node Node) Value {
-	log.Printf("Evaluating Node: %s", node.String())
+	// log.Printf("Evaluating Node: %s", node.String())
 	switch n := node.(type) {
 	case Node:
 		return n.Eval(heap)

@@ -6,3 +6,4 @@ obj := {
 
 log(obj . hi)
 log(obj . hello)
+log(string(obj . what3))
