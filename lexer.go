@@ -235,8 +235,16 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				if char == '\n' {
 					lineNo++
 					colNo = 0
+					strbuf += string(char)
+				} else if char == '\\' {
+					// backtick escapes like in most other languages,
+					//	so just consume whatever the next char is into
+					//	the current string buffer
+					strbuf += string(<-input)
+					colNo++
+				} else {
+					strbuf += string(char)
 				}
-				strbuf += string(char)
 			case char == '`':
 				nextChar := <-input
 				for nextChar != '`' {

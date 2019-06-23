@@ -1,3 +1,5 @@
+au BufNewFile,BufRead *.ink set filetype=ink
+
 if exists("b:current_syntax")
     finish
 endif
@@ -56,7 +58,7 @@ syntax match inkIdentifier "\v_"
 highlight link inkIdentifier Identifier
 
 " strings
-syntax match inkString "\v\'.*\'"
+syntax region inkString start=/\v'/ skip=/\v(\\.|\r|\n)/ end=/\v'/
 highlight link inkString String
 
 " comment
@@ -64,5 +66,3 @@ syntax match inkComment "\v`.*`"
 highlight link inkComment Comment
 
 let b:current_syntax = "ink"
-
-autocmd BufNewFile,BufRead *.ink set filetype=ink
