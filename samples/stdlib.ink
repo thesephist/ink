@@ -9,3 +9,5 @@ log := str => (
 scan := () => (
     in()
 )
+
+` TODO: JSON serde system `

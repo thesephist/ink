@@ -186,6 +186,7 @@ func (v FunctionValue) Equals(other Value) bool {
 type Node interface {
 	String() string
 	Eval(*StackHeap) Value
+	// TODO: func (n Node) prettyString() string - pretty-print AST
 }
 
 func (n UnaryExprNode) String() string {
