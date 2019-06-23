@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 )
 
 // The runtime defines any builtin functions and constants
 
 type NativeFunctionValue struct {
+	// TODO: get rid of this, we don't ever use it
 	name string
 	exec func([]Value) Value
 }
@@ -29,6 +31,7 @@ func (iso *Isolate) LoadEnvironment() {
 
 	heap.setValue("in", NativeFunctionValue{"in", inkIn})
 	heap.setValue("out", NativeFunctionValue{"out", inkOut})
+	heap.setValue("log", NativeFunctionValue{"log", inkLog})
 	heap.setValue("read", NativeFunctionValue{"read", inkRead})
 	heap.setValue("write", NativeFunctionValue{"write", inkWrite})
 	heap.setValue("time", NativeFunctionValue{"time", inkTime})
@@ -62,6 +65,12 @@ func inkOut(in []Value) Value {
 	return NullValue{}
 }
 
+func inkLog(in []Value) Value {
+	rv := inkOut(in)
+	fmt.Printf("\n")
+	return rv
+}
+
 func inkRead(in []Value) Value {
 	// TODO: once BufferValue gets written, write this
 	return NullValue{}
@@ -93,8 +102,19 @@ func inkLn(in []Value) Value {
 }
 
 func inkString(in []Value) Value {
-	// TODO
-	return NullValue{}
+	if len(in) == 0 {
+		log.Fatal("string() takes exactly one argument, none was provided")
+	}
+
+	switch v := in[0].(type) {
+	case StringValue:
+		return v
+	case NumberValue:
+		return StringValue{val: fmt.Sprintf("%f", v.val)}
+	default:
+		// TODO
+		return NullValue{}
+	}
 }
 
 func inkNumber(in []Value) Value {

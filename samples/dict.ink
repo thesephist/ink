@@ -4,4 +4,5 @@ obj := {
     what3 : 3.14,
 }
 
-out(obj)
+log(obj . hi)
+log(obj . hello)

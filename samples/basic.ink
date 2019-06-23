@@ -1,9 +1,7 @@
-fn1 := n => out('Hello, World!
-')
+fn1 := n => log('Hello, World!')
 
 fn2 := () => (
-    out('Hello, World 2!
-')
+    log('Hello, World 2!')
 )
 
 out('Hello test
