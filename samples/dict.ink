@@ -19,3 +19,9 @@ arr := [3, 2, 1, 'four']
 
 log(string(arr.2))
 log(arr.3)
+
+` property access and assignment `
+
+obj.hi := 8
+out('should be 8: ')
+log(string(obj.hi))

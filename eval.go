@@ -272,15 +272,15 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 			heap.setValue(leftIdent.val, rightValue)
 			return rightValue
 		} else if okAccess && leftAccess.operator.kind == AccessorOp {
-			leftObject := n.leftOperand.Eval(heap)
-			leftKey := operandToStringKey(n.rightOperand, heap)
+			leftObject := leftAccess.leftOperand.Eval(heap)
+			leftKey := operandToStringKey(leftAccess.rightOperand, heap)
 			leftObjectComposite, ok := leftObject.(CompositeValue)
 			if ok {
 				rightValue := n.rightOperand.Eval(heap)
 				leftObjectComposite.entries[leftKey] = rightValue
 				return rightValue
 			} else {
-				log.Fatalf("runtime error: cannot set property of a non-object %s",
+				log.Fatalf("runtime error: cannot set property of a non-composite value %s",
 					leftObject)
 			}
 		} else {
@@ -514,11 +514,14 @@ func (n ExpressionListNode) String() string {
 }
 
 func (n ExpressionListNode) Eval(heap *StackHeap) Value {
-	var retVal Value
-	for _, expr := range n.expressions {
-		retVal = expr.Eval(heap)
+	callHeap := &StackHeap{
+		parent: heap,
+		vt:     ValueTable{},
 	}
-	return retVal
+	for _, expr := range n.expressions[:len(n.expressions)-1] {
+		expr.Eval(callHeap)
+	}
+	return n.expressions[len(n.expressions)-1].Eval(callHeap)
 }
 
 func (n EmptyIdentifierNode) String() string {

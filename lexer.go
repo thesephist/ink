@@ -425,6 +425,7 @@ func tokKindToName(kind int) string {
 	case SubtractOp:
 		return "SubtractOp"
 
+	// TODO: add bitwise operators, & | >> <<
 	case NegationOp:
 		return "NegationOp"
 	case AddOp:
