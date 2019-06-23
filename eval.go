@@ -139,7 +139,7 @@ func (v CompositeValue) Equals(other Value) bool {
 //	main isolate's heap, and keep all other heaps, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
-	defNode    Node
+	defNode    FunctionLiteralNode
 	parentHeap *StackHeap
 }
 
@@ -151,7 +151,9 @@ func (v FunctionValue) String() string {
 func (v FunctionValue) Equals(other Value) bool {
 	ov, ok := other.(FunctionValue)
 	if ok {
-		return v.defNode == ov.defNode
+		// to compare structs containing slices, we really want
+		//	a pointer comparison, not a value comparison
+		return &v.defNode == &ov.defNode
 	} else {
 		return false
 	}
@@ -411,12 +413,18 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 			argResults[i] = arg.Eval(heap)
 		}
 
-		// callHeap := &StackHeap{}
-		// assign local variables into the heap
+		callHeap := &StackHeap{
+			parent: heap,
+			vt:     ValueTable{},
+		}
+		for i, identNode := range fnt.defNode.arguments {
+			if len(argResults) > i {
+				callHeap.vt[identNode.val] = argResults[i]
+			}
+		}
 
-		// TODO
 		log.Printf("Calling %s", fnt.String())
-		return NullValue{}
+		return fnt.defNode.body.Eval(callHeap)
 	case NativeFunctionValue:
 		// eval all arguments
 		argResults := make([]Value, len(n.arguments))
