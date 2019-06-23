@@ -5,8 +5,6 @@ import (
 	"log"
 )
 
-// The runtime defines any builtin functions and constants
-
 type NativeFunctionValue struct {
 	name string
 	exec func([]Value) Value
@@ -28,6 +26,7 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 func (iso *Isolate) LoadEnvironment() {
 	iso.LoadFunc(NativeFunctionValue{"in", inkIn})
 	iso.LoadFunc(NativeFunctionValue{"out", inkOut})
+	// TODO: log() should be in the stdlib, not native func
 	iso.LoadFunc(NativeFunctionValue{"log", inkLog})
 	iso.LoadFunc(NativeFunctionValue{"read", inkRead})
 	iso.LoadFunc(NativeFunctionValue{"write", inkWrite})

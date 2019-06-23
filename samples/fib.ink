@@ -6,7 +6,4 @@ fib := n => (
 	}
 )
 
-out('Will log 10: ')
-log(string(10))
-
-log(string(fib(12)))
+log(string(fib(10)))

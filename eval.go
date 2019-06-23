@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ type Value interface {
 type EmptyValue struct{}
 
 func (v EmptyValue) String() string {
-	return ""
+	return "_"
 }
 
 func (v EmptyValue) Equals(other Value) bool {
@@ -39,6 +40,10 @@ func (v NumberValue) String() string {
 }
 
 func (v NumberValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	ov, ok := other.(NumberValue)
 	if ok {
 		return v.val == ov.val
@@ -56,6 +61,10 @@ func (v StringValue) String() string {
 }
 
 func (v StringValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	ov, ok := other.(StringValue)
 	if ok {
 		return v.val == ov.val
@@ -77,6 +86,10 @@ func (v BooleanValue) String() string {
 }
 
 func (v BooleanValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	ov, ok := other.(BooleanValue)
 	if ok {
 		return v.val == ov.val
@@ -92,6 +105,10 @@ func (v NullValue) String() string {
 }
 
 func (v NullValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	_, ok := other.(NullValue)
 	return ok
 }
@@ -116,6 +133,10 @@ func (v CompositeValue) String() string {
 }
 
 func (v CompositeValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	ov, ok := other.(CompositeValue)
 	if ok {
 		if len(v.entries) != len(ov.entries) {
@@ -149,6 +170,10 @@ func (v FunctionValue) String() string {
 }
 
 func (v FunctionValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	ov, ok := other.(FunctionValue)
 	if ok {
 		// to compare structs containing slices, we really want
@@ -446,7 +471,7 @@ func (n MatchClauseNode) String() string {
 }
 
 func (n MatchClauseNode) Eval(heap *StackHeap) Value {
-	log.Fatal("Cannot evaluate a MatchClauseNode")
+	log.Fatal("Cannot Eval a MatchClauseNode")
 	return nil
 }
 
@@ -468,7 +493,8 @@ func (n MatchExprNode) Eval(heap *StackHeap) Value {
 	conditionVal := n.condition.Eval(heap)
 	for _, cl := range n.clauses {
 		if conditionVal.Equals(cl.target.Eval(heap)) {
-			return cl.expression.Eval(heap)
+			rv := cl.expression.Eval(heap)
+			return rv
 		}
 	}
 	return NullValue{}
@@ -586,7 +612,7 @@ func (n ObjectEntryNode) String() string {
 }
 
 func (n ObjectEntryNode) Eval(heap *StackHeap) Value {
-	log.Fatal("Cannot evaluate ObjectEntryNode")
+	log.Fatal("Cannot Eval an ObjectEntryNode")
 	return nil
 }
 
@@ -602,9 +628,12 @@ func (n ListLiteralNode) String() string {
 	}
 }
 
-// TODO: implement
 func (n ListLiteralNode) Eval(heap *StackHeap) Value {
-	return nil
+	listVal := CompositeValue{}
+	for i, n := range n.vals {
+		listVal.entries[strconv.Itoa(i)] = n.Eval(heap)
+	}
+	return listVal
 }
 
 func (n FunctionLiteralNode) String() string {
