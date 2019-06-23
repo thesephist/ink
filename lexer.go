@@ -66,6 +66,7 @@ const (
 	RightBrace
 )
 
+// TODO: use just line and col with span, not an actual span. It's good enough.
 type span struct {
 	startLine, startCol int
 	endLine, endCol     int
@@ -131,8 +132,6 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 		tokens <- tok
 	}
 	simpleCommitChar := func(kind int) {
-		// TODO: make this understand token width correctly for double-width
-		//	(2-char) symbols
 		simpleCommit(Tok{
 			val:  "",
 			kind: kind,
@@ -141,37 +140,15 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 	}
 	ensureSeparator := func() {
 		// no-op, re-bound below
+		log.Fatalf("This function should never run!")
 	}
-	// TODO: Tokenize correctly when all unnecessary whitespace
-	// 	(anything not in a string literal; not around is, true, false, null)
-	// 	is removed. This probably involves stopping at non-number and
-	// 	non-identifier characters while scanning for those below.
 	commitClear := func() {
 		if buf != "" {
 			cbuf := buf
 			buf = ""
 			switch cbuf {
-			case ".":
-				simpleCommitChar(AccessorOp)
 			case "is":
 				simpleCommitChar(EqRefOp)
-			case "=":
-				simpleCommitChar(EqualOp)
-			case "=>":
-				simpleCommitChar(FunctionArrow)
-			case ":":
-				ensureSeparator()
-				simpleCommitChar(KeyValueSeparator)
-			case ":=":
-				simpleCommitChar(DefineOp)
-			case "::":
-				simpleCommitChar(MatchColon)
-			case "-":
-				simpleCommitChar(SubtractOp)
-			case "->":
-				simpleCommitChar(CaseArrow)
-			case ">":
-				simpleCommitChar(GreaterThanOp)
 			case "true":
 				simpleCommitChar(TrueLiteral)
 			case "false":
@@ -222,7 +199,6 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 
 	inStringLiteral := false
 
-	// parse stuff
 	go func() {
 		for char := range input {
 			switch {
@@ -265,8 +241,48 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, done chan<- bool) {
 				commitChar(ModulusOp)
 			case char == '<':
 				commitChar(LessThanOp)
+			case char == '>':
+				commitChar(GreaterThanOp)
 			case char == ',':
 				commitChar(Separator)
+			case char == ':':
+				nextChar := <-input
+				if unicode.IsSpace(nextChar) {
+					ensureSeparator()
+					commitChar(KeyValueSeparator)
+				} else if nextChar == '=' {
+					commitChar(DefineOp)
+				} else if nextChar == ':' {
+					commitChar(MatchColon)
+				} else {
+					buf += ":" + string(nextChar)
+				}
+			case char == '.':
+				nextChar := <-input
+				if unicode.IsDigit(nextChar) {
+					buf += "."
+				} else {
+					commitChar(AccessorOp)
+				}
+				buf += string(nextChar)
+			case char == '=':
+				nextChar := <-input
+				if nextChar == '>' {
+					commitChar(FunctionArrow)
+				} else if unicode.IsSpace(nextChar) {
+					commitChar(EqualOp)
+				} else {
+					buf += "=" + string(nextChar)
+				}
+			case char == '-':
+				nextChar := <-input
+				if nextChar == '>' {
+					commitChar(CaseArrow)
+				} else if unicode.IsSpace(nextChar) {
+					commitChar(SubtractOp)
+				} else {
+					buf += "-" + string(nextChar)
+				}
 			case char == '(':
 				commitChar(LeftParen)
 			case char == ')':
