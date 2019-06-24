@@ -1,23 +1,72 @@
-# Ink
+# Ink programming language 🖋
 
-Ink is a functional programming language inspired by modern JavaScript.
+Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style.
 
 Ink has a few goals. In order, they are
 
-- Simple, minimal syntax
-- High readability and expressiveness
-- Small efficient interpreter and runtime API
-- Performance (within reason)
+- Ink should have a simple, minimal syntax
+- Ink should be easy to learn regardless of skill level
+- Ink should feel productive to use
+- Ink should be quickly readable and expressive
+- Ink should have a great, fully featured, and modular standard library
+- Ink should have an ergonomic interpreter and runtime API
 
-## Setup and introduction
+Design is always a game of tradeoffs. Ink's goals for minimalism and readability / expressivity means the language deliberately does not aim to be best in other ways:
 
-(This section is to be written as the project matures.)
+- Ink doesn't need to be highly efficient or fast, especially compared to compiled languages
+- Ink doesn't need to be particularly concise
+
+## Overview
+
+Here's an implementation of FizzBuzz in the Ink language.
+
+```ink
+` ink fizzbuzz implementation `
+
+fb := n => (
+    [n % 3, n % 5] :: {
+        [0, 0] -> log('FizzBuzz')
+        [0, _] -> log('Fizz')
+        [_, 0] -> log('Buzz')
+        _ -> log(string(n))
+    }
+)
+
+helper := (n, max) => (
+    n :: {
+        max -> fb(n)
+        _ -> (
+            fb(n)
+            helper(n + 1, max)
+        )
+    }
+)
+
+fizzbuzz := max => helper(1, max)
+fizzbuzz(100)
+```
+
+You'll notice a few characteristic things about Ink:
+
+- Functions are defined using arrows (`=>`) _a la_ JavaScript arrow functions
+- Ink does not have a looping primitive (no `for` or `while`), and instead defaults to tail-optimized recursion. Loops may be possible to have in syntax with macros in the near future.
+- Rather than using `if`/`else`, Ink uses pattern matching using the match (`::`) operator. Match expressions in Ink allows for very expressive definition of complex flow control.
+- Ink does not have explicit return statements. Instead, everything is an expression that evaluates to a value, and function bodies are a list of expressions whose last-evaluated expression value becomes the "return value" of the function.
+- As a general convention, Ink tries not to use to many English keywords in favor of a small set of short symbols. In fact, the only keyword using the English alphabet in the language is `is`, for reference equality checks.
+
+You can find more sample code in the `samples/` directory and run them with `ink -input <sample>.ink`.
+
+## Why?
+
+// TODO: thing.
+
+I started this project for a few reasons.
+
+Ink makes a few unconventional choices about how programs should be encoded in writing.
 
 ## Syntax
 
-Ink's syntax is inspired by JavaScript and Go, but much more minimal.
-
-Comments are delimited on both sides with the backtick `\`` character.
+Ink's syntax is inspired by JavaScript and Go, but strives to be minimal. This is not a comprehensive grammar, but expresses the high level structure.
 
 ```
 Program: Expression*
@@ -56,7 +105,7 @@ ObjectLiteral: '{' ObjectEntry* '}'
 ObjectEntry: Expression ':' Expression
 ListLiteral: '[' Expression* ']'
 FunctionLiteral: (Identifier | '(' (Identifier ',')* ')')
-        '=>' Expression 
+        '=>' Expression
 
 UnaryOp: (
     '~' // negation
@@ -97,7 +146,7 @@ Ink is strongly and statically typed, and has seven non-extendable types.
 - Bytes
 - Boolean
 - Null
-- Composite (including Objects and Lists)
+- Composite (including both Objects (dictionaries) and Lists, like Lua tables)
 - Function
 
 ## Builtins
@@ -127,7 +176,10 @@ Ink is strongly and statically typed, and has seven non-extendable types.
 - `bytes(any) => bytes`
 - `boolean(any) => boolean`
 
-## Samples
+## Development
 
-You can find up-to-date code samples in `samples/`.
+Ink is currently a single go package. Run `go run .` to execute the binary.
 
+The `ink` binary takes in scripts from standard input, unless at least one `-input` flag is provided, in which case it reads from the filesystem.
+
+Ink also has a vim syntax definition file, under `utils/ink.vim`.
