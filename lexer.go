@@ -192,7 +192,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 		case Separator, LeftParen, LeftBracket, LeftBrace,
 			AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 			GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp,
-			FunctionArrow, MatchColon, CaseArrow:
+			KeyValueSeparator, FunctionArrow, MatchColon, CaseArrow:
 			// do nothing
 		default:
 			commitChar(Separator)
@@ -306,6 +306,8 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				} else if nextChar == ':' {
 					commitChar(MatchColon)
 				} else {
+					// key is parsed as expression, so make sure
+					//	we mark expression end (Separator)
 					ensureSeparator()
 					commitChar(KeyValueSeparator)
 					lastChar = nextChar
