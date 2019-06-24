@@ -3,9 +3,10 @@
 ## Codebase / Golang
 
 - [ ] Go through it with Effective Go with a fine toothed comb
-- [ ] As we get time also make a ink -> JavaScript in JS and maybe ship it as a javascript compiler? Great for
-    1. correctness checking against Go impl and
-    2. writing web code.
+- [ ] As we get time also make a ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
+    1. correctness checking against Go implementation
+    2. writing web code
+    3. having a second independent implementation of the language
 - [ ] Write tests for parser/lexer/evaler separately to catch regressions more easily
 - [ ] `func (n Node) prettyString() string` to pretty-print AST
 - [ ] Add godoc.
