@@ -3,10 +3,22 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 )
+
+const VERSION = "0.1"
+
+const HELP_MSG = `
+Ink is a minimal, functional programming language.
+	ink v%s
+
+By default, ink interprets from stdin. Run an ink script with -input
+	ink -input main.ink
+
+`
 
 // input files flag parsing
 type inkFiles []string
@@ -21,16 +33,32 @@ func (i *inkFiles) String() string {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Printf(HELP_MSG, VERSION)
+		flag.PrintDefaults()
+	}
+
 	// cli arguments
 	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
 	debugLexer := flag.Bool("debug-lex", false, "Log lexer output")
 	debugParser := flag.Bool("debug-parse", false, "Log parser output")
 	dump := flag.Bool("dump", false, "Dump heap after eval")
 
+	version := flag.Bool("version", false, "Print version string and exit")
+	help := flag.Bool("help", false, "Print help message and exit")
+
 	var files inkFiles
-	flag.Var(&files, "input", "Source code to execute")
+	flag.Var(&files, "input", "Source code to execute, can be invoked multiple times")
 
 	flag.Parse()
+
+	// if asked for version, disregard everything else
+	if *version {
+		fmt.Println(VERSION)
+		os.Exit(0)
+	} else if *help {
+		flag.Usage()
+	}
 
 	// rep(l)
 	input := make(chan rune)
