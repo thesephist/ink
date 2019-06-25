@@ -15,7 +15,7 @@
 
 - [ ] A procedural macro system to extend the language (syntax?). Study Rust's procedural macro system and Sweet.js, build an AST-aware macro system into the standard library.
 - [ ] Can it be possible to do class-based / object oriented or inheritance based programming in ink? How would that work? What would be the "finished" version of the ink language? What about an interface-based programming like Rust (traits) or Go (interfaces)? I think this is better, but this requires a great type system. I think prototype is actually fine if we can do inheritance and dev ergonomics is good. So let's lean towards that, but make this kind of programming model (OO style) possible if it can be done elegantly, because it's a hugely useful mental model.
-- [ ] Settle on a way to handle exception conditions
+- [ ] Settle on a way to handle exception conditions / runtime errors
 
 ## Standard library / utilities
 - [ ] Finish builtin functions in `runtime.go`.

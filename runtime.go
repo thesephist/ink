@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 )
 
 type NativeFunctionValue struct {
@@ -96,7 +95,9 @@ func inkLn(in []Value) Value {
 
 func inkString(in []Value) Value {
 	if len(in) == 0 {
-		log.Fatal("string() takes exactly one argument, none was provided")
+		// TODO: probably should use the language's native way of handling
+		//	errors -- we just haven't decided on one yet.
+		logErrf(ErrRuntime, "string() takes exactly one argument, none was provided")
 	}
 
 	switch v := in[0].(type) {

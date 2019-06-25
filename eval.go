@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -203,11 +202,11 @@ func (n UnaryExprNode) Eval(heap *StackHeap) Value {
 		case BooleanValue:
 			return BooleanValue{!o.val}
 		default:
-			log.Fatalf("Cannot negate non-number value %s", o.String())
+			logErrf(ErrRuntime, "cannot negate non-number value %s", o.String())
 			return NullValue{}
 		}
 	}
-	log.Fatalf("Unrecognized unary operation %s", n)
+	logErrf(ErrAssert, "unrecognized unary operator %s", n)
 	return NullValue{}
 }
 
@@ -256,7 +255,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) string {
 		if ok {
 			rightValue = rv.val
 		} else {
-			log.Fatalf("runtime error: cannot access property %s of an object",
+			logErrf(ErrRuntime, "cannot access property %s of an object",
 				rightEvaluatedValue.String())
 		}
 	}
@@ -280,11 +279,11 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				leftObjectComposite.entries[leftKey] = rightValue
 				return rightValue
 			} else {
-				log.Fatalf("runtime error: cannot set property of a non-composite value %s",
+				logErrf(ErrRuntime, "cannot set property of a non-composite value %s",
 					leftObject)
 			}
 		} else {
-			log.Fatalf("runtime error: cannot assign value to non-identifier %s",
+			logErrf(ErrRuntime, "cannot assign value to non-identifier %s",
 				n.leftOperand.Eval(heap).String())
 			return nil
 		}
@@ -295,7 +294,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 		if ok {
 			return leftValueComposite.entries[rightValue]
 		} else {
-			log.Fatalf("runtime error: cannot access property of a non-object %s",
+			logErrf(ErrRuntime, "cannot access property of a non-object %s",
 				leftValue)
 		}
 	}
@@ -321,7 +320,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return BooleanValue{left.val || right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support addition",
+		logErrf(ErrRuntime, "values %s and %s do not support addition",
 			leftValue, rightValue)
 	case SubtractOp:
 		switch left := leftValue.(type) {
@@ -331,7 +330,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return NumberValue{left.val - right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support subtraction",
+		logErrf(ErrRuntime, "values %s and %s do not support subtraction",
 			leftValue, rightValue)
 	case MultiplyOp:
 		switch left := leftValue.(type) {
@@ -346,7 +345,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return BooleanValue{left.val && right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support multiplication",
+		logErrf(ErrRuntime, "values %s and %s do not support multiplication",
 			leftValue, rightValue)
 	case DivideOp:
 		switch left := leftValue.(type) {
@@ -356,7 +355,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return NumberValue{left.val / right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support division",
+		logErrf(ErrRuntime, "values %s and %s do not support division",
 			leftValue, rightValue)
 	case ModulusOp:
 		switch left := leftValue.(type) {
@@ -369,7 +368,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				)}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support modulus",
+		logErrf(ErrRuntime, "values %s and %s do not support modulus",
 			leftValue, rightValue)
 	case GreaterThanOp:
 		switch left := leftValue.(type) {
@@ -384,7 +383,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return BooleanValue{left.val > right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support comparison",
+		logErrf(ErrRuntime, "values %s and %s do not support comparison",
 			leftValue, rightValue)
 	case LessThanOp:
 		switch left := leftValue.(type) {
@@ -399,7 +398,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 				return BooleanValue{left.val < right.val}
 			}
 		}
-		log.Fatalf("runtime error: values %s and %s do not support comparison",
+		logErrf(ErrRuntime, "values %s and %s do not support comparison",
 			leftValue, rightValue)
 	case EqualOp:
 		return BooleanValue{leftValue.Equals(rightValue)}
@@ -409,7 +408,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 		//	name table, which isn't a short-term todo item.
 		return BooleanValue{leftValue == rightValue}
 	}
-	log.Fatalf("Unknown binary operation %s", n.String())
+	logErrf(ErrAssert, "unknown binary operator %s", n.String())
 	return nil
 }
 
@@ -430,7 +429,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 
 	if fn == nil {
 		// improve error message
-		log.Fatalf("runtime error: attempted to call an unknown function")
+		logErrf(ErrRuntime, "attempted to call an unknown function")
 	}
 
 	switch fnt := fn.(type) {
@@ -459,7 +458,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 		}
 		return fnt.exec(argResults)
 	default:
-		log.Fatalf("runtime error: attempted to call a non-function value %s",
+		logErrf(ErrRuntime, "attempted to call a non-function value %s",
 			fnt.String())
 		return NullValue{}
 	}
@@ -472,7 +471,7 @@ func (n MatchClauseNode) String() string {
 }
 
 func (n MatchClauseNode) Eval(heap *StackHeap) Value {
-	log.Fatal("Cannot Eval a MatchClauseNode")
+	logErrf(ErrAssert, "cannot Eval a MatchClauseNode")
 	return nil
 }
 
@@ -539,7 +538,7 @@ func (n IdentifierNode) String() string {
 func (n IdentifierNode) Eval(heap *StackHeap) Value {
 	val, prs := heap.getValue(n.val)
 	if !prs {
-		log.Fatalf("%s is not defined", n.val)
+		logErrf(ErrRuntime, "%s is not defined", n.val)
 	}
 	return val
 }
@@ -606,7 +605,7 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap) Value {
 			} else if nok {
 				es[fmt.Sprintf("%f", keyNumVal.val)] = entry.val.Eval(heap)
 			} else {
-				log.Fatalf("Cannot access non-string property %s of object",
+				logErrf(ErrRuntime, "cannot access non-string property %s of object",
 					key.String())
 			}
 		}
@@ -619,7 +618,7 @@ func (n ObjectEntryNode) String() string {
 }
 
 func (n ObjectEntryNode) Eval(heap *StackHeap) Value {
-	log.Fatal("Cannot Eval an ObjectEntryNode")
+	logErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
 	return nil
 }
 
@@ -706,7 +705,7 @@ func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 		evalNode(iso.Heap, node)
 	}
 	if dumpHeap {
-		log.Println("DEBUG - heap dump:", iso.Heap)
+		logDebug("heap dump ->", iso.Heap.String())
 	}
 
 	done <- true
@@ -717,7 +716,7 @@ func evalNode(heap *StackHeap, node Node) Value {
 	case Node:
 		return n.Eval(heap)
 	default:
-		log.Println(n)
+		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
 	}
 
 	return nil

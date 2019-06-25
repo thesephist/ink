@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math"
 )
 
@@ -20,7 +19,7 @@ func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool, done cha
 		expr, incr := parseExpression(tokens[idx:])
 		idx += incr
 		if debugParser {
-			log.Println("DEBUG - parse:", expr)
+			logDebug("parse ->", expr.String())
 		}
 		nodes <- expr
 	}
@@ -232,7 +231,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 			clauses:   clauses,
 		}, idx
 	default:
-		log.Fatalf("syntax error: unexpected token %s following an expression", nextTok)
+		logErrf(ErrSyntax, "unexpected token %s following an expression", nextTok)
 		consumeDanglingSeparator()
 		return nil, maxIdx
 	}
@@ -318,7 +317,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 		idx++ // RightBracket
 		return ListLiteralNode{vals}, idx
 	default:
-		log.Fatalf("syntax error: unexpected start of atom, found %s", tok)
+		logErrf(ErrSyntax, "unexpected start of atom, found %s", tok)
 		return IdentifierNode{}, maxIdx
 	}
 
@@ -337,7 +336,7 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 	atom, idx := parseAtom(tokens)
 
 	if tokens[idx].kind != CaseArrow {
-		log.Fatalf("expected CaseArrow, but got %s", tokens[idx].String())
+		logErrf(ErrSyntax, "expected token '->', but got %s", tokens[idx].String())
 	}
 	idx++
 
@@ -362,13 +361,13 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 			idx++
 
 			if tokens[idx].kind != Separator {
-				log.Fatalf("invalid syntax: expected a comma separated arguments list, found %s",
+				logErrf(ErrSyntax, "expected a comma separated arguments list, found %s",
 					tokens[idx].String())
 			}
 			idx++ // Separator
 		}
 		if tokens[idx].kind != RightParen {
-			log.Fatalf("invalid syntax: expected arguments list to terminate with a RightParen, found %s",
+			logErrf(ErrSyntax, "expected arguments list to terminate with a RightParen, found %s",
 				tokens[idx].String())
 		}
 		idx++ // RightParen
@@ -376,11 +375,11 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 		idNode := IdentifierNode{tok.stringVal()}
 		arguments = append(arguments, idNode)
 	default:
-		log.Fatalf("invalid syntax: malformed arguments list in function at %s", tok.String())
+		logErrf(ErrSyntax, "malformed arguments list in function at %s", tok.String())
 	}
 
 	if tokens[idx].kind != FunctionArrow {
-		log.Fatalf("invalid syntax: expected FunctionArrow but found %s", tokens[idx].String())
+		logErrf(ErrSyntax, "expected FunctionArrow but found %s", tokens[idx].String())
 	}
 	idx++
 

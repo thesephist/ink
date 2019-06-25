@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"unicode"
 )
@@ -126,7 +125,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 	simpleCommit := func(tok Tok) {
 		lastTokKind = tok.kind
 		if debugLexer {
-			log.Println("DEBUG - lex:", tok)
+			logDebug("lex ->", tok.String())
 		}
 		tokens <- tok
 	}
@@ -139,7 +138,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 	}
 	ensureSeparator := func() {
 		// no-op, re-bound below
-		log.Fatalf("This function should never run!")
+		logErrf(ErrAssert, "this function should never run!")
 	}
 	commitClear := func() {
 		if buf != "" {
@@ -158,7 +157,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 				if unicode.IsDigit(rune(cbuf[0])) {
 					f, err := strconv.ParseFloat(cbuf, 64)
 					if err != nil {
-						log.Fatalf("Parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
+						logErrf(ErrSyntax, "parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
 					}
 					simpleCommit(Tok{
 						val:      f,

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 )
@@ -54,7 +53,7 @@ func main() {
 
 	// if asked for version, disregard everything else
 	if *version {
-		fmt.Println(VERSION)
+		fmt.Println("ink", VERSION)
 		os.Exit(0)
 	} else if *help {
 		flag.Usage()
@@ -75,7 +74,7 @@ func main() {
 		for _, path := range files {
 			file, err := os.Open(path)
 			if err != nil {
-				log.Fatalf("Could not open %s for execution: %s", path, err)
+				logErrf(ErrSystem, "could not open %s for execution:\n\t-> %s", path, err)
 			}
 			defer file.Close()
 
