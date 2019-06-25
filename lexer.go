@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	_ = iota
+	Separator = iota
+
 	Block
 	UnaryExpr
 	BinaryExpr
@@ -56,7 +57,6 @@ const (
 	GreaterThanOp
 	LessThanOp
 
-	Separator
 	LeftParen
 	RightParen
 	LeftBracket
