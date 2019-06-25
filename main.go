@@ -46,6 +46,8 @@ func main() {
 	version := flag.Bool("version", false, "Print version string and exit")
 	help := flag.Bool("help", false, "Print help message and exit")
 
+	repl := flag.Bool("repl", false, "Run as an interactive repl")
+
 	var files inkFiles
 	flag.Var(&files, "input", "Source code to execute, can be invoked multiple times")
 
@@ -59,18 +61,61 @@ func main() {
 		flag.Usage()
 	}
 
-	// rep(l)
-	input := make(chan rune)
-	done := make(chan bool, 3)
-
+	// execution context
 	iso := Isolate{}
-	tokens := make(chan Tok)
-	nodes := make(chan Node)
-	go Tokenize(input, tokens, *debugLexer || *verbose, done)
-	go Parse(tokens, nodes, *debugParser || *verbose, done)
-	go iso.Eval(nodes, *dump || *verbose, done)
 
-	if len(files) > 0 {
+	if *repl {
+		// run interactively in a repl
+		logDebug("started ink repl")
+		reader := bufio.NewReader(os.Stdin)
+
+		shouldExit := false
+		for !shouldExit {
+			// green arrow
+			fmt.Printf("[32;1m-> [;0m")
+			text, err := reader.ReadString('\n')
+
+			if err != nil {
+				logErrf(ErrSystem, "unexpected stop to input:\n\t->%s", err.Error())
+			}
+
+			switch text {
+			// specialized introspection / observability directives
+			//	in repl session
+			case "@dump\n":
+				iso.Dump()
+			case "@exit\n":
+				shouldExit = true
+			default:
+				input := make(chan rune)
+				wait := iso.ExecInputStream(
+					input,
+					*debugLexer || *verbose,
+					*debugParser || *verbose,
+					*dump || *verbose,
+				)
+
+				for _, char := range text {
+					input <- char
+				}
+				close(input)
+
+				wait()
+			}
+		}
+
+		logDebug("exited ink repl")
+		os.Exit(0)
+	} else if len(files) > 0 {
+		// read from file
+		input := make(chan rune)
+		wait := iso.ExecInputStream(
+			input,
+			*debugLexer || *verbose,
+			*debugParser || *verbose,
+			*dump || *verbose,
+		)
+
 		for _, path := range files {
 			file, err := os.Open(path)
 			if err != nil {
@@ -87,7 +132,19 @@ func main() {
 				input <- '\n'
 			}
 		}
+		close(input)
+
+		wait()
 	} else {
+		// read from stdin
+		input := make(chan rune)
+		wait := iso.ExecInputStream(
+			input,
+			*debugLexer || *verbose,
+			*debugParser || *verbose,
+			*dump || *verbose,
+		)
+
 		inputReader := bufio.NewReader(os.Stdin)
 		for {
 			char, _, err := inputReader.ReadRune()
@@ -96,11 +153,8 @@ func main() {
 			}
 			input <- char
 		}
-	}
-	close(input)
+		close(input)
 
-	// wait for evals on other threads to finish
-	for i := 0; i < 3; i++ {
-		<-done
+		wait()
 	}
 }

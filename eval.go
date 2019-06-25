@@ -693,6 +693,10 @@ type Isolate struct {
 	Heap *StackHeap
 }
 
+func (iso *Isolate) Dump() {
+	logDebug("heap dump ->", iso.Heap.String())
+}
+
 func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 	if iso.Heap == nil {
 		iso.Heap = &StackHeap{
@@ -705,10 +709,26 @@ func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 		evalNode(iso.Heap, node)
 	}
 	if dumpHeap {
-		logDebug("heap dump ->", iso.Heap.String())
+		iso.Dump()
 	}
 
 	done <- true
+}
+
+func (iso *Isolate) ExecInputStream(input <-chan rune, debugLex, debugParse, dump bool) func() {
+	tokens := make(chan Tok)
+	nodes := make(chan Node)
+	done := make(chan bool, 3)
+
+	go Tokenize(input, tokens, debugLex, done)
+	go Parse(tokens, nodes, debugParse, done)
+	go iso.Eval(nodes, dump, done)
+
+	return func() {
+		for i := 0; i < 3; i++ {
+			<-done
+		}
+	}
 }
 
 func evalNode(heap *StackHeap, node Node) Value {

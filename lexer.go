@@ -115,8 +115,7 @@ func (tok Tok) String() string {
 
 func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<- bool) {
 	lastTokKind := Separator
-	buf := ""
-	strbuf := ""
+	buf, strbuf := "", ""
 	var strbufStartLine, strbufStartCol int
 
 	lineNo := 1
@@ -434,7 +433,6 @@ func tokKindToName(kind int) string {
 	case SubtractOp:
 		return "SubtractOp"
 
-	// TODO: add bitwise operators, & | >> <<
 	case NegationOp:
 		return "NegationOp"
 	case AddOp:
