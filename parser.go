@@ -8,6 +8,12 @@ const (
 	maxIdx = math.MaxInt32
 )
 
+func guardUnexpectedInputEnd(tokens []Tok) {
+	if len(tokens) == 0 {
+		logErrf(ErrSyntax, "unexpected end of input")
+	}
+}
+
 func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool) {
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
@@ -151,12 +157,15 @@ func parseBinaryExpression(
 			//	so it's ok to be left-heavy in this tree
 			ops = append(ops, tokens[idx])
 			idx++
+
+			guardUnexpectedInputEnd(tokens[idx:])
 			rightAtom, incr = parseAtom(tokens[idx:])
 			nodes = append(nodes, rightAtom)
 			idx += incr
 		} else {
 			// Priority is higher than previous ops,
 			//	so make it a right-heavy tree
+			guardUnexpectedInputEnd(tokens[idx+1:])
 			subtree, incr := parseBinaryExpression(
 				nodes[len(nodes)-1],
 				tokens[idx],
@@ -198,6 +207,7 @@ func parseExpression(tokens []Tok) (Node, int) {
 	atom, incr := parseAtom(tokens[idx:])
 	idx += incr
 
+	guardUnexpectedInputEnd(tokens[idx:])
 	nextTok := tokens[idx]
 	idx++
 
@@ -217,10 +227,13 @@ func parseExpression(tokens []Tok) (Node, int) {
 	case MatchColon:
 		idx++ // LeftBrace
 		clauses := make([]MatchClauseNode, 0)
+		guardUnexpectedInputEnd(tokens[idx:])
 		for tokens[idx].kind != RightBrace {
 			clauseNode, incr := parseMatchClause(tokens[idx:])
 			idx += incr
 			clauses = append(clauses, clauseNode)
+
+			guardUnexpectedInputEnd(tokens[idx:])
 		}
 		idx++ // RightBrace
 		consumeDanglingSeparator()
@@ -239,7 +252,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 	tok, idx := tokens[0], 1
 
 	if tok.kind == NegationOp {
-		atom, idx := parseAtom(tokens[1:])
+		atom, idx := parseAtom(tokens[idx:])
 		return UnaryExprNode{
 			operator: tok,
 			operand:  atom,
@@ -247,6 +260,7 @@ func parseAtom(tokens []Tok) (Node, int) {
 	}
 
 	var atom Node
+	guardUnexpectedInputEnd(tokens[idx:])
 	switch tok.kind {
 	case EmptyIdentifier:
 		return EmptyIdentifierNode{}, idx
@@ -279,8 +293,12 @@ func parseAtom(tokens []Tok) (Node, int) {
 			expr, incr := parseExpression(tokens[idx:])
 			idx += incr
 			exprs = append(exprs, expr)
+
+			guardUnexpectedInputEnd(tokens[idx:])
 		}
 		idx++ // RightParen
+
+		guardUnexpectedInputEnd(tokens[idx:])
 		if tokens[idx].kind == FunctionArrow {
 			atom, idx = parseFunctionLiteral(tokens)
 			// parseAtom should not consume trailing Separators, but
@@ -298,10 +316,14 @@ func parseAtom(tokens []Tok) (Node, int) {
 			keyExpr, keyIncr := parseExpression(tokens[idx:])
 			idx += keyIncr
 			idx++ // KeyValueSeparator
+
+			guardUnexpectedInputEnd(tokens[idx:])
 			valExpr, valIncr := parseExpression(tokens[idx:])
 			// Separator consumed by parseExpression
 			idx += valIncr
 			entries = append(entries, ObjectEntryNode{key: keyExpr, val: valExpr})
+
+			guardUnexpectedInputEnd(tokens[idx:])
 		}
 		idx++ // RightBrace
 		return ObjectLiteralNode{entries}, idx
@@ -311,6 +333,8 @@ func parseAtom(tokens []Tok) (Node, int) {
 			expr, incr := parseExpression(tokens[idx:])
 			idx += incr
 			vals = append(vals, expr)
+
+			guardUnexpectedInputEnd(tokens[idx:])
 		}
 		idx++ // RightBracket
 		return ListLiteralNode{vals}, idx
@@ -325,6 +349,8 @@ func parseAtom(tokens []Tok) (Node, int) {
 		var incr int
 		atom, incr = parseFunctionCall(atom, tokens[idx:])
 		idx += incr
+
+		guardUnexpectedInputEnd(tokens[idx:])
 	}
 
 	return atom, idx
@@ -333,11 +359,13 @@ func parseAtom(tokens []Tok) (Node, int) {
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 	atom, idx := parseAtom(tokens)
 
+	guardUnexpectedInputEnd(tokens[idx:])
 	if tokens[idx].kind != CaseArrow {
 		logErrf(ErrSyntax, "expected token '->', but got %s", tokens[idx].String())
 	}
 	idx++
 
+	guardUnexpectedInputEnd(tokens[idx:])
 	expr, incr := parseExpression(tokens[idx:])
 	idx += incr
 
@@ -348,9 +376,11 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
 }
 
 func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
+
 	tok, idx := tokens[0], 1
 	arguments := make([]IdentifierNode, 0)
 
+	guardUnexpectedInputEnd(tokens[idx:])
 	switch tok.kind {
 	case LeftParen:
 		for tokens[idx].kind == Identifier {
@@ -358,12 +388,15 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 			arguments = append(arguments, idNode)
 			idx++
 
+			guardUnexpectedInputEnd(tokens[idx:])
 			if tokens[idx].kind != Separator {
 				logErrf(ErrSyntax, "expected a comma separated arguments list, found %s",
 					tokens[idx].String())
 			}
 			idx++ // Separator
 		}
+
+		guardUnexpectedInputEnd(tokens[idx:])
 		if tokens[idx].kind != RightParen {
 			logErrf(ErrSyntax, "expected arguments list to terminate with a RightParen, found %s",
 				tokens[idx].String())
@@ -376,6 +409,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 		logErrf(ErrSyntax, "malformed arguments list in function at %s", tok.String())
 	}
 
+	guardUnexpectedInputEnd(tokens[idx:])
 	if tokens[idx].kind != FunctionArrow {
 		logErrf(ErrSyntax, "expected FunctionArrow but found %s", tokens[idx].String())
 	}
@@ -392,15 +426,19 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
 	idx := 1
 	arguments := make([]Node, 0)
+
+	guardUnexpectedInputEnd(tokens[idx:])
 	for tokens[idx].kind != RightParen {
 		expr, incr := parseExpression(tokens[idx:])
 		idx += incr
 		arguments = append(arguments, expr)
+
+		guardUnexpectedInputEnd(tokens[idx:])
 	}
 	idx++ // RightParen
+
 	return FunctionCallNode{
 		function:  function,
 		arguments: arguments,
 	}, idx
-
 }
