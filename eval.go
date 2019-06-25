@@ -707,40 +707,40 @@ func (iso *Isolate) Init() {
 	iso.LoadEnvironment()
 }
 
-func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
-	for node := range nodes {
-		evalNode(iso.Heap, node)
-	}
-	if dumpHeap {
-		iso.Dump()
-	}
-
-	done <- true
-}
-
-func (iso *Isolate) ExecInputStream(input <-chan rune, debugLex, debugParse, dump bool) func() {
-	tokens := make(chan Tok)
-	nodes := make(chan Node)
-	done := make(chan bool, 3)
-
-	go Tokenize(input, tokens, debugLex, done)
-	go Parse(tokens, nodes, debugParse, done)
-	go iso.Eval(nodes, dump, done)
-
-	return func() {
-		for i := 0; i < 3; i++ {
-			<-done
-		}
-	}
-}
-
-func evalNode(heap *StackHeap, node Node) Value {
+func (iso *Isolate) evalNode(node Node) Value {
 	switch n := node.(type) {
 	case Node:
-		return n.Eval(heap)
+		return n.Eval(iso.Heap)
 	default:
 		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
 	}
 
 	return nil
+}
+
+func (iso *Isolate) Eval(nodes <-chan Node, values chan<- Value, dumpHeap bool) {
+	for node := range nodes {
+		values <- iso.evalNode(node)
+	}
+
+	if dumpHeap {
+		iso.Dump()
+	}
+
+	close(values)
+}
+
+func (iso *Isolate) ExecStream(
+	debugLex, debugParse, dump bool,
+) (chan<- rune, <-chan Value) {
+	input := make(chan rune)
+	tokens := make(chan Tok)
+	nodes := make(chan Node)
+	values := make(chan Value)
+
+	go Tokenize(input, tokens, debugLex)
+	go Parse(tokens, nodes, debugParse)
+	go iso.Eval(nodes, values, dump)
+
+	return input, values
 }

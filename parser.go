@@ -8,7 +8,7 @@ const (
 	maxIdx = math.MaxInt32
 )
 
-func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool, done chan<- bool) {
+func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool) {
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
 		tokens = append(tokens, tok)
@@ -24,8 +24,6 @@ func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool, done cha
 		nodes <- expr
 	}
 	close(nodes)
-
-	done <- true
 }
 
 type UnaryExprNode struct {

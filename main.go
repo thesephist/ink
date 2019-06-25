@@ -65,6 +65,34 @@ func main() {
 	iso := Isolate{}
 	iso.Init()
 
+	execFile := func(path string) {
+		// read from file
+		input, values := iso.ExecStream(
+			*debugLexer || *verbose,
+			*debugParser || *verbose,
+			*dump || *verbose,
+		)
+
+		file, err := os.Open(path)
+		if err != nil {
+			logErrf(ErrSystem, "could not open %s for execution:\n\t-> %s", path, err)
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			for _, char := range scanner.Text() {
+				input <- char
+			}
+			input <- '\n'
+		}
+		close(input)
+
+		for _ = range values {
+		}
+	}
+
 	if *repl {
 		// run interactively in a repl
 		logDebug("started ink repl")
@@ -77,22 +105,22 @@ func main() {
 			text, err := reader.ReadString('\n')
 
 			if err != nil {
-				logErrf(ErrSystem, "unexpected stop to input:\n\t->%s", err.Error())
+				logErrf(ErrSystem, "unexpected stop to input:\n\t-> %s", err.Error())
 			}
 
-			switch text {
+			switch {
 			// specialized introspection / observability directives
 			//	in repl session
-			case "@dump\n":
+			case strings.HasPrefix(text, "@dump"):
 				iso.Dump()
-
-			case "@exit\n":
+			case strings.HasPrefix(text, "@exit"):
 				shouldExit = true
+			case strings.HasPrefix(text, "@load "):
+				path := strings.Trim(text[5:], " \t\n")
+				execFile(path)
 
 			default:
-				input := make(chan rune)
-				wait := iso.ExecInputStream(
-					input,
+				input, values := iso.ExecStream(
 					*debugLexer || *verbose,
 					*debugParser || *verbose,
 					*dump || *verbose,
@@ -103,7 +131,9 @@ func main() {
 				}
 				close(input)
 
-				wait()
+				for v := range values {
+					logInteractive(v.String())
+				}
 			}
 		}
 
@@ -111,38 +141,12 @@ func main() {
 		os.Exit(0)
 	} else if len(files) > 0 {
 		// read from file
-		input := make(chan rune)
-		wait := iso.ExecInputStream(
-			input,
-			*debugLexer || *verbose,
-			*debugParser || *verbose,
-			*dump || *verbose,
-		)
-
 		for _, path := range files {
-			file, err := os.Open(path)
-			if err != nil {
-				logErrf(ErrSystem, "could not open %s for execution:\n\t-> %s", path, err)
-			}
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-
-			for scanner.Scan() {
-				for _, char := range scanner.Text() {
-					input <- char
-				}
-				input <- '\n'
-			}
+			execFile(path)
 		}
-		close(input)
-
-		wait()
 	} else {
 		// read from stdin
-		input := make(chan rune)
-		wait := iso.ExecInputStream(
-			input,
+		input, values := iso.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -158,6 +162,7 @@ func main() {
 		}
 		close(input)
 
-		wait()
+		for _ = range values {
+		}
 	}
 }

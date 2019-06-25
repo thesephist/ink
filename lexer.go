@@ -113,11 +113,11 @@ func (tok Tok) String() string {
 	}
 }
 
-func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<- bool) {
-	lastTokKind := Separator
-	buf, strbuf := "", ""
+func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool) {
+	var buf, strbuf string
 	var strbufStartLine, strbufStartCol int
 
+	lastTokKind := Separator
 	lineNo := 1
 	colNo := 1
 
@@ -350,7 +350,6 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool, done chan<-
 		}
 
 		close(tokens)
-		done <- true
 	}()
 }
 
