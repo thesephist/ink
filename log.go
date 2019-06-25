@@ -9,9 +9,11 @@ import (
 const (
 	ANSI_RESET       = "[0;0m"
 	ANSI_BLUE        = "[34;22m"
+	ANSI_GREEN       = "[32;22m"
 	ANSI_YELLOW      = "[33;22m"
 	ANSI_RED         = "[31;22m"
 	ANSI_BLUE_BOLD   = "[34;1m"
+	ANSI_GREEN_BOLD  = "[32;1m"
 	ANSI_YELLOW_BOLD = "[33;1m"
 	ANSI_RED_BOLD    = "[31;1m"
 )
@@ -29,6 +31,14 @@ func logDebug(args ...string) {
 
 func logDebugf(s string, args ...interface{}) {
 	logDebug(fmt.Sprintf(s, args...))
+}
+
+func logInteractive(args ...string) {
+	fmt.Println(ANSI_GREEN + strings.Join(args, " ") + ANSI_RESET)
+}
+
+func logInteractivef(s string, args ...interface{}) {
+	logInteractive(fmt.Sprintf(s, args...))
 }
 
 func logWarn(args ...string) {

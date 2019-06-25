@@ -63,6 +63,7 @@ func main() {
 
 	// execution context
 	iso := Isolate{}
+	iso.Init()
 
 	if *repl {
 		// run interactively in a repl
@@ -72,7 +73,7 @@ func main() {
 		shouldExit := false
 		for !shouldExit {
 			// green arrow
-			fmt.Printf("[32;1m-> [;0m")
+			fmt.Printf(ANSI_GREEN_BOLD + "> " + ANSI_RESET)
 			text, err := reader.ReadString('\n')
 
 			if err != nil {
@@ -84,8 +85,10 @@ func main() {
 			//	in repl session
 			case "@dump\n":
 				iso.Dump()
+
 			case "@exit\n":
 				shouldExit = true
+
 			default:
 				input := make(chan rune)
 				wait := iso.ExecInputStream(

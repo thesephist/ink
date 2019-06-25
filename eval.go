@@ -697,7 +697,7 @@ func (iso *Isolate) Dump() {
 	logDebug("heap dump ->", iso.Heap.String())
 }
 
-func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
+func (iso *Isolate) Init() {
 	if iso.Heap == nil {
 		iso.Heap = &StackHeap{
 			parent: nil,
@@ -705,6 +705,9 @@ func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 		}
 	}
 	iso.LoadEnvironment()
+}
+
+func (iso *Isolate) Eval(nodes <-chan Node, dumpHeap bool, done chan<- bool) {
 	for node := range nodes {
 		evalNode(iso.Heap, node)
 	}
