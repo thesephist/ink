@@ -16,6 +16,14 @@ Design is always a game of tradeoffs. Ink's goals for minimalism and readability
 - Ink doesn't need to be highly efficient or fast, especially compared to compiled languages
 - Ink doesn't need to be particularly concise
 
+## Getting started
+
+You can run Ink in three main ways:
+
+1. The Ink binary `ink` defaults to executing whatever comes through standard input. So you can pipe any Ink script to the binary to execute it.
+2. Use `ink -input <file>.ink` to execute an ink script file. You may pass the flag multiple times to execute multiple scripts, like `ink -input a.ink -input b.ink`.
+3. Invoke `ink -repl` to start an interactive repl session, and start typing ink code. You can run files in this context by executing `@load <file>.ink` in the repl prompt.
+
 ## Overview
 
 Here's an implementation of FizzBuzz in the Ink language.
