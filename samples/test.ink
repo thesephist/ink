@@ -61,11 +61,11 @@ log('should log thing to be printed:')
 out('        -> ')
 ` can't just do comp.list.2.what because
     2.what is not a valid identifier.
-    should be able to also do comp.list.(2).what`
-log((comp.list.2).what)
+    these are some other recommended ways `
+log(comp.list.(2).what)
 log('again...')
 out('        -> ')
-log(comp.list.(2).what)
+log((comp.list.2).what)
 
 ` accessing properties strangely, accessing nonexistent properties ` section()
 {}.1
@@ -86,3 +86,8 @@ log(
 )
 log('should print 4200 here:')
 log(string({test: 4200}.('te' + 'st')))
+dashed := {
+    'test-key': 14
+}
+log('expect 14:')
+log(string(dashed.('test-key')))
