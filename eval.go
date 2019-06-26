@@ -243,23 +243,31 @@ func (n BinaryExprNode) String() string {
 }
 
 func operandToStringKey(rightOperand Node, heap *StackHeap) string {
-	var rightValue string
 	switch right := rightOperand.(type) {
 	case IdentifierNode:
-		rightValue = right.val
+		return right.val
+
+	case StringLiteralNode:
+		return right.val
+
 	case NumberLiteralNode:
-		rightValue = fmt.Sprintf("%f", right.val)
+		return fmt.Sprintf("%f", right.val)
+
 	default:
 		rightEvaluatedValue := rightOperand.Eval(heap)
-		rv, ok := rightEvaluatedValue.(StringValue)
-		if ok {
-			rightValue = rv.val
-		} else {
+		switch rv := rightEvaluatedValue.(type) {
+		case StringValue:
+			return rv.val
+		case NumberValue:
+			return fmt.Sprintf("%f", rv.val)
+		default:
 			logErrf(ErrRuntime, "cannot access property %s of an object",
 				rightEvaluatedValue.String())
 		}
 	}
-	return rightValue
+
+	// should never occur
+	return ""
 }
 
 func (n BinaryExprNode) Eval(heap *StackHeap) Value {
@@ -289,10 +297,10 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 		}
 	} else if n.operator.kind == AccessorOp {
 		leftValue := n.leftOperand.Eval(heap)
-		rightValue := operandToStringKey(n.rightOperand, heap)
+		rightValueStr := operandToStringKey(n.rightOperand, heap)
 		leftValueComposite, ok := leftValue.(CompositeValue)
 		if ok {
-			return leftValueComposite.entries[rightValue]
+			return leftValueComposite.entries[rightValueStr]
 		} else {
 			logErrf(ErrRuntime, "cannot access property of a non-object %s",
 				leftValue)
@@ -429,7 +437,8 @@ func (n FunctionCallNode) Eval(heap *StackHeap) Value {
 
 	if fn == nil {
 		// improve error message
-		logErrf(ErrRuntime, "attempted to call an unknown function")
+		logErrf(ErrRuntime, "attempted to call an unknown function at %s",
+			n.function.String())
 	}
 
 	switch fnt := fn.(type) {
@@ -558,7 +567,7 @@ func (n NumberLiteralNode) Eval(heap *StackHeap) Value {
 }
 
 func (n StringLiteralNode) String() string {
-	return fmt.Sprintf("String %s", n.val)
+	return fmt.Sprintf("String '%s'", n.val)
 }
 
 func (n StringLiteralNode) Eval(heap *StackHeap) Value {

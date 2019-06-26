@@ -63,6 +63,6 @@ out('        -> ')
     2.what is not a valid identifier.
     should be able to also do comp.list.(2).what`
 log((comp.list.2).what)
-log('again')
+log('again...')
 out('        -> ')
-` log(comp.list.(2).what) `
+log(comp.list.(2).what)
