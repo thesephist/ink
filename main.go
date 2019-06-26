@@ -19,7 +19,7 @@ By default, ink interprets from stdin. Run an ink script with -input
 
 `
 
-// input files flag parsing
+// for input files flag parsing
 type inkFiles []string
 
 func (i *inkFiles) Set(val string) error {
@@ -66,6 +66,7 @@ func main() {
 	iso := Isolate{}
 	iso.Init()
 
+	// abstraction for executing ink code from a file at a given path
 	execFile := func(path string) error {
 		// read from file
 		input, values, errors := iso.ExecStream(

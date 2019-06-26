@@ -177,7 +177,6 @@ type FunctionValue struct {
 }
 
 func (v FunctionValue) String() string {
-	// XXX: improve this notation
 	return v.defNode.String()
 }
 
@@ -451,10 +450,16 @@ func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
 		case NumberValue:
 			right, ok := rightValue.(NumberValue)
 			if ok {
-				// TODO: ErrRuntime if not integers
-				return NumberValue{float64(
-					int(left.val) % int(right.val),
-				)}, nil
+				if right.val == float64(int64(right.val)) {
+					return NumberValue{float64(
+						int(left.val) % int(right.val),
+					)}, nil
+				} else {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot take modulus of non-integer value %s", nToS(right.val)),
+					}
+				}
 			}
 		}
 		return nil, Err{
@@ -559,7 +564,6 @@ func (n FunctionCallNode) Eval(heap *StackHeap) (Value, error) {
 
 		return fnt.defNode.body.Eval(callHeap)
 	case NativeFunctionValue:
-		// eval all arguments
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
 			argResults[i], err = arg.Eval(heap)
