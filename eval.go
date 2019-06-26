@@ -513,14 +513,20 @@ func (n ExpressionListNode) String() string {
 }
 
 func (n ExpressionListNode) Eval(heap *StackHeap) Value {
+	length := len(n.expressions)
+
+	if length == 0 {
+		return NullValue{}
+	}
+
 	callHeap := &StackHeap{
 		parent: heap,
 		vt:     ValueTable{},
 	}
-	for _, expr := range n.expressions[:len(n.expressions)-1] {
+	for _, expr := range n.expressions[:length-1] {
 		expr.Eval(callHeap)
 	}
-	return n.expressions[len(n.expressions)-1].Eval(callHeap)
+	return n.expressions[length-1].Eval(callHeap)
 }
 
 func (n EmptyIdentifierNode) String() string {
