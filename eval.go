@@ -10,6 +10,20 @@ type Value interface {
 	Equals(Value) bool // deep, value equality
 }
 
+// utility func to get a consistent, language spec-compliant
+//	string representation of numbers
+// XXX: not the most reliable check for int because of int64 range
+//	limitations, but works for now until we nail down Ink's number
+//	spec more rigorously
+func nToS(n float64) string {
+	i := int64(n)
+	if n == float64(i) {
+		return fmt.Sprintf("%d", i)
+	} else {
+		return fmt.Sprintf("%.8f", n)
+	}
+}
+
 // TODO: implement bytes literal and values, and make
 //	file read/write APIs on that, rather than text
 
@@ -34,7 +48,7 @@ type NumberValue struct {
 }
 
 func (v NumberValue) String() string {
-	return fmt.Sprintf("%f", v.val)
+	return nToS(v.val)
 }
 
 func (v NumberValue) Equals(other Value) bool {
@@ -55,7 +69,7 @@ type StringValue struct {
 }
 
 func (v StringValue) String() string {
-	return fmt.Sprintf("%s", v.val)
+	return v.val
 }
 
 func (v StringValue) Equals(other Value) bool {
@@ -251,7 +265,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) string {
 		return right.val
 
 	case NumberLiteralNode:
-		return fmt.Sprintf("%f", right.val)
+		return nToS(right.val)
 
 	default:
 		rightEvaluatedValue := rightOperand.Eval(heap)
@@ -259,7 +273,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) string {
 		case StringValue:
 			return rv.val
 		case NumberValue:
-			return fmt.Sprintf("%f", rv.val)
+			return nToS(rv.val)
 		default:
 			logErrf(ErrRuntime, "cannot access property %s of an object",
 				rightEvaluatedValue.String())
@@ -564,7 +578,7 @@ func (n IdentifierNode) Eval(heap *StackHeap) Value {
 }
 
 func (n NumberLiteralNode) String() string {
-	return fmt.Sprintf("Number %f", n.val)
+	return fmt.Sprintf("Number %s", nToS(n.val))
 }
 
 func (n NumberLiteralNode) Eval(heap *StackHeap) Value {
@@ -623,7 +637,7 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap) Value {
 			if sok {
 				es[keyStrVal.val] = entry.val.Eval(heap)
 			} else if nok {
-				es[fmt.Sprintf("%f", keyNumVal.val)] = entry.val.Eval(heap)
+				es[nToS(keyNumVal.val)] = entry.val.Eval(heap)
 			} else {
 				logErrf(ErrRuntime, "cannot access non-string property %s of object",
 					key.String())
@@ -659,7 +673,7 @@ func (n ListLiteralNode) Eval(heap *StackHeap) Value {
 		entries: ValueTable{},
 	}
 	for i, n := range n.vals {
-		listVal.entries[fmt.Sprintf("%f", float64(i))] = n.Eval(heap)
+		listVal.entries[nToS(float64(i))] = n.Eval(heap)
 	}
 	return listVal
 }

@@ -104,14 +104,7 @@ func inkString(in []Value) Value {
 	case StringValue:
 		return v
 	case NumberValue:
-		// XXX: not the most reliable check for int because of int64 range
-		//	limitations, but works for now until we nail down Ink's number
-		//	spec.
-		if v.val == float64(int64(v.val)) {
-			return StringValue{val: fmt.Sprintf("%d", int64(v.val))}
-		} else {
-			return StringValue{val: fmt.Sprintf("%f", v.val)}
-		}
+		return StringValue{nToS(v.val)}
 	default:
 		// TODO
 		return NullValue{}

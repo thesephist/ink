@@ -78,5 +78,11 @@ log(
         {1: 'hi'}.(1.0)
     )
 )
+log('should say hi again:')
+log(
+    string(
+        {1: 'hi again'}.('1')
+    )
+)
 log('should print 4200 here:')
 log(string({test: 4200}.('te' + 'st')))
