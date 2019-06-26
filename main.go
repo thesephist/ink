@@ -114,6 +114,8 @@ func main() {
 			//	in repl session
 			case strings.HasPrefix(text, "@dump"):
 				iso.Dump()
+			case strings.HasPrefix(text, "@clear"):
+				fmt.Printf("[2J[H")
 			case strings.HasPrefix(text, "@exit"):
 				shouldExit = true
 			case strings.HasPrefix(text, "@load "):
