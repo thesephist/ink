@@ -59,6 +59,7 @@ func main() {
 		os.Exit(0)
 	} else if *help {
 		flag.Usage()
+		os.Exit(0)
 	}
 
 	// execution context
