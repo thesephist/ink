@@ -300,7 +300,12 @@ func (n BinaryExprNode) Eval(heap *StackHeap) Value {
 		rightValueStr := operandToStringKey(n.rightOperand, heap)
 		leftValueComposite, ok := leftValue.(CompositeValue)
 		if ok {
-			return leftValueComposite.entries[rightValueStr]
+			v, prs := leftValueComposite.entries[rightValueStr]
+			if prs {
+				return v
+			} else {
+				return NullValue{}
+			}
 		} else {
 			logErrf(ErrRuntime, "cannot access property of a non-object %s",
 				leftValue)
@@ -728,9 +733,8 @@ func (iso *Isolate) evalNode(node Node) Value {
 		return n.Eval(iso.Heap)
 	default:
 		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
+		return nil
 	}
-
-	return nil
 }
 
 func (iso *Isolate) Eval(nodes <-chan Node, values chan<- Value, dumpHeap bool) {

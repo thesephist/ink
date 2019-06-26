@@ -66,3 +66,17 @@ log((comp.list.2).what)
 log('again...')
 out('        -> ')
 log(comp.list.(2).what)
+
+` accessing properties strangely, accessing nonexistent properties ` section()
+{}.1
+[].1
+{}.'1'
+[].(1)
+log('should say hi:')
+log(
+    string(
+        {1: 'hi'}.(1.0)
+    )
+)
+log('should print 4200 here:')
+log(string({test: 4200}.('te' + 'st')))
