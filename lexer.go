@@ -113,7 +113,12 @@ func (tok Tok) String() string {
 	}
 }
 
-func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool) {
+func Tokenize(
+	input <-chan rune,
+	tokens chan<- Tok,
+	errors chan<- Err,
+	debugLexer bool,
+) {
 	var buf, strbuf string
 	var strbufStartLine, strbufStartCol int
 
@@ -156,7 +161,13 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool) {
 				if unicode.IsDigit(rune(cbuf[0])) {
 					f, err := strconv.ParseFloat(cbuf, 64)
 					if err != nil {
-						logErrf(ErrSyntax, "parsing error in number at %d:%d, %s", lineNo, colNo, err.Error())
+						errors <- Err{
+							ErrSyntax,
+							fmt.Sprintf("parsing error in number at %d:%d, %s", lineNo, colNo, err.Error()),
+						}
+						close(tokens)
+						close(errors)
+						return
 					}
 					simpleCommit(Tok{
 						val:      f,
@@ -350,6 +361,7 @@ func Tokenize(input <-chan rune, tokens chan<- Tok, debugLexer bool) {
 		}
 
 		close(tokens)
+		close(errors)
 	}()
 }
 

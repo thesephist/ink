@@ -1,24 +1,33 @@
 package main
 
 import (
-	"math"
+	"fmt"
 )
 
-const (
-	maxIdx = math.MaxInt32
-)
-
-func guardUnexpectedInputEnd(tokens []Tok, idx int) {
+func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 	if idx >= len(tokens) {
 		if len(tokens) > 0 {
-			logErrf(ErrSyntax, "unexpected end of input at %s", tokens[len(tokens)-1].String())
+			return Err{
+				ErrSyntax,
+				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1].String()),
+			}
 		} else {
-			logErrf(ErrSyntax, "unexpected end of input")
+			return Err{
+				ErrSyntax,
+				fmt.Sprintf("unexpected end of input"),
+			}
 		}
 	}
+
+	return nil
 }
 
-func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool) {
+func Parse(
+	tokenStream <-chan Tok,
+	nodes chan<- Node,
+	errors chan<- Err,
+	debugParser bool,
+) {
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
 		tokens = append(tokens, tok)
@@ -26,14 +35,29 @@ func Parse(tokenStream <-chan Tok, nodes chan<- Node, debugParser bool) {
 
 	idx, length := 0, len(tokens)
 	for idx < length {
-		expr, incr := parseExpression(tokens[idx:])
+		expr, incr, err := parseExpression(tokens[idx:])
 		idx += incr
+
+		if err != nil {
+			e, isErr := err.(Err)
+			if isErr {
+				errors <- e
+			} else {
+				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
+					err.Error())
+			}
+			close(nodes)
+			close(errors)
+			return
+		}
+
 		if debugParser {
 			logDebug("parse ->", expr.String())
 		}
 		nodes <- expr
 	}
 	close(nodes)
+	close(errors)
 }
 
 type UnaryExprNode struct {
@@ -139,8 +163,11 @@ func parseBinaryExpression(
 	operator Tok,
 	tokens []Tok,
 	previousPriority int,
-) (Node, int) {
-	rightAtom, idx := parseAtom(tokens)
+) (Node, int, error) {
+	rightAtom, idx, err := parseAtom(tokens)
+	if err != nil {
+		return nil, 0, err
+	}
 	incr := 0
 
 	ops := make([]Tok, 1)
@@ -162,20 +189,34 @@ func parseBinaryExpression(
 			ops = append(ops, tokens[idx])
 			idx++
 
-			guardUnexpectedInputEnd(tokens, idx)
-			rightAtom, incr = parseAtom(tokens[idx:])
+			err := guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			rightAtom, incr, err = parseAtom(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
 			nodes = append(nodes, rightAtom)
 			idx += incr
 		} else {
+			err := guardUnexpectedInputEnd(tokens, idx+1)
+			if err != nil {
+				return nil, 0, err
+			}
+
 			// Priority is higher than previous ops,
 			//	so make it a right-heavy tree
-			guardUnexpectedInputEnd(tokens, idx+1)
-			subtree, incr := parseBinaryExpression(
+			subtree, incr, err := parseBinaryExpression(
 				nodes[len(nodes)-1],
 				tokens[idx],
 				tokens[idx+1:],
 				getOpPriority(ops[len(ops)-1]),
 			)
+			if err != nil {
+				return nil, 0, err
+			}
 			nodes[len(nodes)-1] = subtree
 			idx += incr + 1
 		}
@@ -194,10 +235,10 @@ func parseBinaryExpression(
 		nodes = nodes[1:]
 	}
 
-	return tree, idx
+	return tree, idx, nil
 }
 
-func parseExpression(tokens []Tok) (Node, int) {
+func parseExpression(tokens []Tok) (Node, int, error) {
 	idx := 0
 
 	consumeDanglingSeparator := func() {
@@ -208,79 +249,118 @@ func parseExpression(tokens []Tok) (Node, int) {
 		}
 	}
 
-	atom, incr := parseAtom(tokens[idx:])
+	atom, incr, err := parseAtom(tokens[idx:])
+	if err != nil {
+		return nil, 0, err
+	}
 	idx += incr
 
-	guardUnexpectedInputEnd(tokens, idx)
+	err = guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return nil, 0, err
+	}
 	nextTok := tokens[idx]
 	idx++
 
 	switch nextTok.kind {
 	case Separator:
-		return atom, idx // consuming dangling separator
+		// consuming dangling separator
+		return atom, idx, nil
 	case KeyValueSeparator, RightParen:
 		// these belong to the parent atom that contains this expression,
 		//	so return without consuming token (idx - 1)
-		return atom, idx - 1
+		return atom, idx - 1, nil
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
-		n, incr := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
+		n, incr, err := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
+		if err != nil {
+			return nil, 0, err
+		}
+
 		idx += incr
 		consumeDanglingSeparator()
-		return n, idx
+		return n, idx, nil
 	case MatchColon:
 		idx++ // LeftBrace
 		clauses := make([]MatchClauseNode, 0)
-		guardUnexpectedInputEnd(tokens, idx)
+		err := guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return nil, 0, err
+		}
 		for tokens[idx].kind != RightBrace {
-			clauseNode, incr := parseMatchClause(tokens[idx:])
+			clauseNode, incr, err := parseMatchClause(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
 			idx += incr
+
 			clauses = append(clauses, clauseNode)
 
-			guardUnexpectedInputEnd(tokens, idx)
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
 		}
 		idx++ // RightBrace
 		consumeDanglingSeparator()
 		return MatchExprNode{
 			condition: atom,
 			clauses:   clauses,
-		}, idx
+		}, idx, nil
 	default:
-		logErrf(ErrSyntax, "unexpected token %s following an expression", nextTok)
-		consumeDanglingSeparator()
-		return nil, maxIdx
+		return nil, 0, Err{
+			ErrSyntax,
+			fmt.Sprintf("unexpected token %s following an expression", nextTok),
+		}
 	}
 }
 
-func parseAtom(tokens []Tok) (Node, int) {
+func parseAtom(tokens []Tok) (Node, int, error) {
+	err := guardUnexpectedInputEnd(tokens, 0)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	tok, idx := tokens[0], 1
 
 	if tok.kind == NegationOp {
-		atom, idx := parseAtom(tokens[idx:])
+		atom, idx, err := parseAtom(tokens[idx:])
+		if err != nil {
+			return nil, 0, err
+		}
 		return UnaryExprNode{
 			operator: tok,
 			operand:  atom,
-		}, idx + 1
+		}, idx + 1, nil
+	}
+
+	err = guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	var atom Node
-	guardUnexpectedInputEnd(tokens, idx)
 	switch tok.kind {
 	case EmptyIdentifier:
-		return EmptyIdentifierNode{}, idx
+		return EmptyIdentifierNode{}, idx, nil
 	case NumberLiteral:
-		return NumberLiteralNode{tok.numberVal()}, idx
+		return NumberLiteralNode{tok.numberVal()}, idx, nil
 	case StringLiteral:
-		return StringLiteralNode{tok.stringVal()}, idx
+		return StringLiteralNode{tok.stringVal()}, idx, nil
 	case TrueLiteral:
-		return BooleanLiteralNode{true}, idx
+		return BooleanLiteralNode{true}, idx, nil
 	case FalseLiteral:
-		return BooleanLiteralNode{false}, idx
+		return BooleanLiteralNode{false}, idx, nil
 	case NullLiteral:
-		return NullLiteralNode{}, idx
+		return NullLiteralNode{}, idx, nil
 	case Identifier:
 		if tokens[idx].kind == FunctionArrow {
-			atom, idx = parseFunctionLiteral(tokens)
+			var err error
+			atom, idx, err = parseFunctionLiteral(tokens)
+			if err != nil {
+				return nil, 0, err
+			}
+
 			// parseAtom should not consume trailing Separators, but
 			// 	parseFunctionLiteral does because it ends with expressions.
 			// 	so we backtrack one token.
@@ -294,17 +374,33 @@ func parseAtom(tokens []Tok) (Node, int) {
 		// grouped expression or function literal
 		exprs := make([]Node, 0)
 		for tokens[idx].kind != RightParen {
-			expr, incr := parseExpression(tokens[idx:])
+			expr, incr, err := parseExpression(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
+
 			idx += incr
 			exprs = append(exprs, expr)
 
-			guardUnexpectedInputEnd(tokens, idx)
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
 		}
 		idx++ // RightParen
 
-		guardUnexpectedInputEnd(tokens, idx)
+		err = guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return nil, 0, err
+		}
+
 		if tokens[idx].kind == FunctionArrow {
-			atom, idx = parseFunctionLiteral(tokens)
+			var err error
+			atom, idx, err = parseFunctionLiteral(tokens)
+			if err != nil {
+				return nil, 0, err
+			}
+
 			// parseAtom should not consume trailing Separators, but
 			// 	parseFunctionLiteral does because it ends with expressions.
 			// 	so we backtrack one token.
@@ -317,74 +413,126 @@ func parseAtom(tokens []Tok) (Node, int) {
 	case LeftBrace:
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {
-			keyExpr, keyIncr := parseExpression(tokens[idx:])
+			keyExpr, keyIncr, err := parseExpression(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
+
 			idx += keyIncr
 			idx++ // KeyValueSeparator
 
-			guardUnexpectedInputEnd(tokens, idx)
-			valExpr, valIncr := parseExpression(tokens[idx:])
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			valExpr, valIncr, err := parseExpression(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
+
 			// Separator consumed by parseExpression
 			idx += valIncr
 			entries = append(entries, ObjectEntryNode{key: keyExpr, val: valExpr})
 
-			guardUnexpectedInputEnd(tokens, idx)
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
 		}
 		idx++ // RightBrace
-		return ObjectLiteralNode{entries}, idx
+		return ObjectLiteralNode{entries}, idx, nil
 	case LeftBracket:
 		vals := make([]Node, 0)
 		for tokens[idx].kind != RightBracket {
-			expr, incr := parseExpression(tokens[idx:])
+			expr, incr, err := parseExpression(tokens[idx:])
+			if err != nil {
+				return nil, 0, err
+			}
+
 			idx += incr
 			vals = append(vals, expr)
 
-			guardUnexpectedInputEnd(tokens, idx)
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
 		}
 		idx++ // RightBracket
-		return ListLiteralNode{vals}, idx
+		return ListLiteralNode{vals}, idx, nil
 	default:
-		logErrf(ErrSyntax, "unexpected start of atom, found %s", tok)
-		return IdentifierNode{}, maxIdx
+		return IdentifierNode{}, 0, Err{
+			ErrSyntax,
+			fmt.Sprintf("unexpected start of atom, found %s", tok),
+		}
 	}
 
 	// bounds check here because parseExpression may have
 	//	consumed all tokens before this
 	for idx < len(tokens) && tokens[idx].kind == LeftParen {
 		var incr int
-		atom, incr = parseFunctionCall(atom, tokens[idx:])
+		var err error
+		atom, incr, err = parseFunctionCall(atom, tokens[idx:])
+		if err != nil {
+			return nil, 0, err
+		}
 		idx += incr
 
-		guardUnexpectedInputEnd(tokens, idx)
+		err = guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return nil, 0, err
+		}
 	}
 
-	return atom, idx
+	return atom, idx, nil
 }
 
-func parseMatchClause(tokens []Tok) (MatchClauseNode, int) {
-	atom, idx := parseAtom(tokens)
+func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {
+	atom, idx, err := parseAtom(tokens)
+	if err != nil {
+		return MatchClauseNode{}, 0, err
+	}
 
-	guardUnexpectedInputEnd(tokens, idx)
+	err = guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return MatchClauseNode{}, 0, err
+	}
+
 	if tokens[idx].kind != CaseArrow {
-		logErrf(ErrSyntax, "expected token '->', but got %s", tokens[idx].String())
+		return MatchClauseNode{}, 0, Err{
+			ErrSyntax,
+			fmt.Sprintf("expected token '->', but got %s", tokens[idx].String()),
+		}
 	}
 	idx++
 
-	guardUnexpectedInputEnd(tokens, idx)
-	expr, incr := parseExpression(tokens[idx:])
+	err = guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return MatchClauseNode{}, 0, err
+	}
+
+	expr, incr, err := parseExpression(tokens[idx:])
+	if err != nil {
+		return MatchClauseNode{}, 0, err
+	}
 	idx += incr
 
 	return MatchClauseNode{
 		target:     atom,
 		expression: expr,
-	}, idx
+	}, idx, nil
 }
 
-func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
+func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 
 	tok, idx := tokens[0], 1
 	arguments := make([]IdentifierNode, 0)
 
-	guardUnexpectedInputEnd(tokens, idx)
+	err := guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return FunctionLiteralNode{}, 0, err
+	}
+
 	switch tok.kind {
 	case LeftParen:
 		for tokens[idx].kind == Identifier {
@@ -392,57 +540,95 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int) {
 			arguments = append(arguments, idNode)
 			idx++
 
-			guardUnexpectedInputEnd(tokens, idx)
+			err := guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return FunctionLiteralNode{}, 0, err
+			}
+
 			if tokens[idx].kind != Separator {
-				logErrf(ErrSyntax, "expected a comma separated arguments list, found %s",
-					tokens[idx].String())
+				return FunctionLiteralNode{}, 0, Err{
+					ErrSyntax,
+					fmt.Sprintf("expected a comma separated arguments list, found %s",
+						tokens[idx].String()),
+				}
 			}
 			idx++ // Separator
 		}
 
-		guardUnexpectedInputEnd(tokens, idx)
+		err := guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return FunctionLiteralNode{}, 0, err
+		}
 		if tokens[idx].kind != RightParen {
-			logErrf(ErrSyntax, "expected arguments list to terminate with a RightParen, found %s",
-				tokens[idx].String())
+			return FunctionLiteralNode{}, 0, Err{
+				ErrSyntax,
+				fmt.Sprintf("expected arguments list to terminate with a RightParen, found %s",
+					tokens[idx].String()),
+			}
 		}
 		idx++ // RightParen
 	case Identifier:
 		idNode := IdentifierNode{tok.stringVal()}
 		arguments = append(arguments, idNode)
 	default:
-		logErrf(ErrSyntax, "malformed arguments list in function at %s", tok.String())
+		return FunctionLiteralNode{}, 0, Err{
+			ErrSyntax,
+			fmt.Sprintf("malformed arguments list in function at %s", tok.String()),
+		}
 	}
 
-	guardUnexpectedInputEnd(tokens, idx)
+	err = guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return FunctionLiteralNode{}, 0, err
+	}
+
 	if tokens[idx].kind != FunctionArrow {
-		logErrf(ErrSyntax, "expected FunctionArrow but found %s", tokens[idx].String())
+		return FunctionLiteralNode{}, 0, Err{
+			ErrSyntax,
+			fmt.Sprintf("expected FunctionArrow but found %s", tokens[idx].String()),
+		}
 	}
 	idx++
 
-	body, incr := parseExpression(tokens[idx:])
+	body, incr, err := parseExpression(tokens[idx:])
+	if err != nil {
+		return FunctionLiteralNode{}, 0, err
+	}
 	idx += incr
+
 	return FunctionLiteralNode{
 		arguments: arguments,
 		body:      body,
-	}, idx
+	}, idx, nil
 }
 
-func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int) {
+func parseFunctionCall(function Node, tokens []Tok) (FunctionCallNode, int, error) {
 	idx := 1
 	arguments := make([]Node, 0)
 
-	guardUnexpectedInputEnd(tokens, idx)
+	err := guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return FunctionCallNode{}, 0, err
+	}
+
 	for tokens[idx].kind != RightParen {
-		expr, incr := parseExpression(tokens[idx:])
+		expr, incr, err := parseExpression(tokens[idx:])
+		if err != nil {
+			return FunctionCallNode{}, 0, err
+		}
+
 		idx += incr
 		arguments = append(arguments, expr)
 
-		guardUnexpectedInputEnd(tokens, idx)
+		err = guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return FunctionCallNode{}, 0, err
+		}
 	}
 	idx++ // RightParen
 
 	return FunctionCallNode{
 		function:  function,
 		arguments: arguments,
-	}, idx
+	}, idx, nil
 }

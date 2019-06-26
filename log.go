@@ -18,13 +18,6 @@ const (
 	ANSI_RED_BOLD    = "[31;1m"
 )
 
-const (
-	ErrSyntax  = 1
-	ErrRuntime = 2
-	ErrSystem  = 40
-	ErrAssert  = 100
-)
-
 func logDebug(args ...string) {
 	fmt.Println(ANSI_BLUE_BOLD + "debug: " + ANSI_BLUE + strings.Join(args, " ") + ANSI_RESET)
 }
@@ -49,7 +42,7 @@ func logWarnf(s string, args ...interface{}) {
 	logWarn(fmt.Sprintf(s, args...))
 }
 
-func logErr(reason int, args ...string) {
+func logSafeErr(reason int, args ...string) {
 	errStr := "error"
 	switch reason {
 	case ErrSyntax:
@@ -60,8 +53,14 @@ func logErr(reason int, args ...string) {
 		errStr = "system error"
 	case ErrAssert:
 		errStr = "invariant violation"
+	default:
+		errStr = "error"
 	}
 	fmt.Println(ANSI_RED_BOLD + errStr + ": " + ANSI_RED + strings.Join(args, " ") + ANSI_RESET)
+}
+
+func logErr(reason int, args ...string) {
+	logSafeErr(reason, args...)
 	os.Exit(reason)
 }
 

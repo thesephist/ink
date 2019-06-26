@@ -66,9 +66,9 @@ func main() {
 	iso := Isolate{}
 	iso.Init()
 
-	execFile := func(path string) {
+	execFile := func(path string) error {
 		// read from file
-		input, values := iso.ExecStream(
+		input, values, errors := iso.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -76,7 +76,11 @@ func main() {
 
 		file, err := os.Open(path)
 		if err != nil {
-			logErrf(ErrSystem, "could not open %s for execution:\n\t-> %s", path, err)
+			logSafeErr(
+				ErrSystem,
+				fmt.Sprintf("could not open %s for execution:\n\t-> %s", path, err),
+			)
+			return err
 		}
 		defer file.Close()
 
@@ -90,8 +94,20 @@ func main() {
 		}
 		close(input)
 
-		for _ = range values {
+	loop:
+		for {
+			select {
+			case e, ok := <-errors:
+				if ok {
+					logSafeErr(e.reason, e.message)
+				}
+				break loop
+			case <-values:
+				// continue
+			}
 		}
+
+		return nil
 	}
 
 	if *repl {
@@ -120,11 +136,13 @@ func main() {
 				shouldExit = true
 			case strings.HasPrefix(text, "@load "):
 				path := strings.Trim(text[5:], " \t\n")
-				execFile(path)
-				logDebugf("loaded file:\n\t-> %s", path)
+				err := execFile(path)
+				if err == nil {
+					logDebugf("loaded file:\n\t-> %s", path)
+				}
 
 			default:
-				input, values := iso.ExecStream(
+				input, values, errors := iso.ExecStream(
 					*debugLexer || *verbose,
 					*debugParser || *verbose,
 					*dump || *verbose,
@@ -135,8 +153,19 @@ func main() {
 				}
 				close(input)
 
-				for v := range values {
-					logInteractive(v.String())
+			replLoop:
+				for {
+					select {
+					case e, ok := <-errors:
+						if ok {
+							logSafeErr(e.reason, e.message)
+						}
+						break replLoop
+					case v, ok := <-values:
+						if ok {
+							logInteractive(v.String())
+						}
+					}
 				}
 			}
 		}
@@ -150,7 +179,7 @@ func main() {
 		}
 	} else {
 		// read from stdin
-		input, values := iso.ExecStream(
+		input, values, errors := iso.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -166,7 +195,17 @@ func main() {
 		}
 		close(input)
 
-		for _ = range values {
+	stdinLoop:
+		for {
+			select {
+			case e, ok := <-errors:
+				if ok {
+					logErr(e.reason, e.message)
+				}
+				break stdinLoop
+			case <-values:
+				// continue
+			}
 		}
 	}
 }
