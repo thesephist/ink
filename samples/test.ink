@@ -1,3 +1,8 @@
+section := () => out('
+section - -
+')
+
+` test weird line breaks ` section()
 log :=
 (str => (
     out(str)
@@ -5,7 +10,6 @@ log :=
     out('
 ')
 ))
-
 log2 :=
     (str => (
 
@@ -14,11 +18,10 @@ log2 :=
 ')
     'log2 text'
 ))('hilog')
-
 log('what wow')
-
 log(log2)
 
+` test automatic Separator insertion ` section()
 kl := [
     5
     4
@@ -30,12 +33,36 @@ ol := {
     ('te' +
         '-st'): 'magic'
 }.('te-st')
-
 log('should be magic: ' + ol)
 log('should be 3: ' + string(kl))
 
-` fibonacci test for concatenated / minified ink code `
+` fibonacci test for concatenated / minified ink code ` section()
 fb:=n=>([n%3,n%5]::{[0,0]->log('FizzBuzz'),[0,_]->log('Fizz'),[
 _,0]->log('Buzz'),_->log(string(n))}),fizzbuzzhelper:=(n,max)=>
 (n::{max->fb(n),_->(fb(n),fizzbuzzhelper(n+1,max))}),(max=>
 fizzbuzzhelper(1,max))(18)
+
+` test composite value access` section()
+obj := {}
+` when calling a function that's a prop of a composite,
+    we need to remember that AccessorOp is just a binary op
+    and the function call precedes it in priority `
+obj.xyz := log, (obj.xyz)('this statement sho' +
+    'uld be logged.')
+` another case of something similar `
+obj:=({a:()=>{xyz:n => (log(n),log(n))}}.a)()
+(obj.xyz)('this should be printed twice!')
+
+` composite inside composite inside composite ` section()
+comp := {
+    list: ['hi', 'hello', {what: 'thing to be printed'}]
+}
+log('should log thing to be printed:')
+out('        -> ')
+` can't just do comp.list.2.what because
+    2.what is not a valid identifier.
+    should be able to also do comp.list.(2).what`
+log((comp.list.2).what)
+log('again')
+out('        -> ')
+` log(comp.list.(2).what) `

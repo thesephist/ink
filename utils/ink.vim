@@ -65,7 +65,7 @@ syntax region inkString start=/\v'/ skip=/\v(\\.|\r|\n)/ end=/\v'/
 highlight link inkString String
 
 " comment
-syntax match inkComment "\v`.*`"
+syntax region inkComment start=/\v`/ skip=/\v(\\.|\r|\n)/ end=/\v`/
 highlight link inkComment Comment
 
 let b:current_syntax = "ink"
