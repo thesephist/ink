@@ -119,6 +119,7 @@ func main() {
 			case strings.HasPrefix(text, "@load "):
 				path := strings.Trim(text[5:], " \t\n")
 				execFile(path)
+				logDebugf("loaded file:\n\t-> %s", path)
 
 			default:
 				input, values := iso.ExecStream(
