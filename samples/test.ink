@@ -67,6 +67,15 @@ log('again...')
 out('        -> ')
 log((comp.list.2).what)
 
+` binary and other complex expressions in match expression ` section()
+log('should log hello mac:')
+log(
+    'what ' + string(1 + 2 + 3 + 4) :: {
+        'what 10' -> 'hello mac'
+        'what 1234' -> 'wrong answer!'
+    }
+)
+
 ` accessing properties strangely, accessing nonexistent properties ` section()
 {}.1
 [].1

@@ -266,47 +266,53 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 	case Separator:
 		// consuming dangling separator
 		return atom, idx, nil
+
 	case KeyValueSeparator, RightParen:
 		// these belong to the parent atom that contains this expression,
 		//	so return without consuming token (idx - 1)
 		return atom, idx - 1, nil
+
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
-		n, incr, err := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
+		binExpr, incr, err := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
 		if err != nil {
 			return nil, 0, err
 		}
-
 		idx += incr
-		consumeDanglingSeparator()
-		return n, idx, nil
-	case MatchColon:
-		idx++ // LeftBrace
-		clauses := make([]MatchClauseNode, 0)
-		err := guardUnexpectedInputEnd(tokens, idx)
-		if err != nil {
-			return nil, 0, err
-		}
-		for tokens[idx].kind != RightBrace {
-			clauseNode, incr, err := parseMatchClause(tokens[idx:])
+
+		// Binary expressions are often followed by a match
+		if idx < len(tokens) && tokens[idx].kind == MatchColon {
+			idx++ // MatchColon
+
+			clauses, incr, err := parseMatchBody(tokens[idx:])
 			if err != nil {
 				return nil, 0, err
 			}
 			idx += incr
 
-			clauses = append(clauses, clauseNode)
-
-			err = guardUnexpectedInputEnd(tokens, idx)
-			if err != nil {
-				return nil, 0, err
-			}
+			consumeDanglingSeparator()
+			return MatchExprNode{
+				condition: binExpr,
+				clauses:   clauses,
+			}, idx, nil
+		} else {
+			consumeDanglingSeparator()
+			return binExpr, idx, nil
 		}
-		idx++ // RightBrace
+
+	case MatchColon:
+		clauses, incr, err := parseMatchBody(tokens[idx:])
+		if err != nil {
+			return nil, 0, err
+		}
+		idx += incr
+
 		consumeDanglingSeparator()
 		return MatchExprNode{
 			condition: atom,
 			clauses:   clauses,
 		}, idx, nil
+
 	default:
 		return nil, 0, Err{
 			ErrSyntax,
@@ -485,6 +491,36 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 	}
 
 	return atom, idx, nil
+}
+
+// parses everything that follows MatchColon
+// 	does not consume dangling separator -- that's for parseExpression
+func parseMatchBody(tokens []Tok) ([]MatchClauseNode, int, error) {
+	idx := 1 // LeftBrace
+	clauses := make([]MatchClauseNode, 0)
+
+	err := guardUnexpectedInputEnd(tokens, idx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for tokens[idx].kind != RightBrace {
+		clauseNode, incr, err := parseMatchClause(tokens[idx:])
+		if err != nil {
+			return nil, 0, err
+		}
+		idx += incr
+
+		clauses = append(clauses, clauseNode)
+
+		err = guardUnexpectedInputEnd(tokens, idx)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+	idx++ // RightBrace
+
+	return clauses, idx, nil
 }
 
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {

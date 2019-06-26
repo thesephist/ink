@@ -100,7 +100,8 @@ func main() {
 			select {
 			case e, ok := <-errors:
 				if ok {
-					logSafeErr(e.reason, e.message)
+					logSafeErr(e.reason,
+						fmt.Sprintf("in %s\n\t-> ", path)+e.message)
 				}
 				break loop
 			case <-values:

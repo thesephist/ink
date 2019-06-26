@@ -15,7 +15,7 @@ memo := {
     1: 1,
 }
 fibMemo := n => (
-    (memo.(n)) :: {
+    memo.(n) :: {
         null -> (
             memo.(n) := fibMemo(n - 1) + fibMemo(n - 2)
         )
