@@ -83,7 +83,7 @@ Expression: (Atom | BinaryExpr | MatchExpr) ','
 
 UnaryExpr: UnaryOp Atom
 BinaryExpr: Expression BinaryOp Expression
-MatchExpr: Atom '::' '{' MatchClause* '}'
+MatchExpr: (Atom | BinaryExpr) '::' '{' MatchClause* '}'
 
 MatchClause: Atom '->' Expression
 

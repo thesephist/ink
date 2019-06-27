@@ -100,3 +100,15 @@ dashed := {
 }
 log('expect 14:')
 log(string(dashed.('test-key')))
+
+` calling functions with mismatched argument length ` section()
+tooLong := (a, b, c, d, e) => a + b
+log('should be 3:')
+log(string(
+    tooLong(1, 2)
+))
+tooShort := (a, b) => a + b
+log('should be 5, then 17:')
+log(string(
+    tooShort(9, 8, 7, 6, 5, 4, log('5'))
+))
