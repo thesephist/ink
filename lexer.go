@@ -28,7 +28,6 @@ const (
 
 	TrueLiteral
 	FalseLiteral
-	NullLiteral
 
 	// ambiguous operators and symbols
 	AccessorOp
@@ -155,8 +154,6 @@ func Tokenize(
 				simpleCommitChar(TrueLiteral)
 			case "false":
 				simpleCommitChar(FalseLiteral)
-			case "null":
-				simpleCommitChar(NullLiteral)
 			default:
 				if unicode.IsDigit(rune(cbuf[0])) {
 					f, err := strconv.ParseFloat(cbuf, 64)
@@ -215,7 +212,7 @@ func Tokenize(
 		// Ink requires max 1 lookahead, so rather than allowing backtracking
 		//	from the lexer's reader, we implement a streaming lexer with a buffer
 		//	of 1, implemented as this lastChar character. Every loop we take char
-		//	from lastChar if not null, from input channel otherwise.
+		//	from lastChar if not zero, from input channel otherwise.
 		var lastChar rune = 0
 		for {
 			if lastChar != 0 {
@@ -418,8 +415,6 @@ func tokKindToName(kind int) string {
 		return "TrueLiteral"
 	case FalseLiteral:
 		return "FalseLiteral"
-	case NullLiteral:
-		return "NullLiteral"
 
 	case AccessorOp:
 		return "AccessorOp"

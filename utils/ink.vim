@@ -46,10 +46,6 @@ highlight link inkFunction Function
 syntax keyword inkBoolean true false
 highlight link inkBoolean Boolean
 
-" null
-syntax keyword inkNull null
-highlight link inkNull Keyword
-
 " numbers should be consumed first by identifiers, so comes before
 syntax match inkNumber "\v\d+"
 syntax match inkNumber "\v\d+\.\d+"

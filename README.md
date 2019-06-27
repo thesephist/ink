@@ -100,14 +100,13 @@ FunctionCall: (Identifier
         | '(' Expression* ')') '(' Expression* ')'
 
 Literal: NumberLiteral | StringLiteral
-        | BooleanLiteral | NullLiteral
-        | ObjectLiteral | ListLiteral | FunctionLiteral
+        | BooleanLiteral | FunctionLiteral
+        | ObjectLiteral | ListLiteral
 
 NumberLiteral: (0-9)+ ['.' (0-9)*]
 StringLiteral: '\'' (.*) '\''
 
 BooleanLiteral: 'true' | 'false'
-NullLiteral: 'null'
 
 ObjectLiteral: '{' ObjectEntry* '}'
 ObjectEntry: Expression ':' Expression
@@ -148,7 +147,7 @@ A few quirks of this syntax:
 
 ## Types
 
-Ink is strongly and statically typed, and has seven non-extendable types.
+Ink is strongly but dynamically typed, and has seven non-extendable types.
 
 - Number
 - String

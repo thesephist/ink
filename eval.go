@@ -113,7 +113,7 @@ func (v BooleanValue) Equals(other Value) bool {
 type NullValue struct{}
 
 func (v NullValue) String() string {
-	return "null"
+	return "()"
 }
 
 func (v NullValue) Equals(other Value) bool {
@@ -766,14 +766,6 @@ func (n BooleanLiteralNode) String() string {
 
 func (n BooleanLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return BooleanValue{n.val}, nil
-}
-
-func (n NullLiteralNode) String() string {
-	return "Null"
-}
-
-func (n NullLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	return NullValue{}, nil
 }
 
 func (n ObjectLiteralNode) String() string {

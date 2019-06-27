@@ -108,8 +108,6 @@ type BooleanLiteralNode struct {
 	val bool
 }
 
-type NullLiteralNode struct{}
-
 type ObjectLiteralNode struct {
 	entries []ObjectEntryNode
 }
@@ -357,8 +355,6 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 		return BooleanLiteralNode{true}, idx, nil
 	case FalseLiteral:
 		return BooleanLiteralNode{false}, idx, nil
-	case NullLiteral:
-		return NullLiteralNode{}, idx, nil
 	case Identifier:
 		if tokens[idx].kind == FunctionArrow {
 			var err error
