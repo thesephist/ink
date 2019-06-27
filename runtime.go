@@ -40,7 +40,7 @@ func (iso *Isolate) LoadEnvironment() {
 }
 
 func (iso *Isolate) LoadFunc(nf NativeFunctionValue) {
-	iso.Heap.setValue(nf.name, nf)
+	iso.Frame.setValue(nf.name, nf)
 }
 
 func inkIn(_ []Value) (Value, error) {

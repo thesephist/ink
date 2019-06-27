@@ -41,7 +41,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
 	debugLexer := flag.Bool("debug-lex", false, "Log lexer output")
 	debugParser := flag.Bool("debug-parse", false, "Log parser output")
-	dump := flag.Bool("dump", false, "Dump heap after eval")
+	dump := flag.Bool("dump", false, "Dump global frame after eval")
 
 	version := flag.Bool("version", false, "Print version string and exit")
 	help := flag.Bool("help", false, "Print help message and exit")

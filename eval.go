@@ -168,12 +168,12 @@ func (v CompositeValue) Equals(other Value) bool {
 }
 
 // XXX: for now, our GC heuristic is simply to dump/free
-//	heaps from functions that are no longer referenced in the
-//	main isolate's heap, and keep all other heaps, recursively descending.
+//	frames from functions that are no longer referenced in the
+//	main isolate's frame, and keep all other frames, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
-	defNode    FunctionLiteralNode
-	parentHeap *StackHeap
+	defNode     FunctionLiteralNode
+	parentFrame *StackFrame
 }
 
 func (v FunctionValue) String() string {
@@ -225,12 +225,12 @@ func unwrapThunk(v Value) (Value, error) {
 	// this effectively expands out a recursive structure (of thunks)
 	//	into a for loop control structure
 	for isThunk {
-		heap := &StackHeap{
-			parent: thunk.function.parentHeap,
+		frame := &StackFrame{
+			parent: thunk.function.parentFrame,
 			vt:     thunk.vt,
 		}
 		var err error
-		v, err = thunk.function.defNode.body.Eval(heap, true)
+		v, err = thunk.function.defNode.body.Eval(frame, true)
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +242,7 @@ func unwrapThunk(v Value) (Value, error) {
 
 type Node interface {
 	String() string
-	Eval(*StackHeap, bool) (Value, error)
+	Eval(*StackFrame, bool) (Value, error)
 	// TODO: func (n Node) prettyString() string - pretty-print AST
 }
 
@@ -250,10 +250,10 @@ func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
 
-func (n UnaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	switch n.operator.kind {
 	case NegationOp:
-		operand, err := n.operand.Eval(heap, false)
+		operand, err := n.operand.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
@@ -307,7 +307,7 @@ func (n BinaryExprNode) String() string {
 		n.rightOperand.String())
 }
 
-func operandToStringKey(rightOperand Node, heap *StackHeap) (string, error) {
+func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 	switch right := rightOperand.(type) {
 	case IdentifierNode:
 		return right.val, nil
@@ -319,7 +319,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) (string, error) {
 		return nToS(right.val), nil
 
 	default:
-		rightEvaluatedValue, err := rightOperand.Eval(heap, false)
+		rightEvaluatedValue, err := rightOperand.Eval(frame, false)
 		if err != nil {
 			return "", err
 		}
@@ -339,32 +339,32 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) (string, error) {
 	}
 }
 
-func (n BinaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	if n.operator.kind == DefineOp {
 		leftIdent, okIdent := n.leftOperand.(IdentifierNode)
 		leftAccess, okAccess := n.leftOperand.(BinaryExprNode)
 		if okIdent {
-			rightValue, err := n.rightOperand.Eval(heap, false)
+			rightValue, err := n.rightOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
 
-			heap.setValue(leftIdent.val, rightValue)
+			frame.setValue(leftIdent.val, rightValue)
 			return rightValue, nil
 		} else if okAccess && leftAccess.operator.kind == AccessorOp {
-			leftObject, err := leftAccess.leftOperand.Eval(heap, false)
+			leftObject, err := leftAccess.leftOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
 
-			leftKey, err := operandToStringKey(leftAccess.rightOperand, heap)
+			leftKey, err := operandToStringKey(leftAccess.rightOperand, frame)
 			if err != nil {
 				return nil, err
 			}
 
 			leftObjectComposite, ok := leftObject.(CompositeValue)
 			if ok {
-				rightValue, err := n.rightOperand.Eval(heap, false)
+				rightValue, err := n.rightOperand.Eval(frame, false)
 				if err != nil {
 					return nil, err
 				}
@@ -379,19 +379,19 @@ func (n BinaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 				}
 			}
 		} else {
-			left, _ := n.leftOperand.Eval(heap, false)
+			left, _ := n.leftOperand.Eval(frame, false)
 			return nil, Err{
 				ErrRuntime,
 				fmt.Sprintf("cannot assign value to non-identifier %s", left.String()),
 			}
 		}
 	} else if n.operator.kind == AccessorOp {
-		leftValue, err := n.leftOperand.Eval(heap, false)
+		leftValue, err := n.leftOperand.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
 
-		rightValueStr, err := operandToStringKey(n.rightOperand, heap)
+		rightValueStr, err := operandToStringKey(n.rightOperand, frame)
 		if err != nil {
 			return nil, err
 		}
@@ -413,11 +413,11 @@ func (n BinaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 		}
 	}
 
-	leftValue, err := n.leftOperand.Eval(heap, false)
+	leftValue, err := n.leftOperand.Eval(frame, false)
 	if err != nil {
 		return nil, err
 	}
-	rightValue, err := n.rightOperand.Eval(heap, false)
+	rightValue, err := n.rightOperand.Eval(frame, false)
 	if err != nil {
 		return nil, err
 	}
@@ -573,8 +573,8 @@ func (n FunctionCallNode) String() string {
 	}
 }
 
-func (n FunctionCallNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
-	fn, err := n.function.Eval(heap, false)
+func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
+	fn, err := n.function.Eval(frame, false)
 	if err != nil {
 		return nil, err
 	}
@@ -591,7 +591,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) 
 	case FunctionValue:
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(heap, false)
+			argResults[i], err = arg.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
@@ -605,7 +605,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) 
 		}
 
 		// TCO: used for evaluating expressions that may be in tail positions
-		//	at the end of Nodes whose evaluation allocates another StackHeap
+		//	at the end of Nodes whose evaluation allocates another StackFrame
 		//	like ExpressionList and FunctionLiteral's body
 		returnThunk := FunctionCallThunkValue{
 			vt:       argValueTable,
@@ -620,7 +620,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) 
 		// cannot optimize native function calls
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(heap, allowThunk)
+			argResults[i], err = arg.Eval(frame, allowThunk)
 			if err != nil {
 				return nil, err
 			}
@@ -640,7 +640,7 @@ func (n MatchClauseNode) String() string {
 		n.expression.String())
 }
 
-func (n MatchClauseNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n MatchClauseNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval a MatchClauseNode")
 	return nil, nil
 }
@@ -659,20 +659,20 @@ func (n MatchExprNode) String() string {
 	}
 }
 
-func (n MatchExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
-	conditionVal, err := n.condition.Eval(heap, false)
+func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
+	conditionVal, err := n.condition.Eval(frame, false)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, cl := range n.clauses {
-		targetVal, err := cl.target.Eval(heap, false)
+		targetVal, err := cl.target.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
 
 		if conditionVal.Equals(targetVal) {
-			rv, err := cl.expression.Eval(heap, allowThunk)
+			rv, err := cl.expression.Eval(frame, allowThunk)
 			if err != nil {
 				return nil, err
 			}
@@ -698,19 +698,19 @@ func (n ExpressionListNode) String() string {
 	}
 }
 
-func (n ExpressionListNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n ExpressionListNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	length := len(n.expressions)
 
 	if length == 0 {
 		return NullValue{}, nil
 	}
 
-	callHeap := &StackHeap{
-		parent: heap,
+	callFrame := &StackFrame{
+		parent: frame,
 		vt:     ValueTable{},
 	}
 	for _, expr := range n.expressions[:length-1] {
-		_, err := expr.Eval(callHeap, false)
+		_, err := expr.Eval(callFrame, false)
 		if err != nil {
 			return nil, err
 		}
@@ -718,14 +718,14 @@ func (n ExpressionListNode) Eval(heap *StackHeap, allowThunk bool) (Value, error
 
 	// return values of expression lists are tail call optimized,
 	//	so return a maybe ThunkValue
-	return n.expressions[length-1].Eval(callHeap, allowThunk)
+	return n.expressions[length-1].Eval(callFrame, allowThunk)
 }
 
 func (n EmptyIdentifierNode) String() string {
 	return "Empty Identifier"
 }
 
-func (n EmptyIdentifierNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n EmptyIdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return EmptyValue{}, nil
 }
 
@@ -733,8 +733,8 @@ func (n IdentifierNode) String() string {
 	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
-func (n IdentifierNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
-	val, prs := heap.getValue(n.val)
+func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
+	val, prs := frame.getValue(n.val)
 	if !prs {
 		return nil, Err{
 			ErrRuntime,
@@ -748,7 +748,7 @@ func (n NumberLiteralNode) String() string {
 	return fmt.Sprintf("Number %s", nToS(n.val))
 }
 
-func (n NumberLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n NumberLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return NumberValue{n.val}, nil
 }
 
@@ -756,7 +756,7 @@ func (n StringLiteralNode) String() string {
 	return fmt.Sprintf("String '%s'", n.val)
 }
 
-func (n StringLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n StringLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return StringValue{n.val}, nil
 }
 
@@ -764,7 +764,7 @@ func (n BooleanLiteralNode) String() string {
 	return fmt.Sprintf("Boolean %t", n.val)
 }
 
-func (n BooleanLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n BooleanLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return BooleanValue{n.val}, nil
 }
 
@@ -772,7 +772,7 @@ func (n NullLiteralNode) String() string {
 	return "Null"
 }
 
-func (n NullLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n NullLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return NullValue{}, nil
 }
 
@@ -788,7 +788,7 @@ func (n ObjectLiteralNode) String() string {
 	}
 }
 
-func (n ObjectLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	obj := CompositeValue{
 		entries: make(ValueTable),
 	}
@@ -797,12 +797,12 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error)
 		k, ok := entry.key.(IdentifierNode)
 		if ok {
 			var err error
-			es[k.val], err = entry.val.Eval(heap, false)
+			es[k.val], err = entry.val.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			key, err := entry.key.Eval(heap, false)
+			key, err := entry.key.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
@@ -810,12 +810,12 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error)
 			keyStrVal, sok := key.(StringValue)
 			keyNumVal, nok := key.(NumberValue)
 			if sok {
-				es[keyStrVal.val], err = entry.val.Eval(heap, false)
+				es[keyStrVal.val], err = entry.val.Eval(frame, false)
 				if err != nil {
 					return nil, err
 				}
 			} else if nok {
-				es[nToS(keyNumVal.val)], err = entry.val.Eval(heap, false)
+				es[nToS(keyNumVal.val)], err = entry.val.Eval(frame, false)
 				if err != nil {
 					return nil, err
 				}
@@ -839,7 +839,7 @@ func (n ObjectEntryNode) String() string {
 	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
 }
 
-func (n ObjectEntryNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n ObjectEntryNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
 	return nil, nil
 }
@@ -856,14 +856,14 @@ func (n ListLiteralNode) String() string {
 	}
 }
 
-func (n ListLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n ListLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	listVal := CompositeValue{
 		entries: ValueTable{},
 	}
 
 	for i, n := range n.vals {
 		var err error
-		listVal.entries[nToS(float64(i))], err = n.Eval(heap, false)
+		listVal.entries[nToS(float64(i))], err = n.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
@@ -884,21 +884,21 @@ func (n FunctionLiteralNode) String() string {
 	}
 }
 
-func (n FunctionLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+func (n FunctionLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return FunctionValue{
-		defNode:    n,
-		parentHeap: heap,
+		defNode:     n,
+		parentFrame: frame,
 	}, nil
 }
 
 type ValueTable map[string]Value
 
-type StackHeap struct {
-	parent *StackHeap
+type StackFrame struct {
+	parent *StackFrame
 	vt     ValueTable
 }
 
-func (sh *StackHeap) getValue(name string) (Value, bool) {
+func (sh *StackFrame) getValue(name string) (Value, bool) {
 	val, ok := sh.vt[name]
 	if ok {
 		return val, true
@@ -909,25 +909,25 @@ func (sh *StackHeap) getValue(name string) (Value, bool) {
 	}
 }
 
-func (sh *StackHeap) setValue(name string, val Value) {
+func (sh *StackFrame) setValue(name string, val Value) {
 	sh.vt[name] = val
 }
 
-func (sh *StackHeap) String() string {
-	return fmt.Sprintf("heap: %s --prnt-> (%s)", sh.vt, sh.parent)
+func (sh *StackFrame) String() string {
+	return fmt.Sprintf("frame: %s --prnt-> (%s)", sh.vt, sh.parent)
 }
 
 type Isolate struct {
-	Heap *StackHeap
+	Frame *StackFrame
 }
 
 func (iso *Isolate) Dump() {
-	logDebug("heap dump ->", iso.Heap.String())
+	logDebug("frame dump ->", iso.Frame.String())
 }
 
 func (iso *Isolate) Init() {
-	if iso.Heap == nil {
-		iso.Heap = &StackHeap{
+	if iso.Frame == nil {
+		iso.Frame = &StackFrame{
 			parent: nil,
 			vt:     ValueTable{},
 		}
@@ -938,7 +938,7 @@ func (iso *Isolate) Init() {
 func (iso *Isolate) evalNode(node Node) (Value, error) {
 	switch n := node.(type) {
 	case Node:
-		return n.Eval(iso.Heap, false)
+		return n.Eval(iso.Frame, false)
 	default:
 		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
 		return nil, nil
@@ -949,7 +949,7 @@ func (iso *Isolate) Eval(
 	nodes <-chan Node,
 	values chan<- Value,
 	errors chan<- Err,
-	dumpHeap bool,
+	dumpFrame bool,
 ) {
 	for node := range nodes {
 		val, err := iso.evalNode(node)
@@ -968,7 +968,7 @@ func (iso *Isolate) Eval(
 		values <- val
 	}
 
-	if dumpHeap {
+	if dumpFrame {
 		iso.Dump()
 	}
 
