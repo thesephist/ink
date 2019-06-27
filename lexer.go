@@ -121,6 +121,8 @@ func Tokenize(
 	var buf, strbuf string
 	var strbufStartLine, strbufStartCol int
 
+	syntaxErrored := false
+
 	lastTokKind := Separator
 	lineNo := 1
 	colNo := 1
@@ -139,11 +141,13 @@ func Tokenize(
 			position: position{lineNo, colNo},
 		})
 	}
-	ensureSeparator := func() {
+	forbidden := func() {
 		// no-op, re-bound below
 		logErrf(ErrAssert, "this function should never run!")
 	}
-	commitClear := func() {
+	ensureSeparator := forbidden
+	commitClear := forbidden
+	commitClear = func() {
 		if buf != "" {
 			cbuf := buf
 			buf = ""
@@ -158,12 +162,16 @@ func Tokenize(
 				if unicode.IsDigit(rune(cbuf[0])) {
 					f, err := strconv.ParseFloat(cbuf, 64)
 					if err != nil {
+						syntaxErrored = true
 						errors <- Err{
 							ErrSyntax,
 							fmt.Sprintf("parsing error in number at %d:%d, %s", lineNo, colNo, err.Error()),
 						}
 						close(tokens)
 						close(errors)
+						// trick to prevent sending tokens, errors on closed channels
+						simpleCommit = func(tok Tok) {}
+						commitClear = func() {}
 						return
 					}
 					simpleCommit(Tok{
@@ -357,8 +365,11 @@ func Tokenize(
 			colNo++
 		}
 
-		close(tokens)
-		close(errors)
+		if !syntaxErrored {
+			// must not have closed channels yet
+			close(tokens)
+			close(errors)
+		}
 	}()
 }
 
