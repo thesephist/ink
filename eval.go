@@ -220,19 +220,17 @@ func (v FunctionCallThunkValue) Equals(other Value) bool {
 	}
 }
 
-func unwrapMaybeThunk(v Value, parentHeap *StackHeap) (Value, error) {
+func unwrapThunk(v Value) (Value, error) {
 	thunk, isThunk := v.(FunctionCallThunkValue)
+	// this effectively expands out a recursive structure (of thunks)
+	//	into a for loop control structure
 	for isThunk {
 		heap := &StackHeap{
-			// this is what allows tail calls to be optimized --
-			//	normally, the parent heap would be the heap of the
-			//	function that returned this thunk, but here, the parent
-			//	is the heap of the caller of the function that returned it.
 			parent: thunk.function.parentHeap,
 			vt:     thunk.vt,
 		}
 		var err error
-		v, err = thunk.function.defNode.body.Eval(heap)
+		v, err = thunk.function.defNode.body.Eval(heap, true)
 		if err != nil {
 			return nil, err
 		}
@@ -244,7 +242,7 @@ func unwrapMaybeThunk(v Value, parentHeap *StackHeap) (Value, error) {
 
 type Node interface {
 	String() string
-	Eval(*StackHeap) (Value, error)
+	Eval(*StackHeap, bool) (Value, error)
 	// TODO: func (n Node) prettyString() string - pretty-print AST
 }
 
@@ -252,14 +250,10 @@ func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
 
-func (n UnaryExprNode) Eval(heap *StackHeap) (Value, error) {
+func (n UnaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	switch n.operator.kind {
 	case NegationOp:
-		operand, err := n.operand.Eval(heap)
-		if err != nil {
-			return nil, err
-		}
-		operand, err = unwrapMaybeThunk(operand, heap)
+		operand, err := n.operand.Eval(heap, false)
 		if err != nil {
 			return nil, err
 		}
@@ -325,11 +319,7 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) (string, error) {
 		return nToS(right.val), nil
 
 	default:
-		rightEvaluatedValue, err := rightOperand.Eval(heap)
-		if err != nil {
-			return "", err
-		}
-		rightEvaluatedValue, err = unwrapMaybeThunk(rightEvaluatedValue, heap)
+		rightEvaluatedValue, err := rightOperand.Eval(heap, false)
 		if err != nil {
 			return "", err
 		}
@@ -349,16 +339,12 @@ func operandToStringKey(rightOperand Node, heap *StackHeap) (string, error) {
 	}
 }
 
-func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
+func (n BinaryExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	if n.operator.kind == DefineOp {
 		leftIdent, okIdent := n.leftOperand.(IdentifierNode)
 		leftAccess, okAccess := n.leftOperand.(BinaryExprNode)
 		if okIdent {
-			rightValue, err := n.rightOperand.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			rightValue, err = unwrapMaybeThunk(rightValue, heap)
+			rightValue, err := n.rightOperand.Eval(heap, false)
 			if err != nil {
 				return nil, err
 			}
@@ -366,11 +352,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
 			heap.setValue(leftIdent.val, rightValue)
 			return rightValue, nil
 		} else if okAccess && leftAccess.operator.kind == AccessorOp {
-			leftObject, err := leftAccess.leftOperand.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			leftObject, err = unwrapMaybeThunk(leftObject, heap)
+			leftObject, err := leftAccess.leftOperand.Eval(heap, false)
 			if err != nil {
 				return nil, err
 			}
@@ -382,11 +364,7 @@ func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
 
 			leftObjectComposite, ok := leftObject.(CompositeValue)
 			if ok {
-				rightValue, err := n.rightOperand.Eval(heap)
-				if err != nil {
-					return nil, err
-				}
-				rightValue, err = unwrapMaybeThunk(rightValue, heap)
+				rightValue, err := n.rightOperand.Eval(heap, false)
 				if err != nil {
 					return nil, err
 				}
@@ -401,23 +379,14 @@ func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
 				}
 			}
 		} else {
-			left, err := n.leftOperand.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			left, _ = unwrapMaybeThunk(left, heap)
-
+			left, _ := n.leftOperand.Eval(heap, false)
 			return nil, Err{
 				ErrRuntime,
 				fmt.Sprintf("cannot assign value to non-identifier %s", left.String()),
 			}
 		}
 	} else if n.operator.kind == AccessorOp {
-		leftValue, err := n.leftOperand.Eval(heap)
-		if err != nil {
-			return nil, err
-		}
-		leftValue, err = unwrapMaybeThunk(leftValue, heap)
+		leftValue, err := n.leftOperand.Eval(heap, false)
 		if err != nil {
 			return nil, err
 		}
@@ -444,19 +413,11 @@ func (n BinaryExprNode) Eval(heap *StackHeap) (Value, error) {
 		}
 	}
 
-	leftValue, err := n.leftOperand.Eval(heap)
+	leftValue, err := n.leftOperand.Eval(heap, false)
 	if err != nil {
 		return nil, err
 	}
-	leftValue, err = unwrapMaybeThunk(leftValue, heap)
-	if err != nil {
-		return nil, err
-	}
-	rightValue, err := n.rightOperand.Eval(heap)
-	if err != nil {
-		return nil, err
-	}
-	rightValue, err = unwrapMaybeThunk(rightValue, heap)
+	rightValue, err := n.rightOperand.Eval(heap, false)
 	if err != nil {
 		return nil, err
 	}
@@ -612,12 +573,8 @@ func (n FunctionCallNode) String() string {
 	}
 }
 
-func (n FunctionCallNode) Eval(heap *StackHeap) (Value, error) {
-	fn, err := n.function.Eval(heap)
-	if err != nil {
-		return nil, err
-	}
-	fn, err = unwrapMaybeThunk(fn, heap)
+func (n FunctionCallNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+	fn, err := n.function.Eval(heap, false)
 	if err != nil {
 		return nil, err
 	}
@@ -634,11 +591,7 @@ func (n FunctionCallNode) Eval(heap *StackHeap) (Value, error) {
 	case FunctionValue:
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			argResults[i], err = unwrapMaybeThunk(argResults[i], heap)
+			argResults[i], err = arg.Eval(heap, false)
 			if err != nil {
 				return nil, err
 			}
@@ -654,19 +607,20 @@ func (n FunctionCallNode) Eval(heap *StackHeap) (Value, error) {
 		// TCO: used for evaluating expressions that may be in tail positions
 		//	at the end of Nodes whose evaluation allocates another StackHeap
 		//	like ExpressionList and FunctionLiteral's body
-		return FunctionCallThunkValue{
+		returnThunk := FunctionCallThunkValue{
 			vt:       argValueTable,
 			function: fnt,
-		}, nil
+		}
+		if allowThunk {
+			return returnThunk, nil
+		} else {
+			return unwrapThunk(returnThunk)
+		}
 	case NativeFunctionValue:
 		// cannot optimize native function calls
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			argResults[i], err = unwrapMaybeThunk(argResults[i], heap)
+			argResults[i], err = arg.Eval(heap, allowThunk)
 			if err != nil {
 				return nil, err
 			}
@@ -686,7 +640,7 @@ func (n MatchClauseNode) String() string {
 		n.expression.String())
 }
 
-func (n MatchClauseNode) Eval(heap *StackHeap) (Value, error) {
+func (n MatchClauseNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval a MatchClauseNode")
 	return nil, nil
 }
@@ -705,28 +659,20 @@ func (n MatchExprNode) String() string {
 	}
 }
 
-func (n MatchExprNode) Eval(heap *StackHeap) (Value, error) {
-	conditionVal, err := n.condition.Eval(heap)
-	if err != nil {
-		return nil, err
-	}
-	conditionVal, err = unwrapMaybeThunk(conditionVal, heap)
+func (n MatchExprNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
+	conditionVal, err := n.condition.Eval(heap, false)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, cl := range n.clauses {
-		targetVal, err := cl.target.Eval(heap)
-		if err != nil {
-			return nil, err
-		}
-		targetVal, err = unwrapMaybeThunk(targetVal, heap)
+		targetVal, err := cl.target.Eval(heap, false)
 		if err != nil {
 			return nil, err
 		}
 
 		if conditionVal.Equals(targetVal) {
-			rv, err := cl.expression.Eval(heap)
+			rv, err := cl.expression.Eval(heap, allowThunk)
 			if err != nil {
 				return nil, err
 			}
@@ -752,7 +698,7 @@ func (n ExpressionListNode) String() string {
 	}
 }
 
-func (n ExpressionListNode) Eval(heap *StackHeap) (Value, error) {
+func (n ExpressionListNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	length := len(n.expressions)
 
 	if length == 0 {
@@ -764,30 +710,22 @@ func (n ExpressionListNode) Eval(heap *StackHeap) (Value, error) {
 		vt:     ValueTable{},
 	}
 	for _, expr := range n.expressions[:length-1] {
-		resultVal, err := expr.Eval(callHeap)
-		if err != nil {
-			return nil, err
-		}
-		_, err = unwrapMaybeThunk(resultVal, callHeap)
+		_, err := expr.Eval(callHeap, false)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// TODO: only tail call optimize for this call and function body,
-	//	nothing else should have perf impact from TCO.
-	//	Eval should have an isTailCall bool which is only
-	//	set to true here and for expr in single-expr
-	//	function body. FunctionCallNode.Eval should require
-	//	that bool before optimizing it (sending thunk)
-	return n.expressions[length-1].Eval(callHeap)
+	// return values of expression lists are tail call optimized,
+	//	so return a maybe ThunkValue
+	return n.expressions[length-1].Eval(callHeap, allowThunk)
 }
 
 func (n EmptyIdentifierNode) String() string {
 	return "Empty Identifier"
 }
 
-func (n EmptyIdentifierNode) Eval(heap *StackHeap) (Value, error) {
+func (n EmptyIdentifierNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return EmptyValue{}, nil
 }
 
@@ -795,7 +733,7 @@ func (n IdentifierNode) String() string {
 	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
-func (n IdentifierNode) Eval(heap *StackHeap) (Value, error) {
+func (n IdentifierNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	val, prs := heap.getValue(n.val)
 	if !prs {
 		return nil, Err{
@@ -810,7 +748,7 @@ func (n NumberLiteralNode) String() string {
 	return fmt.Sprintf("Number %s", nToS(n.val))
 }
 
-func (n NumberLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n NumberLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return NumberValue{n.val}, nil
 }
 
@@ -818,7 +756,7 @@ func (n StringLiteralNode) String() string {
 	return fmt.Sprintf("String '%s'", n.val)
 }
 
-func (n StringLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n StringLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return StringValue{n.val}, nil
 }
 
@@ -826,7 +764,7 @@ func (n BooleanLiteralNode) String() string {
 	return fmt.Sprintf("Boolean %t", n.val)
 }
 
-func (n BooleanLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n BooleanLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return BooleanValue{n.val}, nil
 }
 
@@ -834,7 +772,7 @@ func (n NullLiteralNode) String() string {
 	return "Null"
 }
 
-func (n NullLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n NullLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return NullValue{}, nil
 }
 
@@ -850,7 +788,7 @@ func (n ObjectLiteralNode) String() string {
 	}
 }
 
-func (n ObjectLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n ObjectLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	obj := CompositeValue{
 		entries: make(ValueTable),
 	}
@@ -859,20 +797,12 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap) (Value, error) {
 		k, ok := entry.key.(IdentifierNode)
 		if ok {
 			var err error
-			resultVal, err := entry.val.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			es[k.val], err = unwrapMaybeThunk(resultVal, heap)
+			es[k.val], err = entry.val.Eval(heap, false)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			key, err := entry.key.Eval(heap)
-			if err != nil {
-				return nil, err
-			}
-			key, err = unwrapMaybeThunk(key, heap)
+			key, err := entry.key.Eval(heap, false)
 			if err != nil {
 				return nil, err
 			}
@@ -880,17 +810,15 @@ func (n ObjectLiteralNode) Eval(heap *StackHeap) (Value, error) {
 			keyStrVal, sok := key.(StringValue)
 			keyNumVal, nok := key.(NumberValue)
 			if sok {
-				resultVal, err := entry.val.Eval(heap)
+				es[keyStrVal.val], err = entry.val.Eval(heap, false)
 				if err != nil {
 					return nil, err
 				}
-				es[keyStrVal.val], err = unwrapMaybeThunk(resultVal, heap)
 			} else if nok {
-				resultVal, err := entry.val.Eval(heap)
+				es[nToS(keyNumVal.val)], err = entry.val.Eval(heap, false)
 				if err != nil {
 					return nil, err
 				}
-				es[nToS(keyNumVal.val)], err = unwrapMaybeThunk(resultVal, heap)
 			} else {
 				err = Err{
 					ErrRuntime,
@@ -911,7 +839,7 @@ func (n ObjectEntryNode) String() string {
 	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
 }
 
-func (n ObjectEntryNode) Eval(heap *StackHeap) (Value, error) {
+func (n ObjectEntryNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
 	return nil, nil
 }
@@ -928,17 +856,14 @@ func (n ListLiteralNode) String() string {
 	}
 }
 
-func (n ListLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n ListLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	listVal := CompositeValue{
 		entries: ValueTable{},
 	}
 
 	for i, n := range n.vals {
-		resultVal, err := n.Eval(heap)
-		if err != nil {
-			return nil, err
-		}
-		listVal.entries[nToS(float64(i))], err = unwrapMaybeThunk(resultVal, heap)
+		var err error
+		listVal.entries[nToS(float64(i))], err = n.Eval(heap, false)
 		if err != nil {
 			return nil, err
 		}
@@ -959,7 +884,7 @@ func (n FunctionLiteralNode) String() string {
 	}
 }
 
-func (n FunctionLiteralNode) Eval(heap *StackHeap) (Value, error) {
+func (n FunctionLiteralNode) Eval(heap *StackHeap, allowThunk bool) (Value, error) {
 	return FunctionValue{
 		defNode:    n,
 		parentHeap: heap,
@@ -1013,11 +938,7 @@ func (iso *Isolate) Init() {
 func (iso *Isolate) evalNode(node Node) (Value, error) {
 	switch n := node.(type) {
 	case Node:
-		resultValue, err := n.Eval(iso.Heap)
-		if err != nil {
-			return nil, err
-		}
-		return unwrapMaybeThunk(resultValue, iso.Heap)
+		return n.Eval(iso.Heap, false)
 	default:
 		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
 		return nil, nil

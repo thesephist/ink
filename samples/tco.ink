@@ -22,7 +22,7 @@ out('
 ')
 
 ` we defina a fast function that can be TC optimized `
-out('testing by pushing stack size ...
+out('testing by pushing stack size ... (test 1/2)
 ')
 testTCO := n => n :: {
     0 -> 'success! we are tail call optimized'
@@ -33,4 +33,16 @@ testTCO := n => n :: {
 ` minimum stack size to cause Goroutine overflow
     Golang has max stack size of 1GB, which means
     this leaves <10 bytes per stack if not TCO `
+out(testTCO(100000000))
+
+` second form of TCO -- in ExpressionList `
+out('testing by pushing stack size ... (test 2/2)
+')
+testTCO := n => n :: {
+    0 -> 'success! we are tail call optimized'
+    _ -> (
+        1
+        testTCO(n - 1)
+    )
+}
 out(testTCO(100000000))
