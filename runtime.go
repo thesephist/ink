@@ -27,10 +27,12 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc(NativeFunctionValue{"out", inkOut})
 	ctx.LoadFunc(NativeFunctionValue{"read", inkRead})
 	ctx.LoadFunc(NativeFunctionValue{"write", inkWrite})
+	ctx.LoadFunc(NativeFunctionValue{"rand", inkRand})
 	ctx.LoadFunc(NativeFunctionValue{"time", inkTime})
 
 	ctx.LoadFunc(NativeFunctionValue{"sin", inkSin})
 	ctx.LoadFunc(NativeFunctionValue{"cos", inkCos})
+	ctx.LoadFunc(NativeFunctionValue{"pow", inkPow})
 	ctx.LoadFunc(NativeFunctionValue{"ln", inkLn})
 
 	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
@@ -75,6 +77,11 @@ func inkWrite(in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
+func inkRand(in []Value) (Value, error) {
+	// TODO
+	return NullValue{}, nil
+}
+
 func inkTime(in []Value) (Value, error) {
 	// TODO
 	return NullValue{}, nil
@@ -86,6 +93,11 @@ func inkSin(in []Value) (Value, error) {
 }
 
 func inkCos(in []Value) (Value, error) {
+	// TODO
+	return NullValue{}, nil
+}
+
+func inkPow(in []Value) (Value, error) {
 	// TODO
 	return NullValue{}, nil
 }

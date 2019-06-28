@@ -6,21 +6,26 @@ Ink has a few goals. In order, they are
 
 - Ink should have a simple, minimal syntax
 - Ink should be easy to learn regardless of skill level
-- Ink should feel productive to use
 - Ink should be quickly readable and expressive
+- Ink should feel productive to use
 - Ink should have a great, fully featured, and modular standard library
 - Ink should have an ergonomic interpreter and runtime API
 
 Design is always a game of tradeoffs. Ink's goals for minimalism and readability / expressivity means the language deliberately does not aim to be best in other ways:
 
 - Ink doesn't need to be highly efficient or fast, especially compared to compiled languages
-- Ink doesn't need to be particularly concise
+- Ink doesn't need to be particularly concise, though we try to avoid verbosity when we can
 
 ## Getting started
 
 You can run Ink in three main ways:
 
 1. The Ink binary `ink` defaults to executing whatever comes through standard input. So you can pipe any Ink script to the binary to execute it.
+```
+$ cat <file>.ink | ink
+    # or
+$ ink < <file>.ink
+```
 2. Use `ink -input <file>.ink` to execute an ink script file. You may pass the flag multiple times to execute multiple scripts, like `ink -input a.ink -input b.ink`.
 3. Invoke `ink -repl` to start an interactive repl session, and start typing ink code. You can run files in this context by executing `@load <file>.ink` in the repl prompt.
 
@@ -66,11 +71,11 @@ You can find more sample code in the `samples/` directory and run them with `ink
 
 ## Why?
 
-// TODO: thing.
+I started the Ink project to become more familiar with how interpreters work, and to try my hand at designing a language that fit my preferences for the balance between elegance, simplicity, practicality, and expressiveness. The first part -- to learn about programming languages and interpreters -- is straightforward, so I want to expand on the second part.
 
-I started this project for a few reasons.
+My language of choice at work is currently JavaScript. JavaScript is expressive, very fast (for a dynamic language), and has an approach to concurrency that I really like, using a combination of closures with event loops and message passing to communicate between separate threads of execution. But JavaScript has grown increasingly large in its size and complexity, and also carries a lot of old cruft for sake of backwards compatibility. I've also been increasingly interested in composing programs from functional components, and there are features in the functional PL world that haven't yet made their way into JavaScript like expressive pattern matching and guaranteed tail recursion optimizations (the former has been in TC39 limbo for several years, and the latter is only supported by recent versions of WebKit/JavaScriptCore).
 
-Ink makes a few unconventional choices about how programs should be encoded in writing.
+So Ink as a language is my attempt to build a language in the functional paradigm that doesn't sacrifice the concurrency benefits or expressiveness of JavaScript, while being minimal and self-consistent in syntax and semantics. I sometimes think about Ink as what JavaScript would be if it were rewritten by a Lisp programmer. Given this motivation, Ink tries to be a small language with few syntactic forms, special tokens, and builtins, that becomes expressive and powerful by being extremely composable and extensible. Ink deliberates avoids adding features into the language for sake of building a feature-rich language; whenever something can be achieved idiomatically within the constraints and patterns of the existing language or core libraries, that's preferred over adding new features into the language itself. This is how Ink remains tiny and self-consistent.
 
 ## Syntax
 
@@ -80,39 +85,42 @@ Ink's syntax is inspired by JavaScript and Go, but strives to be minimal. This i
 Program: Expression*
 
 Expression: (Atom | BinaryExpr | MatchExpr) ','
+ExpressionList: '(' Expression* ')'
+
+
+Atom: UnaryExpr | EmptyIdentifier
+        | Identifier | FunctionCall
+        | Literal | ExpressionList
 
 UnaryExpr: UnaryOp Atom
-BinaryExpr: Expression BinaryOp Expression
-MatchExpr: (Atom | BinaryExpr) '::' '{' MatchClause* '}'
-
-MatchClause: Atom '->' Expression
-
-
-Atom: UnaryExpr | EmptyIdentifier | Identifier | Literal
-        | FunctionCall | '(' Expression* ')'
 
 EmptyIdentifier: '_'
-Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]* | _
+Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]*
 
-FunctionCall: (Identifier
-        | FunctionLiteral
-        | FunctionCall
-        | '(' Expression* ')') '(' Expression* ')'
+FunctionCall: Atom ExpressionList
 
 Literal: NumberLiteral | StringLiteral
         | BooleanLiteral | FunctionLiteral
         | ObjectLiteral | ListLiteral
 
-NumberLiteral: (0-9)+ ['.' (0-9)*]
+NumberLiteral: (0-9)+ ['.' (0-9)+]
 StringLiteral: '\'' (.*) '\''
 
 BooleanLiteral: 'true' | 'false'
+FunctionLiteral: (Identifier | '(' (Identifier ',')* ')')
+        '=>' ( Expression | ExpressionList )
 
 ObjectLiteral: '{' ObjectEntry* '}'
 ObjectEntry: Expression ':' Expression
 ListLiteral: '[' Expression* ']'
-FunctionLiteral: (Identifier | '(' (Identifier ',')* ')')
-        '=>' Expression
+
+
+BinaryExpr: Expression BinaryOp Expression
+
+
+MatchExpr: (Atom | BinaryExpr) '::' '{' MatchClause* '}'
+MatchClause: Atom '->' Expression
+
 
 UnaryOp: (
     '~' // negation
@@ -159,25 +167,23 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 
 ## Builtins
 
-### Constants
-
-- `pi`: Millisecond timestamp. By convention, global constants begin with `@`.
-
-### Functions
+### System interfaces
 
 - `in() => string`: Read from stdin or until ENTER key (might change later)
 - `out(string)`: Print to stdout
 - `read(string, number, number) => bytes`: Read from given file descriptor from some offset for some bytes
 - `write(string, number, bytes)`: Write to given file descriptor at some offset
-- `time() => number`: Current millisecond (since UNIX epoch) timestamp
+- `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
+- `time() => number`: number of seconds in floating point in UNIX epoch
 
 ### Math
 
 - `sin(number) => number`: sine
 - `cos(number) => number`: cosine
+- `pow(number, number) => number`: power, also stands in for finding roots with exponent < 1
 - `ln(number) => number`: natural log
 
-### Type casts (implemented as functions)
+### Type casts (implemented as native functions)
 
 - `string(any) => string`
 - `number(any) => number`
@@ -186,8 +192,10 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 
 ## Development
 
-Ink is currently a single go package. Run `go run .` to execute the binary.
+Ink is currently a single go package. Run `go run .` to run from source, and `go build -ldflags="-s -w"` to build the release binary.
 
 The `ink` binary takes in scripts from standard input, unless at least one `-input` flag is provided, in which case it reads from the filesystem.
 
-Ink also has a vim syntax definition file, under `utils/ink.vim`.
+### IDE support
+
+Ink currently has a vim syntax definition file, under `utils/ink.vim`. I'm also hoping to support Monaco / VSCode's language definition format soon.
