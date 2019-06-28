@@ -216,12 +216,11 @@ func Tokenize(
 	inStringLiteral := false
 
 	go func() {
-		var char rune
 		// Ink requires max 1 lookahead, so rather than allowing backtracking
 		//	from the lexer's reader, we implement a streaming lexer with a buffer
 		//	of 1, implemented as this lastChar character. Every loop we take char
 		//	from lastChar if not zero, from input channel otherwise.
-		var lastChar rune = 0
+		var char, lastChar rune
 		for {
 			if lastChar != 0 {
 				char = lastChar

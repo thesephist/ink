@@ -22,25 +22,25 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 	}
 }
 
-func (iso *Isolate) LoadEnvironment() {
-	iso.LoadFunc(NativeFunctionValue{"in", inkIn})
-	iso.LoadFunc(NativeFunctionValue{"out", inkOut})
-	iso.LoadFunc(NativeFunctionValue{"read", inkRead})
-	iso.LoadFunc(NativeFunctionValue{"write", inkWrite})
-	iso.LoadFunc(NativeFunctionValue{"time", inkTime})
+func (ctx *Context) LoadEnvironment() {
+	ctx.LoadFunc(NativeFunctionValue{"in", inkIn})
+	ctx.LoadFunc(NativeFunctionValue{"out", inkOut})
+	ctx.LoadFunc(NativeFunctionValue{"read", inkRead})
+	ctx.LoadFunc(NativeFunctionValue{"write", inkWrite})
+	ctx.LoadFunc(NativeFunctionValue{"time", inkTime})
 
-	iso.LoadFunc(NativeFunctionValue{"sin", inkSin})
-	iso.LoadFunc(NativeFunctionValue{"cos", inkCos})
-	iso.LoadFunc(NativeFunctionValue{"ln", inkLn})
+	ctx.LoadFunc(NativeFunctionValue{"sin", inkSin})
+	ctx.LoadFunc(NativeFunctionValue{"cos", inkCos})
+	ctx.LoadFunc(NativeFunctionValue{"ln", inkLn})
 
-	iso.LoadFunc(NativeFunctionValue{"string", inkString})
-	iso.LoadFunc(NativeFunctionValue{"number", inkNumber})
-	iso.LoadFunc(NativeFunctionValue{"bytes", inkBytes})
-	iso.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
+	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
+	ctx.LoadFunc(NativeFunctionValue{"number", inkNumber})
+	ctx.LoadFunc(NativeFunctionValue{"bytes", inkBytes})
+	ctx.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
 }
 
-func (iso *Isolate) LoadFunc(nf NativeFunctionValue) {
-	iso.Frame.setValue(nf.name, nf)
+func (ctx *Context) LoadFunc(nf NativeFunctionValue) {
+	ctx.Frame.setValue(nf.name, nf)
 }
 
 func inkIn(_ []Value) (Value, error) {

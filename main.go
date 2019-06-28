@@ -63,13 +63,13 @@ func main() {
 	}
 
 	// execution context
-	iso := Isolate{}
-	iso.Init()
+	ctx := Context{}
+	ctx.Init()
 
 	// abstraction for executing ink code from a file at a given path
 	execFile := func(path string) error {
 		// read from file
-		input, values, errors := iso.ExecStream(
+		input, values, errors := ctx.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -131,7 +131,7 @@ func main() {
 			// specialized introspection / observability directives
 			//	in repl session
 			case strings.HasPrefix(text, "@dump"):
-				iso.Dump()
+				ctx.Dump()
 			case strings.HasPrefix(text, "@clear"):
 				fmt.Printf("[2J[H")
 			case strings.HasPrefix(text, "@exit"):
@@ -144,7 +144,7 @@ func main() {
 				}
 
 			default:
-				input, values, errors := iso.ExecStream(
+				input, values, errors := ctx.ExecStream(
 					*debugLexer || *verbose,
 					*debugParser || *verbose,
 					*dump || *verbose,
@@ -181,7 +181,7 @@ func main() {
 		}
 	} else {
 		// read from stdin
-		input, values, errors := iso.ExecStream(
+		input, values, errors := ctx.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,

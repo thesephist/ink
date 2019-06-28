@@ -169,7 +169,7 @@ func (v CompositeValue) Equals(other Value) bool {
 
 // XXX: for now, our GC heuristic is simply to dump/free
 //	frames from functions that are no longer referenced in the
-//	main isolate's frame, and keep all other frames, recursively descending.
+//	main context's frame, and keep all other frames, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
 	defNode     FunctionLiteralNode
@@ -909,42 +909,42 @@ func (sh *StackFrame) String() string {
 	return fmt.Sprintf("frame: %s --prnt-> (%s)", sh.vt, sh.parent)
 }
 
-type Isolate struct {
+type Context struct {
 	Frame *StackFrame
 }
 
-func (iso *Isolate) Dump() {
-	logDebug("frame dump ->", iso.Frame.String())
+func (ctx *Context) Dump() {
+	logDebug("frame dump ->", ctx.Frame.String())
 }
 
-func (iso *Isolate) Init() {
-	if iso.Frame == nil {
-		iso.Frame = &StackFrame{
+func (ctx *Context) Init() {
+	if ctx.Frame == nil {
+		ctx.Frame = &StackFrame{
 			parent: nil,
 			vt:     ValueTable{},
 		}
 	}
-	iso.LoadEnvironment()
+	ctx.LoadEnvironment()
 }
 
-func (iso *Isolate) evalNode(node Node) (Value, error) {
+func (ctx *Context) evalNode(node Node) (Value, error) {
 	switch n := node.(type) {
 	case Node:
-		return n.Eval(iso.Frame, false)
+		return n.Eval(ctx.Frame, false)
 	default:
 		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
 		return nil, nil
 	}
 }
 
-func (iso *Isolate) Eval(
+func (ctx *Context) Eval(
 	nodes <-chan Node,
 	values chan<- Value,
 	errors chan<- Err,
 	dumpFrame bool,
 ) {
 	for node := range nodes {
-		val, err := iso.evalNode(node)
+		val, err := ctx.evalNode(node)
 		if err != nil {
 			e, isErr := err.(Err)
 			if isErr {
@@ -961,7 +961,7 @@ func (iso *Isolate) Eval(
 	}
 
 	if dumpFrame {
-		iso.Dump()
+		ctx.Dump()
 	}
 
 	close(values)
@@ -1001,7 +1001,7 @@ func combineChan(c1, c2, c3 <-chan Err) <-chan Err {
 	return errors
 }
 
-func (iso *Isolate) ExecStream(
+func (ctx *Context) ExecStream(
 	debugLex, debugParse, dump bool,
 ) (chan<- rune, <-chan Value, <-chan Err) {
 	input := make(chan rune)
@@ -1015,7 +1015,7 @@ func (iso *Isolate) ExecStream(
 
 	go Tokenize(input, tokens, e1, debugLex)
 	go Parse(tokens, nodes, e2, debugParse)
-	go iso.Eval(nodes, values, e3, dump)
+	go ctx.Eval(nodes, values, e3, dump)
 
 	return input, values, combineChan(e1, e2, e3)
 }
