@@ -56,8 +56,7 @@ func (v NumberValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(NumberValue)
-	if ok {
+	if ov, ok := other.(NumberValue); ok {
 		return v.val == ov.val
 	} else {
 		return false
@@ -77,8 +76,7 @@ func (v StringValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(StringValue)
-	if ok {
+	if ov, ok := other.(StringValue); ok {
 		return v.val == ov.val
 	} else {
 		return false
@@ -102,8 +100,7 @@ func (v BooleanValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(BooleanValue)
-	if ok {
+	if ov, ok := other.(BooleanValue); ok {
 		return v.val == ov.val
 	} else {
 		return false
@@ -149,8 +146,7 @@ func (v CompositeValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(CompositeValue)
-	if ok {
+	if ov, ok := other.(CompositeValue); ok {
 		if len(v.entries) != len(ov.entries) {
 			return false
 		}
@@ -185,8 +181,7 @@ func (v FunctionValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(FunctionValue)
-	if ok {
+	if ov, ok := other.(FunctionValue); ok {
 		// to compare structs containing slices, we really want
 		//	a pointer comparison, not a value comparison
 		return &v.defNode == &ov.defNode
@@ -209,8 +204,7 @@ func (v FunctionCallThunkValue) Equals(other Value) bool {
 		return true
 	}
 
-	ov, ok := other.(FunctionCallThunkValue)
-	if ok {
+	if ov, ok := other.(FunctionCallThunkValue); ok {
 		// to compare structs containing slices, we really want
 		//	a pointer comparison, not a value comparison
 		return &v.vt == &ov.vt &&
@@ -341,9 +335,7 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 
 func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	if n.operator.kind == DefineOp {
-		leftIdent, okIdent := n.leftOperand.(IdentifierNode)
-		leftAccess, okAccess := n.leftOperand.(BinaryExprNode)
-		if okIdent {
+		if leftIdent, okIdent := n.leftOperand.(IdentifierNode); okIdent {
 			rightValue, err := n.rightOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
@@ -351,7 +343,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 
 			frame.setValue(leftIdent.val, rightValue)
 			return rightValue, nil
-		} else if okAccess && leftAccess.operator.kind == AccessorOp {
+		} else if leftAccess, okAccess := n.leftOperand.(BinaryExprNode); okAccess &&
+			leftAccess.operator.kind == AccessorOp {
+
 			leftObject, err := leftAccess.leftOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
@@ -362,8 +356,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return nil, err
 			}
 
-			leftObjectComposite, ok := leftObject.(CompositeValue)
-			if ok {
+			if leftObjectComposite, isComposite := leftObject.(CompositeValue); isComposite {
 				rightValue, err := n.rightOperand.Eval(frame, false)
 				if err != nil {
 					return nil, err
@@ -396,8 +389,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			return nil, err
 		}
 
-		leftValueComposite, ok := leftValue.(CompositeValue)
-		if ok {
+		if leftValueComposite, isComposite := leftValue.(CompositeValue); isComposite {
 			v, prs := leftValueComposite.entries[rightValueStr]
 			if prs {
 				return v, nil
@@ -426,18 +418,15 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case AddOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return NumberValue{left.val + right.val}, nil
 			}
 		case StringValue:
-			right, ok := rightValue.(StringValue)
-			if ok {
+			if right, ok := rightValue.(StringValue); ok {
 				return StringValue{left.val + right.val}, nil
 			}
 		case BooleanValue:
-			right, ok := rightValue.(BooleanValue)
-			if ok {
+			if right, ok := rightValue.(BooleanValue); ok {
 				return BooleanValue{left.val || right.val}, nil
 			}
 		}
@@ -449,8 +438,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case SubtractOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return NumberValue{left.val - right.val}, nil
 			}
 		}
@@ -462,13 +450,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case MultiplyOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return NumberValue{left.val * right.val}, nil
 			}
 		case BooleanValue:
-			right, ok := rightValue.(BooleanValue)
-			if ok {
+			if right, ok := rightValue.(BooleanValue); ok {
 				return BooleanValue{left.val && right.val}, nil
 			}
 		}
@@ -480,8 +466,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case DivideOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return NumberValue{left.val / right.val}, nil
 			}
 		}
@@ -493,8 +478,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case ModulusOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				if right.val == float64(int64(right.val)) {
 					return NumberValue{float64(
 						int(left.val) % int(right.val),
@@ -515,13 +499,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case GreaterThanOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return BooleanValue{left.val > right.val}, nil
 			}
 		case StringValue:
-			right, ok := rightValue.(StringValue)
-			if ok {
+			if right, ok := rightValue.(StringValue); ok {
 				return BooleanValue{left.val > right.val}, nil
 			}
 		}
@@ -533,13 +515,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case LessThanOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
-			right, ok := rightValue.(NumberValue)
-			if ok {
+			if right, ok := rightValue.(NumberValue); ok {
 				return BooleanValue{left.val < right.val}, nil
 			}
 		case StringValue:
-			right, ok := rightValue.(StringValue)
-			if ok {
+			if right, ok := rightValue.(StringValue); ok {
 				return BooleanValue{left.val < right.val}, nil
 			}
 		}
@@ -781,27 +761,17 @@ func (n ObjectLiteralNode) String() string {
 
 func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	obj := CompositeValue{
-		entries: make(ValueTable),
+		entries: ValueTable{},
 	}
-	es := obj.entries
 	for _, entry := range n.entries {
-		k, ok := entry.key.(IdentifierNode)
-		if ok {
-			var err error
-			es[k.val], err = entry.val.Eval(frame, false)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			keyStr, err := operandToStringKey(entry.key, frame)
-			if err != nil {
-				return nil, err
-			}
+		keyStr, err := operandToStringKey(entry.key, frame)
+		if err != nil {
+			return nil, err
+		}
 
-			es[keyStr], err = entry.val.Eval(frame, false)
-			if err != nil {
-				return nil, err
-			}
+		obj.entries[keyStr], err = entry.val.Eval(frame, false)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return obj, nil
