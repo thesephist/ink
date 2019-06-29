@@ -124,4 +124,5 @@ emptyMultiple('bright', 'rain', 'sky', 'bow')
 section()
 `` log('this should NEVER be seen')
 `` log('neither should this')
-log('this should be seen.')
+log('this line should be seen.') `` but here's still a comment
+log(`right` '... and this line')

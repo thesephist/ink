@@ -255,6 +255,7 @@ func Tokenize(
 					}
 					lineNo++
 					colNo = 0
+					ensureSeparator()
 				} else {
 					for nextChar != '`' {
 						nextChar = <-input
@@ -262,6 +263,7 @@ func Tokenize(
 							lineNo++
 							colNo = 0
 						}
+						colNo++
 					}
 				}
 			case char == '\n':
