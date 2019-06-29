@@ -120,9 +120,28 @@ out('should print snowman, then rainbow
 -> ')
 emptySingle()
 emptyMultiple('bright', 'rain', 'sky', 'bow')
+log('')
 
-section()
+` comment syntaxes ` section()
 `` log('this should NEVER be seen')
 `` log('neither should this')
 log('this line should be seen.') `` but here's still a comment
 log(`right` '... and this line')
+
+` more complex pattern matching ` section()
+log('expect: true true false false')
+log(string([_, [2, _], 6] = [10, [2, 7], 6]))
+log(string({
+    hi: 'hello'
+    bye: {
+        good: 'goodbye'
+    }
+} = {
+    hi: _
+    bye: {
+        good: _
+    }
+}))
+log(string([_, [2, _], 6, _] = [10, [2, 7], 6]))
+log(string({6: 9} = {6: _, 7: _}))
+log('')

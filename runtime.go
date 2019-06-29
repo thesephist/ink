@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 )
 
 type NativeFunctionValue struct {
@@ -118,8 +120,7 @@ func inkWrite(in []Value) (Value, error) {
 }
 
 func inkRand(in []Value) (Value, error) {
-	// TODO
-	return NullValue{}, nil
+	return NumberValue{rand.Float64()}, nil
 }
 
 func inkTime(in []Value) (Value, error) {
@@ -138,8 +139,24 @@ func inkCos(in []Value) (Value, error) {
 }
 
 func inkPow(in []Value) (Value, error) {
-	// TODO
-	return NullValue{}, nil
+	if len(in) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			"pow() takes exactly 2 number arguments",
+		}
+	}
+
+	base, baseIsNum := in[0].(NumberValue)
+	exp, expIsNum := in[1].(NumberValue)
+	if baseIsNum && expIsNum {
+		return NumberValue{math.Pow(base.val, exp.val)}, nil
+	} else {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("pow() takes exactly 2 number arguments, but got %s, %s",
+				in[0].String(), in[1].String()),
+		}
+	}
 }
 
 func inkLn(in []Value) (Value, error) {
@@ -149,8 +166,6 @@ func inkLn(in []Value) (Value, error) {
 
 func inkString(in []Value) (Value, error) {
 	if len(in) == 0 {
-		// TODO: probably should use the language's native way of handling
-		//	errors -- we just haven't decided on one yet.
 		return nil, Err{
 			ErrRuntime,
 			"string() takes exactly one argument, none was provided",
@@ -162,6 +177,14 @@ func inkString(in []Value) (Value, error) {
 		return v, nil
 	case NumberValue:
 		return StringValue{nToS(v.val)}, nil
+	case BooleanValue:
+		if v.val {
+			return StringValue{"true"}, nil
+		} else {
+			return StringValue{"false"}, nil
+		}
+	case NullValue:
+		return StringValue{""}, nil
 	default:
 		// TODO
 		return NullValue{}, nil
