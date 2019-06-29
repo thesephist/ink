@@ -578,7 +578,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 
 		argValueTable := ValueTable{}
 		for i, identNode := range fnt.defNode.arguments {
-			if len(argResults) > i {
+			if i < len(argResults) {
 				argValueTable[identNode.val] = argResults[i]
 			}
 		}

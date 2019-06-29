@@ -45,11 +45,49 @@ func (ctx *Context) LoadFunc(nf NativeFunctionValue) {
 	ctx.Frame.setValue(nf.name, nf)
 }
 
-func inkIn(_ []Value) (Value, error) {
-	// TODO: probably take in one char of input at a time?
-	//	this is probably unix/posix specific. hm.
-	fmt.Println("Returning some input: TBD")
-	return StringValue{"input"}, nil
+func evalInkFunction(fn Value, args ...Value) (Value, error) {
+	if fnt, isFunc := fn.(FunctionValue); isFunc {
+		argValueTable := ValueTable{}
+		for i, identNode := range fnt.defNode.arguments {
+			if i < len(args) {
+				argValueTable[identNode.val] = args[i]
+			}
+		}
+
+		callFrame := &StackFrame{
+			parent: fnt.parentFrame,
+			vt:     argValueTable,
+		}
+		rv, err := fnt.defNode.body.Eval(callFrame, false)
+		if err != nil {
+			return nil, err
+		}
+		return rv, nil
+	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
+		return fnt.exec(args)
+	} else {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("attempted to call a non-function value %s", fn.String()),
+		}
+	}
+}
+
+func inkIn(in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"in() takes one callback argument",
+		}
+	}
+
+	// TODO: implement
+	_, err := evalInkFunction(in[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return NullValue{}, nil
 }
 
 func inkOut(in []Value) (Value, error) {
@@ -63,7 +101,7 @@ func inkOut(in []Value) (Value, error) {
 
 	return nil, Err{
 		ErrRuntime,
-		"out() takes one string parameter",
+		"out() takes one string argument",
 	}
 }
 
