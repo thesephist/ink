@@ -73,41 +73,33 @@ func (sp *position) String() string {
 }
 
 type Tok struct {
-	val  interface{}
 	kind int
+	// str and num are both present to implement Tok
+	//	as a monomorphic type for all tokens; will be zero
+	//	values often.
+	str string
+	num float64
 	position
 }
 
-func (tok *Tok) stringVal() string {
-	switch v := tok.val.(type) {
-	case string:
-		return string(v)
-	case float64:
-		return strconv.FormatFloat(float64(v), 'f', -1, 64)
-	default:
-		return ""
-	}
-}
-
-func (tok *Tok) numberVal() float64 {
-	switch v := tok.val.(type) {
-	case float64:
-		return float64(v)
-	default:
-		return 0
-	}
-}
-
 func (tok Tok) String() string {
-	str := tok.stringVal()
-	if str == "" {
-		return fmt.Sprintf("%s [%s]",
-			tokKindToName(tok.kind),
-			tok.position.String())
-	} else {
+	label := tokKindToName(tok.kind)
+
+	switch tok.kind {
+	case Identifier, StringLiteral:
+
 		return fmt.Sprintf("%s %s [%s]",
-			tokKindToName(tok.kind),
-			str,
+			label,
+			tok.str,
+			tok.position.String())
+	case NumberLiteral:
+		return fmt.Sprintf("%s %s [%s]",
+			label,
+			nToS(tok.num),
+			tok.position.String())
+	default:
+		return fmt.Sprintf("%s [%s]",
+			label,
 			tok.position.String())
 	}
 }
@@ -136,14 +128,13 @@ func Tokenize(
 	}
 	simpleCommitChar := func(kind int) {
 		simpleCommit(Tok{
-			val:      "",
 			kind:     kind,
 			position: position{lineNo, colNo},
 		})
 	}
 	forbidden := func() {
 		// no-op, re-bound below
-		logErrf(ErrAssert, "this function should never run!")
+		logErrf(ErrAssert, "this function should never run")
 	}
 	ensureSeparator := forbidden
 	commitClear := forbidden
@@ -175,13 +166,13 @@ func Tokenize(
 						return
 					}
 					simpleCommit(Tok{
-						val:      f,
+						num:      f,
 						kind:     NumberLiteral,
 						position: position{lineNo, colNo - len(cbuf)},
 					})
 				} else {
 					simpleCommit(Tok{
-						val:      cbuf,
+						str:      cbuf,
 						kind:     Identifier,
 						position: position{lineNo, colNo - len(cbuf)},
 					})
@@ -195,7 +186,6 @@ func Tokenize(
 	}
 	commitChar := func(kind int) {
 		commit(Tok{
-			val:      "",
 			kind:     kind,
 			position: position{lineNo, colNo},
 		})
@@ -213,14 +203,13 @@ func Tokenize(
 		}
 	}
 
-	inStringLiteral := false
-
 	go func() {
 		// Ink requires max 1 lookahead, so rather than allowing backtracking
 		//	from the lexer's reader, we implement a streaming lexer with a buffer
 		//	of 1, implemented as this lastChar character. Every loop we take char
 		//	from lastChar if not zero, from input channel otherwise.
 		var char, lastChar rune
+		inStringLiteral := false
 		for {
 			if lastChar != 0 {
 				char = lastChar
@@ -235,7 +224,7 @@ func Tokenize(
 			case char == '\'':
 				if inStringLiteral {
 					commit(Tok{
-						val:      strbuf,
+						str:      strbuf,
 						kind:     StringLiteral,
 						position: position{strbufStartLine, strbufStartCol},
 					})

@@ -348,9 +348,9 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 	case EmptyIdentifier:
 		return EmptyIdentifierNode{}, idx, nil
 	case NumberLiteral:
-		return NumberLiteralNode{tok.numberVal()}, idx, nil
+		return NumberLiteralNode{tok.num}, idx, nil
 	case StringLiteral:
-		return StringLiteralNode{tok.stringVal()}, idx, nil
+		return StringLiteralNode{tok.str}, idx, nil
 	case TrueLiteral:
 		return BooleanLiteralNode{true}, idx, nil
 	case FalseLiteral:
@@ -368,7 +368,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			// 	so we backtrack one token.
 			idx--
 		} else {
-			atom = IdentifierNode{tok.stringVal()}
+			atom = IdentifierNode{tok.str}
 		}
 		// may be called as a function, so flows beyond
 		//	switch case
@@ -568,7 +568,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	switch tok.kind {
 	case LeftParen:
 		for tokens[idx].kind == Identifier {
-			idNode := IdentifierNode{tokens[idx].stringVal()}
+			idNode := IdentifierNode{tokens[idx].str}
 			arguments = append(arguments, idNode)
 			idx++
 
@@ -600,7 +600,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 		}
 		idx++ // RightParen
 	case Identifier:
-		idNode := IdentifierNode{tok.stringVal()}
+		idNode := IdentifierNode{tok.str}
 		arguments = append(arguments, idNode)
 	default:
 		return FunctionLiteralNode{}, 0, Err{
