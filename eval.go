@@ -266,7 +266,7 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 		default:
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot negate non-number value %s", o.String()),
+				fmt.Sprintf("cannot negate non-boolean and non-number value %s", o.String()),
 			}
 		}
 	}
@@ -332,7 +332,7 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 		default:
 			return "", Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access property %s of an object",
+				fmt.Sprintf("cannot access invalid property name %s of a composite value",
 					rightEvaluatedValue.String()),
 			}
 		}
@@ -407,7 +407,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		} else {
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access property of a non-object %s",
+				fmt.Sprintf("cannot access property of a non-composite value%s",
 					leftValue),
 			}
 		}
@@ -587,8 +587,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 		}
 	}
 
-	switch fnt := fn.(type) {
-	case FunctionValue:
+	if fnt, isFunc := fn.(FunctionValue); isFunc {
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
 			argResults[i], err = arg.Eval(frame, false)
@@ -616,7 +615,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 		} else {
 			return unwrapThunk(returnThunk)
 		}
-	case NativeFunctionValue:
+	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
 		// cannot optimize native function calls
 		argResults := make([]Value, len(n.arguments))
 		for i, arg := range n.arguments {
@@ -626,10 +625,10 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 			}
 		}
 		return fnt.exec(argResults)
-	default:
+	} else {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("attempted to call a non-function value %s", fnt.String()),
+			fmt.Sprintf("attempted to call a non-function value %s", fn.String()),
 		}
 	}
 }
@@ -794,31 +793,12 @@ func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, erro
 				return nil, err
 			}
 		} else {
-			key, err := entry.key.Eval(frame, false)
+			keyStr, err := operandToStringKey(entry.key, frame)
 			if err != nil {
 				return nil, err
 			}
 
-			keyStrVal, sok := key.(StringValue)
-			keyNumVal, nok := key.(NumberValue)
-			if sok {
-				es[keyStrVal.val], err = entry.val.Eval(frame, false)
-				if err != nil {
-					return nil, err
-				}
-			} else if nok {
-				es[nToS(keyNumVal.val)], err = entry.val.Eval(frame, false)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				err = Err{
-					ErrRuntime,
-					fmt.Sprintf("cannot access non-string property %s of object",
-						key.String()),
-				}
-			}
-
+			es[keyStr], err = entry.val.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
@@ -918,23 +898,11 @@ func (ctx *Context) Dump() {
 }
 
 func (ctx *Context) Init() {
-	if ctx.Frame == nil {
-		ctx.Frame = &StackFrame{
-			parent: nil,
-			vt:     ValueTable{},
-		}
+	ctx.Frame = &StackFrame{
+		parent: nil,
+		vt:     ValueTable{},
 	}
 	ctx.LoadEnvironment()
-}
-
-func (ctx *Context) evalNode(node Node) (Value, error) {
-	switch n := node.(type) {
-	case Node:
-		return n.Eval(ctx.Frame, false)
-	default:
-		logErrf(ErrAssert, "expected AST node during evaluation, got something else")
-		return nil, nil
-	}
 }
 
 func (ctx *Context) Eval(
@@ -944,7 +912,7 @@ func (ctx *Context) Eval(
 	dumpFrame bool,
 ) {
 	for node := range nodes {
-		val, err := ctx.evalNode(node)
+		val, err := node.Eval(ctx.Frame, false)
 		if err != nil {
 			e, isErr := err.(Err)
 			if isErr {
