@@ -249,8 +249,20 @@ func Tokenize(
 				}
 			case char == '`':
 				nextChar := <-input
-				for nextChar != '`' {
-					nextChar = <-input
+				if nextChar == '`' {
+					for nextChar != '\n' {
+						nextChar = <-input
+					}
+					lineNo++
+					colNo = 0
+				} else {
+					for nextChar != '`' {
+						nextChar = <-input
+						if nextChar == '\n' {
+							lineNo++
+							colNo = 0
+						}
+					}
 				}
 			case char == '\n':
 				lineNo++

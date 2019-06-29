@@ -122,3 +122,6 @@ emptySingle()
 emptyMultiple('bright', 'rain', 'sky', 'bow')
 
 section()
+`` log('this should NEVER be seen')
+`` log('neither should this')
+log('this should be seen.')
