@@ -353,6 +353,8 @@ func Tokenize(
 			colNo++
 		}
 
+		ensureSeparator()
+
 		if !syntaxErrored {
 			// must not have closed channels yet
 			close(tokens)

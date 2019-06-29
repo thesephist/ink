@@ -8,14 +8,18 @@ import (
 	"strings"
 )
 
-const VERSION = "0.1"
+const VERSION = "0.1.0"
 
 const HELP_MSG = `
 Ink is a minimal, functional programming language.
 	ink v%s
 
-By default, ink interprets from stdin. Run an ink script with -input
+By default, ink interprets from stdin.
+	ink < main.ink
+Run an ink script on files with -input.
 	ink -input main.ink
+Run from the command line with -eval.
+	ink -eval "f := () => out('hi'), f()"
 
 `
 
@@ -47,6 +51,7 @@ func main() {
 	help := flag.Bool("help", false, "Print help message and exit")
 
 	repl := flag.Bool("repl", false, "Run as an interactive repl")
+	eval := flag.String("eval", "", "Evaluate argument as an Ink script")
 
 	var files inkFiles
 	flag.Var(&files, "input", "Source code to execute, can be invoked multiple times")
@@ -174,6 +179,30 @@ func main() {
 
 		logDebug("exited ink repl")
 		os.Exit(0)
+	} else if *eval != "" {
+		input, values, errors := ctx.ExecStream(
+			*debugLexer || *verbose,
+			*debugParser || *verbose,
+			*dump || *verbose,
+		)
+
+		for _, char := range *eval {
+			input <- char
+		}
+		close(input)
+
+	evalLoop:
+		for {
+			select {
+			case e, ok := <-errors:
+				if ok {
+					logErr(e.reason, e.message)
+				}
+				break evalLoop
+			case <-values:
+				// continue
+			}
+		}
 	} else if len(files) > 0 {
 		// read from file
 		for _, path := range files {
