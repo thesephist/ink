@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"time"
 )
 
 type NativeFunctionValue struct {
@@ -36,11 +37,17 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc(NativeFunctionValue{"cos", inkCos})
 	ctx.LoadFunc(NativeFunctionValue{"pow", inkPow})
 	ctx.LoadFunc(NativeFunctionValue{"ln", inkLn})
+	ctx.LoadFunc(NativeFunctionValue{"floor", inkFloor})
 
 	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
 	ctx.LoadFunc(NativeFunctionValue{"number", inkNumber})
 	ctx.LoadFunc(NativeFunctionValue{"bytes", inkBytes})
 	ctx.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
+
+	ctx.LoadFunc(NativeFunctionValue{"len", inkLen})
+
+	// side effects
+	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 func (ctx *Context) LoadFunc(nf NativeFunctionValue) {
@@ -85,7 +92,8 @@ func inkIn(in []Value) (Value, error) {
 		}
 	}
 
-	// TODO: implement
+	// TODO: implement as a character-by-character
+	//	getter, since scan() in stdlib gets by line.
 	_, err := evalInkFunction(in[0])
 	if err != nil {
 		return nil, err
@@ -164,11 +172,31 @@ func inkLn(in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkString(in []Value) (Value, error) {
-	if len(in) == 0 {
+func inkFloor(in []Value) (Value, error) {
+	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
-			"string() takes exactly one argument, none was provided",
+			"floor() takes exactly one argument",
+		}
+	}
+
+	n, isNumber := in[0].(NumberValue)
+	if !isNumber {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("floor() takes exactly one number argument, but got %s",
+				in[0].String()),
+		}
+	}
+
+	return NumberValue{math.Trunc(n.val)}, nil
+}
+
+func inkString(in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"string() takes exactly one argument",
 		}
 	}
 
@@ -184,7 +212,7 @@ func inkString(in []Value) (Value, error) {
 			return StringValue{"false"}, nil
 		}
 	case NullValue:
-		return StringValue{""}, nil
+		return StringValue{"()"}, nil
 	default:
 		// TODO
 		return NullValue{}, nil
@@ -204,4 +232,31 @@ func inkBytes(in []Value) (Value, error) {
 func inkBoolean(in []Value) (Value, error) {
 	// TODO
 	return NullValue{}, nil
+}
+
+func inkLen(in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"len() takes exactly one argument",
+		}
+	}
+
+	list, isComposite := in[0].(CompositeValue)
+	if !isComposite {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("len() takes a composite value, but got %s",
+				in[0].String()),
+		}
+	}
+
+	// count up from 0 index until we find an index that doesn't
+	//	contain a value.
+	for idx := 0.0; ; idx++ {
+		_, prs := list.entries[nToS(idx)]
+		if !prs {
+			return NumberValue{idx}, nil
+		}
+	}
 }

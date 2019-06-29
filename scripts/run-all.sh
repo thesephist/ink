@@ -9,3 +9,6 @@ go run . -input samples/stdlib.ink \
     -input samples/orderofops.ink \
     -input samples/newton.ink \
     -input samples/callback.ink \
+    -input samples/pi.ink \
+    -input samples/quicksort.ink \
+    -input samples/mapfilterreduce.ink \

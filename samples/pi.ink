@@ -1,6 +1,6 @@
 ` Monte-Carlo estimation of pi using random number generator `
 
-COUNT := 1000000
+COUNT := 50000
 
 ` pick a random point in [0, 1) in x and y `
 randCoord := () => [rand(), rand()]
@@ -20,10 +20,9 @@ iteration := iterCount => (
         true -> state.inCount := state.inCount + 1
     }
 
-    iterCount % 20000 :: {
-        0 -> out(string(iterCount) + ' runs left, Pi at ' +
-            string(4 * state.inCount / (COUNT - iterCount)) + '
-')
+    iterCount % 5000 :: {
+        0 -> log(string(iterCount) + ' runs left, Pi at ' +
+            string(4 * state.inCount / (COUNT - iterCount)))
     }
 )
 
@@ -47,7 +46,5 @@ state := {
 repeatableIteration := loop(iteration)
 repeatableIteration(COUNT) `` do COUNT times
 
-out('')
-out('Estimate of Pi after ' + string(COUNT) + ' runs: ' +
-    string(4 * state.inCount / COUNT) + '
-')
+log('Estimate of Pi after ' + string(COUNT) + ' runs: ' +
+    string(4 * state.inCount / COUNT))

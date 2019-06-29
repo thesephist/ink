@@ -75,7 +75,7 @@ I started the Ink project to become more familiar with how interpreters work, an
 
 My language of choice at work is currently JavaScript. JavaScript is expressive, very fast (for a dynamic language), and has an approach to concurrency that I really like, using a combination of closures with event loops and message passing to communicate between separate threads of execution. But JavaScript has grown increasingly large in its size and complexity, and also carries a lot of old cruft for sake of backwards compatibility. I've also been increasingly interested in composing programs from functional components, and there are features in the functional PL world that haven't yet made their way into JavaScript like expressive pattern matching and guaranteed tail recursion optimizations (the former has been in TC39 limbo for several years, and the latter is only supported by recent versions of WebKit/JavaScriptCore).
 
-So Ink as a language is my attempt to build a language in the functional paradigm that doesn't sacrifice the concurrency benefits or expressiveness of JavaScript, while being minimal and self-consistent in syntax and semantics. I sometimes think about Ink as what JavaScript would be if it were rewritten by a Lisp programmer. Given this motivation, Ink tries to be a small language with few syntactic forms, special tokens, and builtins, that becomes expressive and powerful by being extremely composable and extensible. Ink deliberates avoids adding features into the language for sake of building a feature-rich language; whenever something can be achieved idiomatically within the constraints and patterns of the existing language or core libraries, that's preferred over adding new features into the language itself. This is how Ink remains tiny and self-consistent.
+So Ink as a language is my attempt to build a language in the functional paradigm that doesn't sacrifice the concurrency benefits or expressiveness of JavaScript, while being minimal and self-consistent in syntax and semantics. I sometimes think about Ink as what JavaScript would be if it were rewritten by a Lisp programmer. Given this motivation, Ink tries to be a small language with little noise in the syntax, few special tokens, and a few essential builtins, that becomes expressive and powerful by being extremely composable and extensible. While modern dynamic languages routinely have over 100 syntactic forms, Ink has just 10 syntactic forms, from which everything else is derived. Ink deliberately avoids adding features into the language for sake of building a feature-rich language; whenever something can be achieved idiomatically within the constraints and patterns of the existing language or core libraries, that's preferred over adding new features into the language itself. This is how Ink remains tiny and self-consistent.
 
 ## Syntax
 
@@ -115,7 +115,7 @@ ObjectEntry: Expression ':' Expression
 ListLiteral: '[' Expression* ']'
 
 
-BinaryExpr: Expression BinaryOp Expression
+BinaryExpr: (Atom | BinaryExpr) BinaryOp (Atom | BinaryExpr)
 
 
 MatchExpr: (Atom | BinaryExpr) '::' '{' MatchClause* '}'
@@ -182,13 +182,15 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 - `cos(number) => number`: cosine
 - `pow(number, number) => number`: power, also stands in for finding roots with exponent < 1
 - `ln(number) => number`: natural log
+- `floor(number) => number`: floor / truncation
 
-### Type casts (implemented as native functions)
+### Type casts and utilities (implemented as native functions)
 
 - `string(any) => string`
 - `number(any) => number`
 - `bytes(any) => bytes`
 - `boolean(any) => boolean`
+- `len(composite) => number`: length of a list or list-like composite value
 
 ## Development
 
