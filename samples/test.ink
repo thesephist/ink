@@ -112,3 +112,13 @@ log('should be 5, then 17:')
 log(string(
     tooShort(9, 8, 7, 6, 5, 4, log('5'))
 ))
+
+` EmptyIdentifier in arguments list of functions ` section()
+emptySingle := _ => out('snowman ')
+emptyMultiple := (_, a, _, b) => out(a + b)
+out('should print snowman, then rainbow
+-> ')
+emptySingle()
+emptyMultiple('bright', 'rain', 'sky', 'bow')
+
+section()

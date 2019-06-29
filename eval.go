@@ -336,6 +336,14 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	if n.operator.kind == DefineOp {
 		if leftIdent, okIdent := n.leftOperand.(IdentifierNode); okIdent {
+			if _, isEmpty := n.rightOperand.(EmptyIdentifierNode); isEmpty {
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot assign an empty identifier value to %s",
+						leftIdent.String()),
+				}
+			}
+
 			rightValue, err := n.rightOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
@@ -577,9 +585,11 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 		}
 
 		argValueTable := ValueTable{}
-		for i, identNode := range fnt.defNode.arguments {
+		for i, argNode := range fnt.defNode.arguments {
 			if i < len(argResults) {
-				argValueTable[identNode.val] = argResults[i]
+				if identNode, isIdent := argNode.(IdentifierNode); isIdent {
+					argValueTable[identNode.val] = argResults[i]
+				}
 			}
 		}
 

@@ -122,7 +122,7 @@ type ListLiteralNode struct {
 }
 
 type FunctionLiteralNode struct {
-	arguments []IdentifierNode
+	arguments []Node
 	body      Node
 }
 
@@ -345,8 +345,6 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 
 	var atom Node
 	switch tok.kind {
-	case EmptyIdentifier:
-		return EmptyIdentifierNode{}, idx, nil
 	case NumberLiteral:
 		return NumberLiteralNode{tok.num}, idx, nil
 	case StringLiteral:
@@ -372,6 +370,21 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 		}
 		// may be called as a function, so flows beyond
 		//	switch case
+	case EmptyIdentifier:
+		if tokens[idx].kind == FunctionArrow {
+			var err error
+			atom, idx, err = parseFunctionLiteral(tokens)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			// parseAtom should not consume trailing Separators, but
+			// 	parseFunctionLiteral does because it ends with expressions.
+			// 	so we backtrack one token.
+			return atom, idx - 1, nil
+		} else {
+			return EmptyIdentifierNode{}, idx, nil
+		}
 	case LeftParen:
 		// grouped expression or function literal
 		exprs := make([]Node, 0)
@@ -558,7 +571,7 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {
 func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 
 	tok, idx := tokens[0], 1
-	arguments := make([]IdentifierNode, 0)
+	arguments := make([]Node, 0)
 
 	err := guardUnexpectedInputEnd(tokens, idx)
 	if err != nil {
@@ -567,9 +580,16 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 
 	switch tok.kind {
 	case LeftParen:
-		for tokens[idx].kind == Identifier {
-			idNode := IdentifierNode{tokens[idx].str}
-			arguments = append(arguments, idNode)
+		for {
+			if tokens[idx].kind == Identifier {
+				idNode := IdentifierNode{tokens[idx].str}
+				arguments = append(arguments, idNode)
+			} else if tokens[idx].kind == EmptyIdentifier {
+				idNode := EmptyIdentifierNode{}
+				arguments = append(arguments, idNode)
+			} else {
+				break
+			}
 			idx++
 
 			err := guardUnexpectedInputEnd(tokens, idx)
@@ -601,6 +621,9 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 		idx++ // RightParen
 	case Identifier:
 		idNode := IdentifierNode{tok.str}
+		arguments = append(arguments, idNode)
+	case EmptyIdentifier:
+		idNode := EmptyIdentifierNode{}
 		arguments = append(arguments, idNode)
 	default:
 		return FunctionLiteralNode{}, 0, Err{

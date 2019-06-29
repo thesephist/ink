@@ -48,9 +48,11 @@ func (ctx *Context) LoadFunc(nf NativeFunctionValue) {
 func evalInkFunction(fn Value, args ...Value) (Value, error) {
 	if fnt, isFunc := fn.(FunctionValue); isFunc {
 		argValueTable := ValueTable{}
-		for i, identNode := range fnt.defNode.arguments {
+		for i, argNode := range fnt.defNode.arguments {
 			if i < len(args) {
-				argValueTable[identNode.val] = args[i]
+				if identNode, isIdent := argNode.(IdentifierNode); isIdent {
+					argValueTable[identNode.val] = args[i]
+				}
 			}
 		}
 
