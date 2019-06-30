@@ -88,7 +88,7 @@ func inkIn(in []Value) (Value, error) {
 		}
 	}
 
-	// TODO: implement as a character-by-character
+	// XXX: Implement as a character-by-character
 	//	getter, since scan() in stdlib gets by line.
 	_, err := evalInkFunction(in[0])
 	if err != nil {
@@ -114,12 +114,10 @@ func inkOut(in []Value) (Value, error) {
 }
 
 func inkRead(in []Value) (Value, error) {
-	// TODO: once BufferValue gets written, write this
 	return NullValue{}, nil
 }
 
 func inkWrite(in []Value) (Value, error) {
-	// TODO: once BufferValue gets written, write this
 	return NullValue{}, nil
 }
 
@@ -128,17 +126,15 @@ func inkRand(in []Value) (Value, error) {
 }
 
 func inkTime(in []Value) (Value, error) {
-	// TODO
-	return NullValue{}, nil
+	unixSeconds := float64(time.Now().UnixNano()) / 1e9
+	return NumberValue{unixSeconds}, nil
 }
 
 func inkSin(in []Value) (Value, error) {
-	// TODO
 	return NullValue{}, nil
 }
 
 func inkCos(in []Value) (Value, error) {
-	// TODO
 	return NullValue{}, nil
 }
 
@@ -175,7 +171,6 @@ func inkPow(in []Value) (Value, error) {
 }
 
 func inkLn(in []Value) (Value, error) {
-	// TODO
 	return NullValue{}, nil
 }
 
@@ -223,18 +218,15 @@ func inkString(in []Value) (Value, error) {
 	case CompositeValue:
 		return StringValue{v.String()}, nil
 	default:
-		// TODO
 		return NullValue{}, nil
 	}
 }
 
 func inkNumber(in []Value) (Value, error) {
-	// TODO
 	return NullValue{}, nil
 }
 
 func inkBoolean(in []Value) (Value, error) {
-	// TODO
 	return NullValue{}, nil
 }
 

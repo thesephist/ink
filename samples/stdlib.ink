@@ -9,8 +9,6 @@ scan := () => (
     in()
 )
 
-` TODO: JSON serde system `
-
 ` TODO: slice(composite, start, end)
         join(composite, composite) (append)
         -> impl for lists `

@@ -310,7 +310,6 @@ func Tokenize(
 				//	that context.
 				committed := false
 				for _, d := range buf {
-					// XXX: there's probably a faster way
 					if !unicode.IsDigit(d) {
 						commitChar(AccessorOp)
 						committed = true

@@ -227,7 +227,6 @@ func unwrapThunk(v Value) (Value, error) {
 type Node interface {
 	String() string
 	Eval(*StackFrame, bool) (Value, error)
-	// TODO: func (n Node) prettyString() string - pretty-print AST
 }
 
 func (n UnaryExprNode) String() string {
