@@ -155,14 +155,6 @@ log('expect: dict, then keys, then modified and clone')
         third: 3
     }
     list := ['red', 'green', 'blue']
-    string(obj) = '{first: 1, second: 2, third: 3}' :: {
-        true -> log('string(CompositeValue) passed --')
-        false -> log('ERROR: string(CompositeValue) is incorrect!')
-    }
-    string(list) = '{0: \'red\', 1: \'green\', 2: \'blue\'}' :: {
-        true -> log('string(CompositeValue) (of list) passed --')
-        false -> log('ERROR: string(CompositeValue) (of list) is incorrect!')
-    }
     log(string(obj))
     log(string(list))
 
@@ -174,5 +166,23 @@ log('expect: dict, then keys, then modified and clone')
     out('modified: ')
     log(string(obj))
     log(string(cobj))
+    log('')
+)
+
+` pass by reference / mutation check ` section()
+log('checking pass by reference / mutation:')
+(
+    obj := [1, 2, 3]
+    twin := obj
+    clone := clone(obj)
+
+    obj.len(obj) := 4
+    obj.len(obj) := 5
+    obj.len(obj) := 6
+
+    [len(obj), len(twin), len(clone)] :: {
+        [6, 6, 3] -> log('passed!')
+        _ -> log('ERROR: there is a problem with copying references to objects later modified')
+    }
     log('')
 )
