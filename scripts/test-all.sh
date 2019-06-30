@@ -1,6 +1,8 @@
 #!/bin/sh
 
-go run . < samples/test.ink
+go run . -input samples/test.ink \
+    -input samples/orderofops.ink \
+    -input samples/logictest.ink \
 
 echo 'Should say 14:'
 go run . -eval "f := n => () => out('say hi ' + string(n)), f(14)()"

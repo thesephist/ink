@@ -56,8 +56,9 @@ const (
 	GreaterThanOp
 	LessThanOp
 
-	// TODO: Bitwise/Logical & | ^ (and or xor)
-	//	and order of operations / implement thru language to eval
+	LogicalAndOp
+	LogicalOrOp
+	LogicalXorOp
 
 	LeftParen
 	RightParen
@@ -287,6 +288,12 @@ func Tokenize(
 				commitChar(DivideOp)
 			case char == '%':
 				commitChar(ModulusOp)
+			case char == '&':
+				commitChar(LogicalAndOp)
+			case char == '|':
+				commitChar(LogicalOrOp)
+			case char == '^':
+				commitChar(LogicalXorOp)
 			case char == '<':
 				commitChar(LessThanOp)
 			case char == '>':

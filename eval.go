@@ -10,11 +10,15 @@ type Value interface {
 	Equals(Value) bool // deep, value equality
 }
 
-// utility func to get a consistent, language spec-compliant
-//	string representation of numbers
 // XXX: not the most reliable check for int because of int64 range
 //	limitations, but works for now until we nail down Ink's number
 //	spec more rigorously
+func isIntable(n float64) bool {
+	return n == float64(int64(n))
+}
+
+// utility func to get a consistent, language spec-compliant
+//	string representation of numbers
 func nToS(n float64) string {
 	i := int64(n)
 	if n == float64(i) {
@@ -68,7 +72,7 @@ type StringValue struct {
 }
 
 func (v StringValue) String() string {
-	return v.val
+	return fmt.Sprintf("'%s'", v.val)
 }
 
 func (v StringValue) Equals(other Value) bool {
@@ -290,6 +294,12 @@ func (n BinaryExprNode) String() string {
 		op = "="
 	case EqRefOp:
 		op = "is"
+	case LogicalAndOp:
+		op = "&"
+	case LogicalOrOp:
+		op = "|"
+	case LogicalXorOp:
+		op = "^"
 	case DefineOp:
 		op = ":="
 	case AccessorOp:
@@ -472,10 +482,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue),
 		}
 	case DivideOp:
-		switch left := leftValue.(type) {
-		case NumberValue:
+		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
-				return NumberValue{left.val / right.val}, nil
+				return NumberValue{leftNum.val / right.val}, nil
 			}
 		}
 		return nil, Err{
@@ -484,12 +493,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue),
 		}
 	case ModulusOp:
-		switch left := leftValue.(type) {
-		case NumberValue:
+		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
-				if right.val == float64(int64(right.val)) {
+				if isIntable(right.val) {
 					return NumberValue{float64(
-						int(left.val) % int(right.val),
+						int(leftNum.val) % int(right.val),
 					)}, nil
 				} else {
 					return nil, Err{
@@ -502,6 +510,81 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		return nil, Err{
 			ErrRuntime,
 			fmt.Sprintf("values %s and %s do not support modulus",
+				leftValue, rightValue),
+		}
+	case LogicalAndOp:
+		if leftNum, isNum := leftValue.(NumberValue); isNum {
+			if rightNum, ok := rightValue.(NumberValue); ok {
+				if isIntable(leftNum.val) && isIntable(rightNum.val) {
+					return NumberValue{float64(
+						int64(leftNum.val) & int64(rightNum.val),
+					)}, nil
+				} else {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s",
+							nToS(rightNum.val), nToS(leftNum.val)),
+					}
+				}
+			}
+		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
+			if rightBool, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue{leftBool.val && rightBool.val}, nil
+			}
+		}
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("values %s and %s do not support bitwise or logical &",
+				leftValue, rightValue),
+		}
+	case LogicalOrOp:
+		if leftNum, isNum := leftValue.(NumberValue); isNum {
+			if rightNum, ok := rightValue.(NumberValue); ok {
+				if isIntable(leftNum.val) && isIntable(rightNum.val) {
+					return NumberValue{float64(
+						int64(leftNum.val) | int64(rightNum.val),
+					)}, nil
+				} else {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s",
+							nToS(rightNum.val), nToS(leftNum.val)),
+					}
+				}
+			}
+		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
+			if rightBool, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue{leftBool.val || rightBool.val}, nil
+			}
+		}
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("values %s and %s do not support bitwise or logical |",
+				leftValue, rightValue),
+		}
+	case LogicalXorOp:
+		if leftNum, isNum := leftValue.(NumberValue); isNum {
+			if rightNum, ok := rightValue.(NumberValue); ok {
+				if isIntable(leftNum.val) && isIntable(rightNum.val) {
+					return NumberValue{float64(
+						int64(leftNum.val) ^ int64(rightNum.val),
+					)}, nil
+				} else {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot take logical & of non-integer values %s, %s",
+							nToS(rightNum.val), nToS(leftNum.val)),
+					}
+				}
+			}
+		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
+			if rightBool, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue{leftBool.val != rightBool.val}, nil
+			}
+		}
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("values %s and %s do not support bitwise or logical ^",
 				leftValue, rightValue),
 		}
 	case GreaterThanOp:

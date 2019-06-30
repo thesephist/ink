@@ -1,5 +1,20 @@
+` util `
+EOL := '
+'
+log := s => out(s + EOL)
+
+allpass := [true]
+
+log('Order of operations tests:')
+
 compare := (num, exp) => (
-    log(string(num) + ' should be ' + string(exp))
+    num :: {
+        exp -> (string(log(exp)))
+        _ -> (
+            log('ERROR: ' + string(num) + ' should be ' + string(exp))
+            allpass.0 := false
+        )
+    }
 )
 
 compare(1 + 2 - 3 + 5 - 3, 2)
@@ -15,3 +30,12 @@ compare(1 + 2 + (4 - 2) * 3 - (~1), 10)
 compare(1 - ~(10 - 3 * 3), 2)
 
 compare(10 - 2 * 24 % 20 / 8 - 1 + 5 + 10/10, 14)
+
+compare(1 & 5 | 4 ^ 1, (1 & 5) | (4 ^ 1))
+
+compare(1 + 1 & 5 % 3 * 10, (1 + 1) & ((5 % 3) * 10))
+
+` wrap up tests `
+allpass.0 :: {true -> log('all passed!')}
+
+log('')

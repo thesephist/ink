@@ -127,6 +127,7 @@ UnaryOp: (
 )
 BinaryOp: (
     '+' | '-' | '*' | '/' | '%' // arithmetic
+    '&' | '|' | '^' // logical and bitwise
     | '>' | '<' // arithmetic comparisons
     | '=' // value comparison operator
     | 'is' // reference comparison operator
@@ -152,6 +153,7 @@ A few quirks of this syntax:
 - List and object property/element access have the same syntax, which is the reference to the list/object followed by the `.` (property access) operator. This means we access array indexes with `arr.1`, `arr.(index + 1)`, etc. and object property with `obj.propName`, `obj.(computed + propName)`, etc.
 - Object (dictionary) keys can be arbitrary expressions, including variable names. If the key is a single identifier, the identifier's name will be used as a key in the dict, and if it's not an identifier (a literal, function call, etc.) the value of the expression will be computed and used as the key. This seems like it may cause trouble conceptually, but turns out to be intuitive in practice.
 - Assignment is always (re)declaration of a variable in its local scope; this means, for the moment, there is no way to mutate a variable from a parents scope (it'll just shadow the variable in the local scope). I think this is fine, since it forbids a class of potentially confusing state mutations, but I might change my mind in the future and add an assignment-that-isn't-declare. Note that this doesn't affect composite values -- you can mutate objects from a parents scope.
+- Ink allows boolean algebra with both logical/bitwise (`&|^`) and algebraic (`+*~`) operators, and which one is used depends on context.
 
 ## Types
 

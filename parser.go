@@ -133,12 +133,22 @@ func getOpPriority(t Tok) int {
 		return 100
 	case ModulusOp:
 		return 80
+
 	case MultiplyOp, DivideOp:
 		return 50
 	case AddOp, SubtractOp:
-		return 20
+		return 40
+
 	case GreaterThanOp, LessThanOp, EqualOp, EqRefOp:
+		return 30
+
+	case LogicalAndOp:
+		return 20
+	case LogicalXorOp:
+		return 15
+	case LogicalOrOp:
 		return 10
+
 	case DefineOp:
 		return 0
 	default:
@@ -149,6 +159,7 @@ func getOpPriority(t Tok) int {
 func isBinaryOp(t Tok) bool {
 	switch t.kind {
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
+		LogicalAndOp, LogicalOrOp, LogicalXorOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
 		return true
 	default:
@@ -271,6 +282,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 		return atom, idx - 1, nil
 
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
+		LogicalAndOp, LogicalOrOp, LogicalXorOp,
 		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
 		binExpr, incr, err := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
 		if err != nil {

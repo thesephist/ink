@@ -21,6 +21,10 @@ syntax match inkOp "\v\*"
 syntax match inkOp "\v\/"
 syntax match inkOp "\v\%"
 
+syntax match inkOp "\v\&"
+syntax match inkOp "\v\|"
+syntax match inkOp "\v\^"
+
 syntax match inkOp "\v\<"
 syntax match inkOp "\v\>"
 syntax match inkOp "\v\="
