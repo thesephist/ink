@@ -153,6 +153,17 @@ func inkPow(in []Value) (Value, error) {
 	base, baseIsNum := in[0].(NumberValue)
 	exp, expIsNum := in[1].(NumberValue)
 	if baseIsNum && expIsNum {
+		if base.val == 0 && exp.val == 0 {
+			return nil, Err{
+				ErrRuntime,
+				"math error, pow(0, 0) is not defined",
+			}
+		} else if base.val < 0 && !isIntable(exp.val) {
+			return nil, Err{
+				ErrRuntime,
+				"math error, fractional power of negative number",
+			}
+		}
 		return NumberValue{math.Pow(base.val, exp.val)}, nil
 	} else {
 		return nil, Err{

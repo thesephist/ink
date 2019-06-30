@@ -21,7 +21,7 @@ iteration := iterCount => (
     }
 
     iterCount % 5000 :: {
-        0 -> log(string(iterCount) + ' runs left, Pi at ' +
+        1 -> log(string(iterCount) + ' runs left, Pi at ' +
             string(4 * state.inCount / (COUNT - iterCount)))
     }
 )

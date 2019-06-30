@@ -470,7 +470,14 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case DivideOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
-				return NumberValue{leftNum.val / right.val}, nil
+				if right.val == 0 {
+					return nil, Err{
+						ErrRuntime,
+						"division by zero error",
+					}
+				} else {
+					return NumberValue{leftNum.val / right.val}, nil
+				}
 			}
 		}
 		return nil, Err{
@@ -481,6 +488,13 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case ModulusOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
+				if right.val == 0 {
+					return nil, Err{
+						ErrRuntime,
+						"division by zero error in modulus",
+					}
+				}
+
 				if isIntable(right.val) {
 					return NumberValue{float64(
 						int(leftNum.val) % int(right.val),
