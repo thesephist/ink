@@ -56,6 +56,9 @@ const (
 	GreaterThanOp
 	LessThanOp
 
+	// TODO: Bitwise/Logical & | ^ (and or xor)
+	//	and order of operations / implement thru language to eval
+
 	LeftParen
 	RightParen
 	LeftBracket

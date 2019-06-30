@@ -10,6 +10,7 @@
 - [ ] Write tests for parser/lexer/evaler separately to catch regressions more easily
 - [ ] `func (n Node) prettyString() string` to pretty-print AST
 - [ ] Add godoc.
+- [ ] Move language specification things into SPEC.md, language documentation into docs/
 
 
 ## Language
@@ -24,6 +25,7 @@
 - [ ] Finish builtin functions in `runtime.go`.
 - [ ] Implement event loop as a default multitasking model.
 - [ ] JSON serde system
+- [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library
 
 
 ## Bugs
