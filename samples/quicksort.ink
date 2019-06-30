@@ -66,22 +66,6 @@ buildList := (length, opts) => (
     }
 )
 
-` tail recursive list -> string converter `
-stringList := list => '[' + stringListRec(list, 0, '') + ']'
-stringListRec := (list, start, acc) => (
-    start :: {
-        len(list) -> acc
-        _ -> stringListRec(
-            list
-            start + 1
-            (acc :: {
-                '' -> ''
-                _ -> acc + ', '
-            }) + string(list.(start))
-        )
-    }
-)
-
 `` main
 list := buildList(100, {})
 out('Quicksorting random list: ' + stringList(list) + '

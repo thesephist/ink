@@ -21,6 +21,24 @@ clone := comp => (
     ), {})
 )
 
+` tail recursive numeric list -> string converter `
+stringList := list => (
+    stringListRec := (l, start, acc) => (
+        start :: {
+            len(l) -> acc
+            _ -> stringListRec(
+                l
+                start + 1
+                (acc :: {
+                    '' -> ''
+                    _ -> acc + ', '
+                }) + string(l.(start))
+            )
+        }
+    )
+    '[' + stringListRec(list, 0, '') + ']'
+)
+
 ` tail recursive reversing a list `
 reverse := list => (
     state := [len(list) - 1]
