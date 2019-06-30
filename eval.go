@@ -28,9 +28,6 @@ func nToS(n float64) string {
 	}
 }
 
-// TODO: implement bytes literal and values, and make
-//	file read/write APIs on that, rather than text
-
 // TODO: implement exception handling / error values
 //	let's do L3-style Result types that are composite values
 //	with an error value returned with the return value.

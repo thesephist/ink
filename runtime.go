@@ -41,7 +41,6 @@ func (ctx *Context) LoadEnvironment() {
 
 	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
 	ctx.LoadFunc(NativeFunctionValue{"number", inkNumber})
-	ctx.LoadFunc(NativeFunctionValue{"bytes", inkBytes})
 	ctx.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
 
 	ctx.LoadFunc(NativeFunctionValue{"len", inkLen})
@@ -220,11 +219,6 @@ func inkString(in []Value) (Value, error) {
 }
 
 func inkNumber(in []Value) (Value, error) {
-	// TODO
-	return NullValue{}, nil
-}
-
-func inkBytes(in []Value) (Value, error) {
 	// TODO
 	return NullValue{}, nil
 }

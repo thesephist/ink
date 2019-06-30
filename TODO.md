@@ -30,6 +30,5 @@
 
 ## Bugs
 
-- [ ] Implement the bytes literal (or constructor?) and values
 - [ ] Add bitwise binary operators, `&`, `|`, `>>`, `<<`
 - [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
