@@ -50,12 +50,17 @@ swap := (list, i, j) => (
 sort := list => quicksort(list, 0, len(list) - 1)
 
 ` random list builder `
-buildList := length => (
+buildList := (length, opts) => (
+    max := (opts.max :: {
+        () -> 1000
+        _ -> opts.max
+    })
+
     length :: {
         0 -> {}
         _ -> (
-            smaller := buildList(length - 1)
-            smaller.(len(smaller)) := floor(rand() * 100) + 1
+            smaller := buildList(length - 1, {max: max})
+            smaller.(len(smaller)) := floor(rand() * max) + 1
             smaller
         )
     }
@@ -78,7 +83,7 @@ stringListRec := (list, start, acc) => (
 )
 
 `` main
-list := buildList(50)
+list := buildList(100, {})
 out('Quicksorting random list: ' + stringList(list) + '
 sorted -> ')
 sort(list)

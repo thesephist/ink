@@ -10,3 +10,6 @@ log('Filtered 1-10 list, evens
 
 log('Reduced 1-10 list, multiplication
 -> ' + string(reduce(list, (acc, n) => acc * n, 1)))
+
+log('Reversing 1-10 list
+-> ' + stringList(reverse(list)))

@@ -21,6 +21,16 @@ clone := comp => (
     ), {})
 )
 
+` tail recursive reversing a list `
+reverse := list => (
+    state := [len(list) - 1]
+    reduce(list, (acc, item) => (
+        acc.(state.0) := item
+        state.0 := state.0 - 1
+        acc
+    ), {})
+)
+
 ` tail recursive map `
 map := (list, f) => (
     reduce(list, (l, item) => (
