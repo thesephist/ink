@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strings"
 	"time"
 )
 
@@ -211,13 +210,7 @@ func inkString(in []Value) (Value, error) {
 	case NullValue:
 		return StringValue{"()"}, nil
 	case CompositeValue:
-		entries := make([]string, 0)
-		for key, val := range v.entries {
-			entries = append(entries, fmt.Sprintf("%s: %s", key, val.String()))
-		}
-		return StringValue{
-			"{" + strings.Join(entries, ", ") + "}",
-		}, nil
+		return StringValue{v.String()}, nil
 	default:
 		// TODO
 		return NullValue{}, nil

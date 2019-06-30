@@ -124,18 +124,11 @@ type CompositeValue struct {
 }
 
 func (v CompositeValue) String() string {
-	if len(v.entries) == 0 {
-		return "{}"
-	} else {
-		entries := make([]string, 0)
-		for key, ent := range v.entries {
-			entries = append(
-				entries,
-				fmt.Sprintf("%s: %s", key, ent.String()),
-			)
-		}
-		return fmt.Sprintf("{%s}", strings.Join(entries, ", "))
+	entries := make([]string, 0)
+	for key, val := range v.entries {
+		entries = append(entries, fmt.Sprintf("%s: %s", key, val.String()))
 	}
+	return "{" + strings.Join(entries, ", ") + "}"
 }
 
 func (v CompositeValue) Equals(other Value) bool {
