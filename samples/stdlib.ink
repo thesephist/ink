@@ -16,6 +16,12 @@ scan := () => (
         -> impl for lists `
 
 ` TODO: clone(composite) function`
+clone := comp => (
+    reduce(keys(comp), (acc, k) => (
+        acc.(k) := comp.(k)
+        acc
+    ), {})
+)
 
 ` tail recursive map `
 map := (list, f) => (

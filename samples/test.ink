@@ -145,3 +145,34 @@ log(string({
 log(string([_, [2, _], 6, _] = [10, [2, 7], 6]))
 log(string({6: 9} = {6: _, 7: _}))
 log('')
+
+` object keys / list ` section()
+log('expect: dict, then keys, then modified and clone')
+(
+    obj := {
+        first: 1
+        second: 2
+        third: 3
+    }
+    list := ['red', 'green', 'blue']
+    string(obj) = '{first: 1, second: 2, third: 3}' :: {
+        true -> log('string(CompositeValue) passed --')
+        false -> log('ERROR: string(CompositeValue) is incorrect!')
+    }
+    string(list) = '{0: \'red\', 1: \'green\', 2: \'blue\'}' :: {
+        true -> log('string(CompositeValue) (of list) passed --')
+        false -> log('ERROR: string(CompositeValue) (of list) is incorrect!')
+    }
+    log(string(obj))
+    log(string(list))
+
+    log('keys --')
+    log(string(keys(obj)))
+
+    cobj := clone(obj)
+    obj.fourth := 4
+    out('modified: ')
+    log(string(obj))
+    log(string(cobj))
+    log('')
+)

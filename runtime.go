@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -44,6 +45,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
 
 	ctx.LoadFunc(NativeFunctionValue{"len", inkLen})
+	ctx.LoadFunc(NativeFunctionValue{"keys", inkKeys})
 
 	// side effects
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -68,11 +70,7 @@ func evalInkFunction(fn Value, args ...Value) (Value, error) {
 			parent: fnt.parentFrame,
 			vt:     argValueTable,
 		}
-		rv, err := fnt.defNode.body.Eval(callFrame, false)
-		if err != nil {
-			return nil, err
-		}
-		return rv, nil
+		return fnt.defNode.body.Eval(callFrame, false)
 	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
 		return fnt.exec(args)
 	} else {
@@ -212,6 +210,14 @@ func inkString(in []Value) (Value, error) {
 		}
 	case NullValue:
 		return StringValue{"()"}, nil
+	case CompositeValue:
+		entries := make([]string, 0)
+		for key, val := range v.entries {
+			entries = append(entries, fmt.Sprintf("%s: %s", key, val.String()))
+		}
+		return StringValue{
+			"{" + strings.Join(entries, ", ") + "}",
+		}, nil
 	default:
 		// TODO
 		return NullValue{}, nil
@@ -253,4 +259,31 @@ func inkLen(in []Value) (Value, error) {
 			return NumberValue{idx}, nil
 		}
 	}
+}
+
+func inkKeys(in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"keys() takes exactly one argument",
+		}
+	}
+
+	obj, isObj := in[0].(CompositeValue)
+	if !isObj {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("keys() takes a composite value, but got %s",
+				in[0].String()),
+		}
+	}
+
+	vt := ValueTable{}
+
+	var i float64 = 0
+	for k, _ := range obj.entries {
+		vt[nToS(i)] = StringValue{k}
+		i++
+	}
+	return CompositeValue{vt}, nil
 }

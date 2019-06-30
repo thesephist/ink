@@ -28,10 +28,6 @@ func nToS(n float64) string {
 	}
 }
 
-// TODO: implement exception handling / error values
-//	let's do L3-style Result types that are composite values
-//	with an error value returned with the return value.
-
 // The EmptyValue is the value of the empty identifier.
 //	it is globally unique and matches everything in equality.
 type EmptyValue struct{}
