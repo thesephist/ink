@@ -2,6 +2,7 @@
 
 go run . -input samples/stdlib.ink \
     -input samples/fizzbuzz.ink \
+    -input samples/graph.ink \
     -input samples/basic.ink \
     -input samples/dict.ink \
     -input samples/kv.ink \
