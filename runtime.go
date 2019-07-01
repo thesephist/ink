@@ -31,6 +31,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc(NativeFunctionValue{"out", inkOut})
 	ctx.LoadFunc(NativeFunctionValue{"read", inkRead})
 	ctx.LoadFunc(NativeFunctionValue{"write", inkWrite})
+	ctx.LoadFunc(NativeFunctionValue{"listen", inkListen})
 	ctx.LoadFunc(NativeFunctionValue{"rand", inkRand})
 	ctx.LoadFunc(NativeFunctionValue{"time", inkTime})
 
@@ -118,6 +119,10 @@ func inkRead(in []Value) (Value, error) {
 }
 
 func inkWrite(in []Value) (Value, error) {
+	return NullValue{}, nil
+}
+
+func inkListen(in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 

@@ -141,10 +141,12 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### System interfaces
 
-- `in() => string`: Read from stdin or until ENTER key (might change later)
+- `in(callback<string>)`: Read from stdin or until ENTER key (might change later)
 - `out(string)`: Print to stdout
-- `read(string, number, number) => list<number>`: Read from given file descriptor from some offset for some bytes
-- `write(string, number, list<number>)`: Write to given file descriptor at some offset
+- `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes
+- `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset
+- `listen(string, callback<list<number>>)`: Bind to a local TCP or UDP port and start handling requests
+- `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
 - `time() => number`: number of seconds in floating point in UNIX epoch
 

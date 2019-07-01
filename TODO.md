@@ -37,7 +37,7 @@
 
 ## Standard library / utilities
 
-- [ ] Finish builtin functions in `runtime.go`.
+- [ ] Finish builtin functions: `in()`, `out()`, `read()`, `write()`, `listen()`, `wait()` left.
 - [ ] Implement concurrency in event loop and processes as described in the spec.
     - Consider exception handling works across the Ink/Golang boundary. e.g. if a callback errors, how do we get the error back?
     - Implement an event system behind Ink, such that as events occur the handlers are kept alive (native functions that are running aren't killed when `main.go` exits).
@@ -45,7 +45,6 @@
 - [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library
 - [ ] Write a markdown parser in ink. Or a reduced case one. Will be a cool demo and used for ink documentation. (The docs will be generated with ink programs.)
-- [ ] `wait(seconds)` primitive / builtin for Ink. Because Ink uses the event loop / closure model of concurrency, this should return immediately but take a callback.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
 
 
