@@ -143,8 +143,8 @@ These are the right primitives, but we can build much more sophisticated systems
 
 - `in() => string`: Read from stdin or until ENTER key (might change later)
 - `out(string)`: Print to stdout
-- `read(string, number, number) => list`: Read from given file descriptor from some offset for some bytes
-- `write(string, number, list)`: Write to given file descriptor at some offset
+- `read(string, number, number) => list<number>`: Read from given file descriptor from some offset for some bytes
+- `write(string, number, list<number>)`: Write to given file descriptor at some offset
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
 - `time() => number`: number of seconds in floating point in UNIX epoch
 
@@ -160,8 +160,8 @@ These are the right primitives, but we can build much more sophisticated systems
 
 - `string(any) => string`
 - `number(any) => number`
-- `boolean(any) => boolean`
 - `len(composite) => number`: length of a list or list-like composite value
+- `keys(composite) => list<string>`: list of keys of the given composite
 
 ## Standard library
 

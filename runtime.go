@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -41,7 +42,6 @@ func (ctx *Context) LoadEnvironment() {
 
 	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
 	ctx.LoadFunc(NativeFunctionValue{"number", inkNumber})
-	ctx.LoadFunc(NativeFunctionValue{"boolean", inkBoolean})
 
 	ctx.LoadFunc(NativeFunctionValue{"len", inkLen})
 	ctx.LoadFunc(NativeFunctionValue{"keys", inkKeys})
@@ -131,11 +131,39 @@ func inkTime(in []Value) (Value, error) {
 }
 
 func inkSin(in []Value) (Value, error) {
-	return NullValue{}, nil
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"sin() takes exactly one number argument",
+		}
+	}
+	inNum, isNum := in[0].(NumberValue)
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("sin() takes a number argument, got %s", in[0].String()),
+		}
+	}
+
+	return NumberValue{math.Sin(inNum.val)}, nil
 }
 
 func inkCos(in []Value) (Value, error) {
-	return NullValue{}, nil
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"cos() takes exactly one number argument",
+		}
+	}
+	inNum, isNum := in[0].(NumberValue)
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("cos() takes a number argument, got %s", in[0].String()),
+		}
+	}
+
+	return NumberValue{math.Cos(inNum.val)}, nil
 }
 
 func inkPow(in []Value) (Value, error) {
@@ -171,7 +199,31 @@ func inkPow(in []Value) (Value, error) {
 }
 
 func inkLn(in []Value) (Value, error) {
-	return NullValue{}, nil
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"ln() takes exactly one argument",
+		}
+	}
+
+	n, isNumber := in[0].(NumberValue)
+	if !isNumber {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("ln() takes exactly one number argument, but got %s",
+				in[0].String()),
+		}
+	}
+
+	if n.val <= 0 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("cannot take natural logarithm of non-positive number %s",
+				nToS(n.val)),
+		}
+	}
+
+	return NumberValue{math.Log(n.val)}, nil
 }
 
 func inkFloor(in []Value) (Value, error) {
@@ -218,16 +270,40 @@ func inkString(in []Value) (Value, error) {
 	case CompositeValue:
 		return StringValue{v.String()}, nil
 	default:
-		return NullValue{}, nil
+		return StringValue{""}, nil
 	}
 }
 
 func inkNumber(in []Value) (Value, error) {
-	return NullValue{}, nil
-}
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"number() takes exactly one argument",
+		}
+	}
 
-func inkBoolean(in []Value) (Value, error) {
-	return NullValue{}, nil
+	switch v := in[0].(type) {
+	case StringValue:
+		f, err := strconv.ParseFloat(v.val, 64)
+		if err != nil {
+			return nil, Err{
+				ErrRuntime,
+				fmt.Sprintf("cannot convert string %s into number: %s",
+					v.val, err.Error()),
+			}
+		}
+		return NumberValue{f}, nil
+	case NumberValue:
+		return v, nil
+	case BooleanValue:
+		if v.val {
+			return NumberValue{1.0}, nil
+		} else {
+			return NumberValue{0.0}, nil
+		}
+	default:
+		return NumberValue{0.0}, nil
+	}
 }
 
 func inkLen(in []Value) (Value, error) {

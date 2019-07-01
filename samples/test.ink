@@ -186,3 +186,35 @@ log('checking pass by reference / mutation:')
 	}
 	log('')
 )
+
+` number and string conversion tests ` section()
+log('checking number and string conversions')
+(
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+	test(string(3.14), '3.14000000')
+	test(string(42), '42')
+	test(string(true), 'true')
+	test(string(false), 'false')
+	test(string('hello'), 'hello')
+	test(string([0]), '{0: 0}')
+
+	test(number('3.14'), 3.14)
+	test(number('-42'), ~42)
+	test(number(true), 1)
+	test(number(false), 0)
+
+	test(stringList([5, 4, 3, 2, 1]), '[5, 4, 3, 2, 1]')
+	test(string({a: 3.14}), '{a: 3.14000000}')
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
