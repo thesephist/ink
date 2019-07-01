@@ -9,13 +9,13 @@ allpass := [true]
 log('Logical operator test failures:')
 
 test := (result, expected, msg) => (
-    result :: {
-        expected -> ()
-        _ -> (
-            log('ERROR: ' + msg)
-            allpass.0 := false
-        )
-    }
+	result :: {
+		expected -> ()
+		_ -> (
+			log('ERROR: ' + msg)
+			allpass.0 := false
+		)
+	}
 )
 
 ` and `

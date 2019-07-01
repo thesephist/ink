@@ -1,82 +1,82 @@
 ` the ink standard library `
 
 log := str => (
-    out(str + '
+	out(str + '
 ')
 )
 
 scan := () => (
-    in()
+	in()
 )
 
 ` TODO: slice(composite, start, end)
-        join(composite, composite) (append)
-        -> impl for lists `
+		join(composite, composite) (append)
+		-> impl for lists `
 
 ` TODO: clone(composite) function`
 clone := comp => (
-    reduce(keys(comp), (acc, k) => (
-        acc.(k) := comp.(k)
-        acc
-    ), {})
+	reduce(keys(comp), (acc, k) => (
+		acc.(k) := comp.(k)
+		acc
+	), {})
 )
 
 ` tail recursive numeric list -> string converter `
 stringList := list => (
-    stringListRec := (l, start, acc) => (
-        start :: {
-            len(l) -> acc
-            _ -> stringListRec(
-                l
-                start + 1
-                (acc :: {
-                    '' -> ''
-                    _ -> acc + ', '
-                }) + string(l.(start))
-            )
-        }
-    )
-    '[' + stringListRec(list, 0, '') + ']'
+	stringListRec := (l, start, acc) => (
+		start :: {
+			len(l) -> acc
+			_ -> stringListRec(
+				l
+				start + 1
+				(acc :: {
+					'' -> ''
+					_ -> acc + ', '
+				}) + string(l.(start))
+			)
+		}
+	)
+	'[' + stringListRec(list, 0, '') + ']'
 )
 
 ` tail recursive reversing a list `
 reverse := list => (
-    state := [len(list) - 1]
-    reduce(list, (acc, item) => (
-        acc.(state.0) := item
-        state.0 := state.0 - 1
-        acc
-    ), {})
+	state := [len(list) - 1]
+	reduce(list, (acc, item) => (
+		acc.(state.0) := item
+		state.0 := state.0 - 1
+		acc
+	), {})
 )
 
 ` tail recursive map `
 map := (list, f) => (
-    reduce(list, (l, item) => (
-        l.(len(l)) := f(item)
-        l
-    ), {})
+	reduce(list, (l, item) => (
+		l.(len(l)) := f(item)
+		l
+	), {})
 )
 
 ` tail recursive filter `
 filter := (list, f) => (
-    reduce(list, (l, item) => (
-        f(item) :: {
-            true -> l.(len(l)) := item
-        }
-        l
-    ), {})
+	reduce(list, (l, item) => (
+		f(item) :: {
+			true -> l.(len(l)) := item
+		}
+		l
+	), {})
 )
 
 ` tail recursive reduce `
 reduce := (list, f, acc) => (
-    (reducesub := (idx, acc) => (
-        idx :: {
-            len(list) -> acc
-            _ -> reducesub(
-                idx + 1
-                f(acc, list.(idx))
-            )
-        }
-    )
-    )(0, acc)
+	(reducesub := (idx, acc) => (
+		idx :: {
+			len(list) -> acc
+			_ -> reducesub(
+				idx + 1
+				f(acc, list.(idx))
+			)
+		}
+	)
+	)(0, acc)
 )

@@ -1,10 +1,10 @@
 ` composite (dict) `
 
 obj := {
-    5: 'fifth item',
-    hi: 'hi text',
-    hello: 'hello text',
-    what3: 3.14,
+	5: 'fifth item',
+	hi: 'hi text',
+	hello: 'hello text',
+	what3: 3.14,
 }
 
 log(obj.hi)
@@ -23,8 +23,8 @@ log(arr.3)
 ` property access and assignment `
 
 main := () => (
-    obj.hi := 8
-    out('should be 8: ')
-    log(string(obj.hi))
+	obj.hi := 8
+	out('should be 8: ')
+	log(string(obj.hi))
 )
 main()

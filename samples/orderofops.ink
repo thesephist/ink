@@ -8,13 +8,13 @@ allpass := [true]
 log('Order of operations tests:')
 
 compare := (num, exp) => (
-    num :: {
-        exp -> (string(log(exp)))
-        _ -> (
-            log('ERROR: ' + string(num) + ' should be ' + string(exp))
-            allpass.0 := false
-        )
-    }
+	num :: {
+		exp -> (string(log(exp)))
+		_ -> (
+			log('ERROR: ' + string(num) + ' should be ' + string(exp))
+			allpass.0 := false
+		)
+	}
 )
 
 compare(1 + 2 - 3 + 5 - 3, 2)
