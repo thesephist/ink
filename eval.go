@@ -1042,11 +1042,6 @@ func combine(cs ...<-chan Err) <-chan Err {
 func (ctx *Context) ExecStream(
 	debugLex, debugParse, dump bool,
 ) (chan<- rune, <-chan Err) {
-	// updating channel values in ctx might be
-	//	risky without mutex
-	ctx.lock.Lock()
-	defer ctx.lock.Unlock()
-
 	input := make(chan rune)
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
