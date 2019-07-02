@@ -1042,19 +1042,19 @@ func combine(cs ...<-chan Err) <-chan Err {
 func (ctx *Context) ExecStream(
 	debugLex, debugParse, dump bool,
 ) (chan<- rune, <-chan Err) {
-	input := make(chan rune)
-	tokens := make(chan Tok)
-	nodes := make(chan Node)
-
 	// updating channel values in ctx might be
 	//	risky without mutex
 	ctx.lock.Lock()
 	defer ctx.lock.Unlock()
 
-	ctx.ValueStream = make(chan Value)
+	input := make(chan rune)
+	tokens := make(chan Tok)
+	nodes := make(chan Node)
 
 	e1 := make(chan Err)
 	e2 := make(chan Err)
+
+	ctx.ValueStream = make(chan Value)
 	ctx.ErrorStream = make(chan Err)
 
 	go Tokenize(input, tokens, e1, debugLex)
