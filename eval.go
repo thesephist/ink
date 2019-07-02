@@ -955,7 +955,7 @@ func (sh *StackFrame) String() string {
 
 type Context struct {
 	Frame     *StackFrame
-	Listeners int
+	Listeners sync.WaitGroup
 	// only a single function may write to the stack frames
 	//	at any moment.
 	lock        sync.Mutex
@@ -980,7 +980,12 @@ func (ctx *Context) Eval(
 	dumpFrame bool,
 ) {
 	ctx.lock.Lock()
-	defer ctx.lock.Unlock()
+	defer func() {
+		ctx.lock.Unlock()
+		ctx.Listeners.Wait()
+		close(ctx.ValueStream)
+		close(ctx.ErrorStream)
+	}()
 
 	for node := range nodes {
 		val, err := node.Eval(ctx.Frame, false)
@@ -992,13 +997,10 @@ func (ctx *Context) Eval(
 				logErrf(ErrAssert, "error raised that was not of type Err -> %s",
 					err.Error())
 			}
-			ctx.MaybeClose()
 			return
 		}
 		ctx.ValueStream <- val
 	}
-
-	ctx.MaybeClose()
 
 	if dumpFrame {
 		ctx.Dump()
@@ -1006,27 +1008,14 @@ func (ctx *Context) Eval(
 }
 
 func (ctx *Context) ExecListener(listener func()) {
-	ctx.Listeners++
+	ctx.Listeners.Add(1)
 	go func() {
 		ctx.lock.Lock()
-		defer ctx.lock.Unlock()
-
 		listener()
+		ctx.lock.Unlock()
 
-		ctx.Listeners--
-		ctx.MaybeClose()
+		ctx.Listeners.Done()
 	}()
-}
-
-func (ctx *Context) Finished() bool {
-	return ctx.Listeners == 0
-}
-
-func (ctx *Context) MaybeClose() {
-	if ctx.Finished() {
-		close(ctx.ValueStream)
-		close(ctx.ErrorStream)
-	}
 }
 
 func combine(cs ...<-chan Err) <-chan Err {
