@@ -181,7 +181,7 @@ log('checking pass by reference / mutation:')
 	obj.len(obj) := 6
 
 	[len(obj), len(twin), len(clone)] :: {
-		[6, 6, 3] -> log('passed!')
+		[6, 6, 3] -> log('all passed!')
 		_ -> log('ERROR: there is a problem with copying references to objects later modified')
 	}
 	log('')
@@ -306,6 +306,35 @@ log('stdlib slice/join functions and stringList')
 	test(slice(str, ~5, 2), 'ab')
 	test(slice(str, 7, 20), 'abra')
 	test(slice(str, 20, 1), '')
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
+
+section()
+log('ascii <> char point conversions and string encode/decode')
+(
+	` at this point, we only care about ascii, not full Unicode `
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+	test(point('a'), 97)
+	test(char(65), 'A')
+
+	s1 := 'this is a long piece of string
+	with weird line breaks'
+	s2 := ''
+	s3 := 'AaBbCcDdZzYyXx123456789!@#$%^&*()_+-='
+	test(decode(encode(decode(encode(s1)))), s1)
+	test(decode(encode(decode(encode(s2)))), s2)
+	test(decode(encode(decode(encode(s3)))), s3)
 
 	allpassed.0 :: {true -> (
 		log('all passed!')

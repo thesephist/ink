@@ -46,6 +46,8 @@ func (ctx *Context) LoadEnvironment() {
 
 	ctx.LoadFunc("string", inkString)
 	ctx.LoadFunc("number", inkNumber)
+	ctx.LoadFunc("point", inkPoint)
+	ctx.LoadFunc("char", inkChar)
 
 	ctx.LoadFunc("type", inkType)
 	ctx.LoadFunc("len", inkLen)
@@ -375,6 +377,45 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	default:
 		return NumberValue{0.0}, nil
 	}
+}
+
+func inkPoint(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"point() takes exactly one argument",
+		}
+	}
+	str, isString := in[0].(StringValue)
+	if !isString {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("point() takes a string argument, got %s", in[0].String()),
+		}
+	}
+
+	// Ink treats all characters as ASCII byte chars, and
+	// 	transparently ignores unicode and surrogate pairs.
+	return NumberValue{float64(str.val[0])}, nil
+}
+
+func inkChar(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"char() takes exactly one argument",
+		}
+	}
+	cp, isNumber := in[0].(NumberValue)
+	if !isNumber {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("char() takes a number argument, got %s", in[0].String()),
+		}
+	}
+
+	// lol this type conversion disaster
+	return StringValue{string(rune(int64(cp.val)))}, nil
 }
 
 func inkType(ctx *Context, in []Value) (Value, error) {

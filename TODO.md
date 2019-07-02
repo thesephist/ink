@@ -24,7 +24,7 @@
 - [ ] `func (n Node) prettyString() string` to pretty-print AST
     - Use this to implement `ink -fmt <file>.ink`
 - [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
-    - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript? The expensive part of that actually seems to be the `stringList()` operation, which may be mostly memory bound or something weird is going on -- we should fix it.
+    - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
     - `prime.ink` is also a good candidate.
 - [ ] `--no-net`, `--no-read`, `--no-write` flags in the CLI to restrict those runtime functions to error (net should block any network restrictions). `--isolate` should turn all three of these on. Pass those flags to load Environment as a `EnvPermissions` struct.
     - Make a note of this isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
@@ -42,7 +42,6 @@
 ## Standard library / utilities
 
 - [ ] Finish builtin functions: `read()`, `write()`, `listen()` left.
-- [ ] Standard library (not builtin) functions `encode(string) => list<number>` and `decode(list<number>) => string`. If it becomes a bottleneck, we'll move them into the runtime, but for now I feel like iterating in the userspace / standard library is fine.
 - [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
@@ -52,6 +51,7 @@
 ## Bugs
 
 - [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
+- [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
 
 
 ## Potential exampels / projects

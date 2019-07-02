@@ -78,19 +78,21 @@ sliceList := (list, start, end) => (
 	})(start)
 )
 
-` join one list to the end of another, return the third list `
-join := (base, child) => (
-	result := clone(base)
+` join one list to the end of another, return the original first list `
+append := (base, child) => (
 	baseLength := len(base)
 	childLength := len(child)
 	(append := idx => idx :: {
-		childLength -> result
+		childLength -> base
 		_ -> (
-			result.(baseLength + idx) := child.(idx)
+			base.(baseLength + idx) := child.(idx)
 			append(idx + 1)
 		)
 	})(0)
 )
+
+` join one list to the end of another, return the third list `
+join := (base, child) => append(clone(base), child)
 
 ` clone a composite value `
 clone := comp => (
@@ -157,4 +159,21 @@ reduce := (list, f, acc) => (
 		}
 	)
 	)(0, acc)
+)
+
+` encode ascii string into a number list `
+encode := str => reduce(
+	str
+	(acc, char) => (
+		acc.(len(acc)) := point(char)
+		acc
+	)
+	{}
+)
+
+` decode number list into an ascii string `
+decode := data => reduce(
+	data
+	(acc, cp) => acc + char(cp)
+	''
 )
