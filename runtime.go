@@ -76,10 +76,13 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 	ctx.ExecListener(func() {
 		reader := bufio.NewReader(os.Stdin)
 		for {
+			// XXX: currently reads after every newline / return
+			//	but should ideally read every character input / keystroke
 			char, _, err := reader.ReadRune()
 			if err != nil {
 				break
 			}
+
 			rv, err := evalInkFunction(in[0], false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"data"},
@@ -94,6 +97,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 				}
 				return
 			}
+
 			if boolValue, isBool := rv.(BooleanValue); isBool {
 				if !boolValue.val {
 					break
