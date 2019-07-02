@@ -158,7 +158,7 @@ func (v CompositeValue) Equals(other Value) bool {
 //	main context's frame, and keep all other frames, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
-	defNode     FunctionLiteralNode
+	defNode     *FunctionLiteralNode
 	parentFrame *StackFrame
 }
 
@@ -174,7 +174,7 @@ func (v FunctionValue) Equals(other Value) bool {
 	if ov, ok := other.(FunctionValue); ok {
 		// to compare structs containing slices, we really want
 		//	a pointer comparison, not a value comparison
-		return &v.defNode == &ov.defNode
+		return v.defNode == ov.defNode
 	} else {
 		return false
 	}
@@ -915,7 +915,7 @@ func (n FunctionLiteralNode) String() string {
 
 func (n FunctionLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return FunctionValue{
-		defNode:     n,
+		defNode:     &n,
 		parentFrame: frame,
 	}, nil
 }

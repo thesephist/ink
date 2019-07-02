@@ -218,3 +218,35 @@ log('checking number and string conversions')
 	)}
 	log('')
 )
+
+section()
+log('checking function / composite equality checks correctness')
+(
+    fn1 := () => (3 + 4, 'hello')
+    fn2 := () => (3 + 4, 'hello')
+
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+    test(fn1 = fn2, false)
+    test(fn1 = fn1, true)
+
+    comp1 := {1: 2, hi: '4'}
+    comp2 := {1: 2, hi: '4'}
+
+    list1 := [1, 2, 3, 4, 5]
+    list2 := [1, 2, 3, 4, 5]
+
+    test(comp1 = comp2, true)
+    test(list1 = list2, true)
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
