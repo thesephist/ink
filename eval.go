@@ -158,12 +158,12 @@ func (v CompositeValue) Equals(other Value) bool {
 //	main context's frame, and keep all other frames, recursively descending.
 // This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
-	defNode     *FunctionLiteralNode
+	defn        *FunctionLiteralNode
 	parentFrame *StackFrame
 }
 
 func (v FunctionValue) String() string {
-	return v.defNode.String()
+	return v.defn.String()
 }
 
 func (v FunctionValue) Equals(other Value) bool {
@@ -174,7 +174,7 @@ func (v FunctionValue) Equals(other Value) bool {
 	if ov, ok := other.(FunctionValue); ok {
 		// to compare structs containing slices, we really want
 		//	a pointer comparison, not a value comparison
-		return v.defNode == ov.defNode
+		return v.defn == ov.defn
 	} else {
 		return false
 	}
@@ -214,7 +214,7 @@ func unwrapThunk(v Value) (Value, error) {
 			vt:     thunk.vt,
 		}
 		var err error
-		v, err = thunk.function.defNode.body.Eval(frame, true)
+		v, err = thunk.function.defn.body.Eval(frame, true)
 		if err != nil {
 			return nil, err
 		}
@@ -662,7 +662,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 		}
 
 		argValueTable := ValueTable{}
-		for i, argNode := range fnt.defNode.arguments {
+		for i, argNode := range fnt.defn.arguments {
 			if i < len(argResults) {
 				if identNode, isIdent := argNode.(IdentifierNode); isIdent {
 					argValueTable[identNode.val] = argResults[i]
@@ -915,7 +915,7 @@ func (n FunctionLiteralNode) String() string {
 
 func (n FunctionLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return FunctionValue{
-		defNode:     &n,
+		defn:        &n,
 		parentFrame: frame,
 	}, nil
 }
