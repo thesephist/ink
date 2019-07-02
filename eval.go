@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -394,10 +395,20 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			} else {
 				return NullValue{}, nil
 			}
+		} else if leftString, isString := leftValue.(StringValue); isString {
+			rightNum, err := strconv.ParseInt(rightValueStr, 10, 64)
+			if err != nil {
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("while accessing string %s at an index, found non-integer index %s",
+						leftString.val, rightValueStr),
+				}
+			}
+			return StringValue{string(leftString.val[rightNum])}, nil
 		} else {
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access property of a non-composite value%s",
+				fmt.Sprintf("cannot access property of a non-composite value %s",
 					leftValue),
 			}
 		}
@@ -652,20 +663,23 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 		}
 	}
 
-	if fnt, isFunc := fn.(FunctionValue); isFunc {
-		argResults := make([]Value, len(n.arguments))
-		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(frame, false)
-			if err != nil {
-				return nil, err
-			}
+	argResults := make([]Value, len(n.arguments))
+	for i, arg := range n.arguments {
+		argResults[i], err = arg.Eval(frame, false)
+		if err != nil {
+			return nil, err
 		}
+	}
+	return evalInkFunction(fn, allowThunk, argResults...)
+}
 
+func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
+	if fnt, isFunc := fn.(FunctionValue); isFunc {
 		argValueTable := ValueTable{}
 		for i, argNode := range fnt.defn.arguments {
-			if i < len(argResults) {
+			if i < len(args) {
 				if identNode, isIdent := argNode.(IdentifierNode); isIdent {
-					argValueTable[identNode.val] = argResults[i]
+					argValueTable[identNode.val] = args[i]
 				}
 			}
 		}
@@ -683,15 +697,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 			return unwrapThunk(returnThunk)
 		}
 	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
-		// cannot optimize native function calls
-		argResults := make([]Value, len(n.arguments))
-		for i, arg := range n.arguments {
-			argResults[i], err = arg.Eval(frame, allowThunk)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return fnt.exec(fnt.ctx, argResults)
+		return fnt.exec(fnt.ctx, args)
 	} else {
 		return nil, Err{
 			ErrRuntime,

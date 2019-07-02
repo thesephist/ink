@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 )
@@ -63,32 +65,6 @@ func (ctx *Context) LoadFunc(
 	})
 }
 
-func evalInkFunction(ctx *Context, fn Value, args ...Value) (Value, error) {
-	if fnt, isFunc := fn.(FunctionValue); isFunc {
-		argValueTable := ValueTable{}
-		for i, argNode := range fnt.defn.arguments {
-			if i < len(args) {
-				if identNode, isIdent := argNode.(IdentifierNode); isIdent {
-					argValueTable[identNode.val] = args[i]
-				}
-			}
-		}
-
-		callFrame := &StackFrame{
-			parent: fnt.parentFrame,
-			vt:     argValueTable,
-		}
-		return fnt.defn.body.Eval(callFrame, false)
-	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
-		return fnt.exec(ctx, args)
-	} else {
-		return nil, Err{
-			ErrRuntime,
-			fmt.Sprintf("attempted to call a non-function value %s", fn.String()),
-		}
-	}
-}
-
 func inkIn(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
@@ -97,12 +73,55 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	// XXX: Implement as a character-by-character
-	//	getter, since scan() in stdlib gets by line.
-	_, err := evalInkFunction(ctx, in[0])
-	if err != nil {
-		return nil, err
-	}
+	ctx.ExecListener(func() {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			char, _, err := reader.ReadRune()
+			if err != nil {
+				break
+			}
+			rv, err := evalInkFunction(in[0], false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"data"},
+					"data": StringValue{string(char)},
+				},
+			})
+			if err != nil {
+				ctx.ErrorStream <- Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to in()\n\t-> %s",
+						err.Error()),
+				}
+				return
+			}
+			if boolValue, isBool := rv.(BooleanValue); isBool {
+				if !boolValue.val {
+					break
+				}
+			} else {
+				ctx.ErrorStream <- Err{
+					ErrRuntime,
+					fmt.Sprintf("callback to in() should return a boolean, but got %s",
+						rv.String()),
+				}
+				return
+			}
+		}
+
+		_, err := evalInkFunction(in[0], false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"end"},
+			},
+		})
+		if err != nil {
+			ctx.ErrorStream <- Err{
+				ErrRuntime,
+				fmt.Sprintf("error in callback to in()\n\t-> %s",
+					err.Error()),
+			}
+			return
+		}
+	})
 
 	return NullValue{}, nil
 }
@@ -165,7 +184,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 			int64(secs.val * float64(time.Second)),
 		))
 
-		_, err := evalInkFunction(ctx, in[1])
+		_, err := evalInkFunction(in[1], false)
 		if err != nil {
 			if e, isErr := err.(Err); isErr {
 				ctx.ErrorStream <- e
@@ -360,22 +379,23 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	list, isComposite := in[0].(CompositeValue)
-	if !isComposite {
-		return nil, Err{
-			ErrRuntime,
-			fmt.Sprintf("len() takes a composite value, but got %s",
-				in[0].String()),
+	if list, isComposite := in[0].(CompositeValue); isComposite {
+		// count up from 0 index until we find an index that doesn't
+		//	contain a value.
+		for idx := 0.0; ; idx++ {
+			_, prs := list.entries[nToS(idx)]
+			if !prs {
+				return NumberValue{idx}, nil
+			}
 		}
+	} else if str, isString := in[0].(StringValue); isString {
+		return NumberValue{float64(len(str.val))}, nil
 	}
 
-	// count up from 0 index until we find an index that doesn't
-	//	contain a value.
-	for idx := 0.0; ; idx++ {
-		_, prs := list.entries[nToS(idx)]
-		if !prs {
-			return NumberValue{idx}, nil
-		}
+	return nil, Err{
+		ErrRuntime,
+		fmt.Sprintf("len() takes a string or composite value, but got %s",
+			in[0].String()),
 	}
 }
 
