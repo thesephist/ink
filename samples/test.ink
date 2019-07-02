@@ -222,8 +222,8 @@ log('checking number and string conversions')
 section()
 log('checking function / composite equality checks correctness')
 (
-    fn1 := () => (3 + 4, 'hello')
-    fn2 := () => (3 + 4, 'hello')
+	fn1 := () => (3 + 4, 'hello')
+	fn2 := () => (3 + 4, 'hello')
 
 	allpassed := [true]
 	test := (result, expect) => result = expect :: {
@@ -233,17 +233,72 @@ log('checking function / composite equality checks correctness')
 		)
 	}
 
-    test(fn1 = fn2, false)
-    test(fn1 = fn1, true)
+	test(fn1 = fn2, false)
+	test(fn1 = fn1, true)
 
-    comp1 := {1: 2, hi: '4'}
-    comp2 := {1: 2, hi: '4'}
+	comp1 := {1: 2, hi: '4'}
+	comp2 := {1: 2, hi: '4'}
 
-    list1 := [1, 2, 3, 4, 5]
-    list2 := [1, 2, 3, 4, 5]
+	list1 := [1, 2, 3, 4, 5]
+	list2 := [1, 2, 3, 4, 5]
 
-    test(comp1 = comp2, true)
-    test(list1 = list2, true)
+	test(comp1 = comp2, true)
+	test(list1 = list2, true)
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
+
+section()
+log('type() builtin')
+(
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+	test(type('hi'), 'string')
+	test(type(3.14), 'number')
+	test(type([0, 1, 2]), 'composite')
+	test(type({hi: 'what'}), 'composite')
+	test(type(() => 'hi'), 'function')
+	test(type(()), '()')
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
+
+section()
+log('stdlib slice functions and stringList')
+(
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+	sl := (l, s, e) => stringList(sliceList(l, s, e))
+	list := [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+	str := 'abracadabra'
+
+	test(sl(list, 0, 5), '[10, 9, 8, 7, 6]')
+	test(sl(list, ~5, 2), '[10, 9]')
+	test(sl(list, 7, 20), '[3, 2, 1, 0]')
+	test(sl(list, 20, 1), '[]')
+
+	test(slice(str, 0, 5), 'abrac')
+	test(slice(str, ~5, 2), 'ab')
+	test(slice(str, 7, 20), 'abra')
+	test(slice(str, 20, 1), '')
 
 	allpassed.0 :: {true -> (
 		log('all passed!')

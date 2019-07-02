@@ -79,7 +79,8 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 		for {
 			// XXX: currently reads after every newline / return
 			//	but should ideally read every character input / keystroke
-			char, _, err := reader.ReadRune()
+			//	that would also require stdlib/scan() to change.
+			str, err := reader.ReadString('\n')
 			if err != nil {
 				break
 			}
@@ -87,7 +88,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			rv, err := evalInkFunction(in[0], false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"data"},
-					"data": StringValue{string(char)},
+					"data": StringValue{str},
 				},
 			})
 			if err != nil {

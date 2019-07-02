@@ -5,8 +5,79 @@ log := str => (
 ')
 )
 
-scan := () => (
-	in()
+scan := callback => (
+	acc := ['']
+	cb := evt => evt.type :: {
+		'end' -> callback(acc.0)
+		'data' -> (
+			acc.0 :=
+				acc.0 + slice(evt.data, 0, len(evt.data) - 1)
+			false
+		)
+	}
+	in(cb)
+)
+
+` clamp start and end numbers to ranges, such that
+	start < end. Utility used in slice/sliceList`
+clamp := (start, end, min, max) => (
+	start := (start < min :: {
+		true -> min
+		false -> start
+	})
+	end := (end < min :: {
+		true -> min
+		false -> end
+	})
+	end := (end > max :: {
+		true -> max
+		false -> end
+	})
+	start := (start > end :: {
+		true -> end
+		false -> start
+	})
+
+	{
+		start: start,
+		end: end,
+	}
+)
+
+` get a substring of a given string `
+slice := (str, start, end) => (
+	result := ['']
+
+	` bounds checks `
+	x := clamp(start, end, 0, len(str))
+	start := x.start
+	end := x.end
+
+	(sl := idx => idx :: {
+		end -> result.0
+		_ -> (
+			result.0 := result.0 + str.(idx)
+			sl(idx + 1)
+		)
+	})(start)
+)
+
+` get a sub-list of a given list `
+sliceList := (list, start, end) => (
+	result := []
+
+	` bounds checks `
+	x := clamp(start, end, 0, len(list))
+	start := x.start
+	end := x.end
+
+	(sl := idx => idx :: {
+		end -> result
+		_ -> (
+			result.(len(result)) := list.(idx)
+			sl(idx + 1)
+		)
+	})(start)
 )
 
 ` TODO: slice(composite, start, end)

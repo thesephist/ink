@@ -13,3 +13,4 @@ go run . -input samples/stdlib.ink \
     -input samples/prime.ink \
     -input samples/quicksort.ink \
     -input samples/mapfilterreduce.ink \
+    -input samples/prompt.ink \
