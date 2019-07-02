@@ -4,60 +4,9 @@ import (
 	"fmt"
 )
 
-func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
-	if idx >= len(tokens) {
-		if len(tokens) > 0 {
-			return Err{
-				ErrSyntax,
-				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1].String()),
-			}
-		} else {
-			return Err{
-				ErrSyntax,
-				fmt.Sprintf("unexpected end of input"),
-			}
-		}
-	}
-
-	return nil
-}
-
-func Parse(
-	tokenStream <-chan Tok,
-	nodes chan<- Node,
-	errors chan<- Err,
-	debugParser bool,
-) {
-	tokens := make([]Tok, 0)
-	for tok := range tokenStream {
-		tokens = append(tokens, tok)
-	}
-
-	idx, length := 0, len(tokens)
-	for idx < length {
-		expr, incr, err := parseExpression(tokens[idx:])
-		idx += incr
-
-		if err != nil {
-			e, isErr := err.(Err)
-			if isErr {
-				errors <- e
-			} else {
-				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
-					err.Error())
-			}
-			close(nodes)
-			close(errors)
-			return
-		}
-
-		if debugParser {
-			logDebug("parse ->", expr.String())
-		}
-		nodes <- expr
-	}
-	close(nodes)
-	close(errors)
+type Node interface {
+	String() string
+	Eval(*StackFrame, bool) (Value, error)
 }
 
 type UnaryExprNode struct {
@@ -124,6 +73,62 @@ type ListLiteralNode struct {
 type FunctionLiteralNode struct {
 	arguments []Node
 	body      Node
+}
+
+func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
+	if idx >= len(tokens) {
+		if len(tokens) > 0 {
+			return Err{
+				ErrSyntax,
+				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1].String()),
+			}
+		} else {
+			return Err{
+				ErrSyntax,
+				fmt.Sprintf("unexpected end of input"),
+			}
+		}
+	}
+
+	return nil
+}
+
+func Parse(
+	tokenStream <-chan Tok,
+	nodes chan<- Node,
+	errors chan<- Err,
+	debugParser bool,
+) {
+	tokens := make([]Tok, 0)
+	for tok := range tokenStream {
+		tokens = append(tokens, tok)
+	}
+
+	idx, length := 0, len(tokens)
+	for idx < length {
+		expr, incr, err := parseExpression(tokens[idx:])
+		idx += incr
+
+		if err != nil {
+			e, isErr := err.(Err)
+			if isErr {
+				errors <- e
+			} else {
+				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
+					err.Error())
+			}
+			close(nodes)
+			close(errors)
+			return
+		}
+
+		if debugParser {
+			logDebug("parse ->", expr.String())
+		}
+		nodes <- expr
+	}
+	close(nodes)
+	close(errors)
 }
 
 func getOpPriority(t Tok) int {

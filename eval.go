@@ -224,11 +224,6 @@ func unwrapThunk(v Value) (Value, error) {
 	return v, nil
 }
 
-type Node interface {
-	String() string
-	Eval(*StackFrame, bool) (Value, error)
-}
-
 func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
