@@ -94,7 +94,7 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 - Composite (including both Objects (dictionaries) and Lists, like Lua tables)
 - Function
 
-Composite and Function types are reference-typed, which means assigning a composite to a variable just assigns a reference to the same composite or function value. All other types are value-typed, which means assigning these values to variables will create new copies of those values. i.e.
+Composite and Function types are reference-typed, which means assigning a composite to a variable just assigns a reference to the same composite or function value. All other types are value-typed, which means assigning these values to variables or calling a function with these values as arguments will create new copies of those values. i.e.
 
 ```
 ` for simple values `

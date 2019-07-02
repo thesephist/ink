@@ -13,3 +13,6 @@ log('Reduced 1-10 list, multiplication
 
 log('Reversing 1-10 list
 -> ' + stringList(reverse(list)))
+
+log('Adding the list to itself
+-> ' + stringList(join(list, list)))

@@ -276,7 +276,7 @@ log('type() builtin')
 )
 
 section()
-log('stdlib slice functions and stringList')
+log('stdlib slice/join functions and stringList')
 (
 	allpassed := [true]
 	test := (result, expect) => result = expect :: {
@@ -294,6 +294,13 @@ log('stdlib slice functions and stringList')
 	test(sl(list, ~5, 2), '[10, 9]')
 	test(sl(list, 7, 20), '[3, 2, 1, 0]')
 	test(sl(list, 20, 1), '[]')
+	test(stringList(join(
+		sliceList(list, 0, 5), sliceList(list, 5, 200)
+	)), '[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]')
+	test(stringList(join(
+		[1, 2, 3]
+		join([4, 5, 6], ['a', 'b', 'c'])
+	)), '[1, 2, 3, 4, 5, 6, a, b, c]')
 
 	test(slice(str, 0, 5), 'abrac')
 	test(slice(str, ~5, 2), 'ab')

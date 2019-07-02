@@ -1,9 +1,7 @@
 ` the ink standard library `
 
-log := str => (
-	out(str + '
+log := str => out(str + '
 ')
-)
 
 scan := callback => (
 	acc := ['']
@@ -80,11 +78,21 @@ sliceList := (list, start, end) => (
 	})(start)
 )
 
-` TODO: slice(composite, start, end)
-		join(composite, composite) (append)
-		-> impl for lists `
+` join one list to the end of another, return the third list `
+join := (base, child) => (
+	result := clone(base)
+	baseLength := len(base)
+	childLength := len(child)
+	(append := idx => idx :: {
+		childLength -> result
+		_ -> (
+			result.(baseLength + idx) := child.(idx)
+			append(idx + 1)
+		)
+	})(0)
+)
 
-` TODO: clone(composite) function`
+` clone a composite value `
 clone := comp => (
 	reduce(keys(comp), (acc, k) => (
 		acc.(k) := comp.(k)
@@ -94,20 +102,18 @@ clone := comp => (
 
 ` tail recursive numeric list -> string converter `
 stringList := list => (
-	stringListRec := (l, start, acc) => (
-		start :: {
-			len(l) -> acc
-			_ -> stringListRec(
-				l
-				start + 1
-				(acc :: {
-					'' -> ''
-					_ -> acc + ', '
-				}) + string(l.(start))
-			)
-		}
-	)
-	'[' + stringListRec(list, 0, '') + ']'
+	length := len(list)
+	stringListRec := (start, acc) => start :: {
+		length -> acc
+		_ -> stringListRec(
+			start + 1
+			(acc :: {
+				'' -> ''
+				_ -> acc + ', '
+			}) + string(list.(start))
+		)
+	}
+	'[' + stringListRec(0, '') + ']'
 )
 
 ` tail recursive reversing a list `
