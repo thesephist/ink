@@ -9,7 +9,7 @@ log('Order of operations tests:')
 
 compare := (num, exp) => (
 	num :: {
-        exp -> ()
+		exp -> ()
 		_ -> (
 			log('ERROR: ' + string(num) + ' should be ' + string(exp))
 			allpass.0 := false

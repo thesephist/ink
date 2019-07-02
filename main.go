@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
 
 const VERSION = "0.1.0"
@@ -100,23 +101,24 @@ func main() {
 		}
 		close(input)
 
-	loop:
-		for {
-			select {
-			case e, ok := <-errors:
-				if ok {
-					logSafeErr(e.reason,
-						fmt.Sprintf("in %s\n\t-> ", path)+e.message)
-				} else {
-					if ctx.Finished() {
-						break loop
-					}
-				}
-			case <-ctx.ValueStream:
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			for range ctx.ValueStream {
 				// continue
 			}
-		}
+			wg.Done()
+		}()
+		go func() {
+			for e := range errors {
+				logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", path)+e.message)
+				wg.Done()
+				return
+			}
+			wg.Done()
+		}()
 
+		wg.Wait()
 		return nil
 	}
 
@@ -162,23 +164,24 @@ func main() {
 				}
 				close(input)
 
-			replLoop:
-				for {
-					select {
-					case e, ok := <-errors:
-						if ok {
-							logSafeErr(e.reason, e.message)
-						} else {
-							if ctx.Finished() {
-								break replLoop
-							}
-						}
-					case v, ok := <-ctx.ValueStream:
-						if ok {
-							logInteractive(v.String())
-						}
+				wg := sync.WaitGroup{}
+				wg.Add(2)
+				go func() {
+					for v := range ctx.ValueStream {
+						logInteractive(v.String())
 					}
-				}
+					wg.Done()
+				}()
+				go func() {
+					for e := range errors {
+						logSafeErr(e.reason, e.message)
+						wg.Done()
+						return
+					}
+					wg.Done()
+				}()
+
+				wg.Wait()
 			}
 		}
 
@@ -195,21 +198,24 @@ func main() {
 		}
 		close(input)
 
-	evalLoop:
-		for {
-			select {
-			case e, ok := <-errors:
-				if ok {
-					logErr(e.reason, e.message)
-				} else {
-					if ctx.Finished() {
-						break evalLoop
-					}
-				}
-			case <-ctx.ValueStream:
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			for range ctx.ValueStream {
 				// continue
 			}
-		}
+			wg.Done()
+		}()
+		go func() {
+			for e := range errors {
+				logErr(e.reason, e.message)
+				wg.Done()
+				return
+			}
+			wg.Done()
+		}()
+
+		wg.Wait()
 	} else if len(files) > 0 {
 		// read from file
 		for _, path := range files {
@@ -233,20 +239,23 @@ func main() {
 		}
 		close(input)
 
-	stdinLoop:
-		for {
-			select {
-			case e, ok := <-errors:
-				if ok {
-					logErr(e.reason, e.message)
-				} else {
-					if ctx.Finished() {
-						break stdinLoop
-					}
-				}
-			case <-ctx.ValueStream:
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			for range ctx.ValueStream {
 				// continue
 			}
-		}
+			wg.Done()
+		}()
+		go func() {
+			for e := range errors {
+				logErr(e.reason, e.message)
+				wg.Done()
+				return
+			}
+			wg.Done()
+		}()
+
+		wg.Wait()
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Value interface {
@@ -1019,36 +1020,24 @@ func (ctx *Context) MaybeClose() {
 	}
 }
 
-func combineChan(c1, c2, c3 <-chan Err) <-chan Err {
+func combine(cs ...<-chan Err) <-chan Err {
 	errors := make(chan Err)
+	wg := sync.WaitGroup{}
+	wg.Add(len(cs))
+
+	for _, c := range cs {
+		go func(c <-chan Err) {
+			for e := range c {
+				errors <- e
+			}
+			wg.Done()
+		}(c)
+	}
 	go func() {
-		for {
-			select {
-			case e, ok := <-c1:
-				if ok {
-					errors <- e
-				} else {
-					c1 = nil
-				}
-			case e, ok := <-c2:
-				if ok {
-					errors <- e
-				} else {
-					c2 = nil
-				}
-			case e, ok := <-c3:
-				if ok {
-					errors <- e
-				} else {
-					c3 = nil
-				}
-			}
-			if c1 == nil && c2 == nil && c3 == nil {
-				close(errors)
-				return
-			}
-		}
+		wg.Wait()
+		close(errors)
 	}()
+
 	return errors
 }
 
@@ -1068,5 +1057,5 @@ func (ctx *Context) ExecStream(
 	go Parse(tokens, nodes, e2, debugParse)
 	go ctx.Eval(nodes, dump)
 
-	return input, combineChan(e1, e2, ctx.ErrorStream)
+	return input, combine(e1, e2, ctx.ErrorStream)
 }
