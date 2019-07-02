@@ -47,6 +47,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("string", inkString)
 	ctx.LoadFunc("number", inkNumber)
 
+	ctx.LoadFunc("type", inkType)
 	ctx.LoadFunc("len", inkLen)
 	ctx.LoadFunc("keys", inkKeys)
 
@@ -373,6 +374,33 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	default:
 		return NumberValue{0.0}, nil
 	}
+}
+
+func inkType(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"type() takes exactly one argument",
+		}
+	}
+
+	rv := ""
+	switch in[0].(type) {
+	case StringValue:
+		rv = "string"
+	case NumberValue:
+		rv = "number"
+	case BooleanValue:
+		rv = "boolean"
+	case NullValue:
+		rv = "()"
+	case CompositeValue:
+		rv = "composite"
+	case FunctionValue:
+		rv = "function"
+	}
+
+	return StringValue{rv}, nil
 }
 
 func inkLen(ctx *Context, in []Value) (Value, error) {

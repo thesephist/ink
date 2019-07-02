@@ -27,6 +27,7 @@
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript? The expensive part of that actually seems to be the `stringList()` operation, which may be mostly memory bound or something weird is going on -- we should fix it.
 - [ ] `--no-net`, `--no-read`, `--no-write` flags in the CLI to restrict those runtime functions to error (net should block any network restrictions). `--isolate` should turn all three of these on. Pass those flags to load Environment as a `EnvPermissions` struct.
     - Make a note of this isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
+- [ ] Think about adding an `exec` builtin alognside the `--no-exec` flag to add ability to execute arbitrary things on the system using `os/exec` pkg.
 
 
 ## Language
@@ -38,13 +39,14 @@
 
 ## Standard library / utilities
 
-- [ ] Finish builtin functions: `in()`, `out()`, `read()`, `write()`, `listen()`, `wait()` left.
+- [ ] Finish builtin functions: `read()`, `write()`, `listen()` left.
+- [ ] Standard library (not builtin) functions `encode(string) => list<number>` and `decode(list<number>) => string`. If it becomes a bottleneck, we'll move them into the runtime, but for now I feel like iterating in the userspace / standard library is fine.
 - [ ] Implement concurrency in event loop and processes as described in the spec.
     - Consider exception handling works across the Ink/Golang boundary. e.g. if a callback errors, how do we get the error back?
     - Implement an event system behind Ink, such that as events occur the handlers are kept alive (native functions that are running aren't killed when `main.go` exits).
     - We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
 - [ ] JSON serde system
-- [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library
+- [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Write a markdown parser in ink. Or a reduced case one. Will be a cool demo and used for ink documentation. (The docs will be generated with ink programs.)
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
 
