@@ -41,14 +41,11 @@
 
 - [ ] Finish builtin functions: `read()`, `write()`, `listen()` left.
 - [ ] Standard library (not builtin) functions `encode(string) => list<number>` and `decode(list<number>) => string`. If it becomes a bottleneck, we'll move them into the runtime, but for now I feel like iterating in the userspace / standard library is fine.
-- [ ] Implement concurrency in event loop and processes as described in the spec.
-    - Consider exception handling works across the Ink/Golang boundary. e.g. if a callback errors, how do we get the error back?
-    - Implement an event system behind Ink, such that as events occur the handlers are kept alive (native functions that are running aren't killed when `main.go` exits).
-    - We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
 - [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Write a markdown parser in ink. Or a reduced case one. Will be a cool demo and used for ink documentation. (The docs will be generated with ink programs.)
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
+- [ ] We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
 
 
 ## Bugs

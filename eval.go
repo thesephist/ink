@@ -954,8 +954,11 @@ func (sh *StackFrame) String() string {
 }
 
 type Context struct {
-	Frame       *StackFrame
-	Listeners   int
+	Frame     *StackFrame
+	Listeners int
+	// only a single function may write to the stack frames
+	//	at any moment.
+	lock        sync.Mutex
 	ValueStream chan Value
 	ErrorStream chan Err
 }
@@ -976,6 +979,7 @@ func (ctx *Context) Eval(
 	nodes <-chan Node,
 	dumpFrame bool,
 ) {
+	ctx.lock.Lock()
 	for node := range nodes {
 		val, err := node.Eval(ctx.Frame, false)
 		if err != nil {
@@ -993,6 +997,7 @@ func (ctx *Context) Eval(
 	}
 
 	ctx.MaybeClose()
+	ctx.lock.Unlock()
 
 	if dumpFrame {
 		ctx.Dump()
@@ -1002,9 +1007,11 @@ func (ctx *Context) Eval(
 func (ctx *Context) ExecListener(listener func()) {
 	ctx.Listeners++
 	go func() {
+		ctx.lock.Lock()
 		listener()
-		ctx.Listeners--
+		ctx.lock.Unlock()
 
+		ctx.Listeners--
 		ctx.MaybeClose()
 	}()
 }

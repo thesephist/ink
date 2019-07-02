@@ -1,6 +1,7 @@
 #!/bin/sh
 
-go run . -input samples/stdlib.ink \
+# for stdin / scan() test
+echo 'Linus' | go run . -input samples/stdlib.ink \
     -input samples/fizzbuzz.ink \
     -input samples/graph.ink \
     -input samples/basic.ink \

@@ -5,8 +5,6 @@ ask := (question, cb) => (
 	scan(cb)
 )
 
-ask('What\'s your first name?', first => (
-	ask('What about your last name?', last => (
-		log('Great to meet you, ' + first + ' ' + last + '!')
-	))
+ask('What\'s your name?', name => (
+	log('Great to meet you, ' + name + '!')
 ))
