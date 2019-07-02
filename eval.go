@@ -958,7 +958,10 @@ type Context struct {
 	Listeners sync.WaitGroup
 	// only a single function may write to the stack frames
 	//	at any moment.
-	lock        sync.Mutex
+	evalLock sync.Mutex
+	// only a single round of inputs can be working through the
+	//	context (lex/parse/eval) at any time.
+	sessionLock sync.Mutex
 	ValueStream chan Value
 	ErrorStream chan Err
 }
@@ -979,12 +982,14 @@ func (ctx *Context) Eval(
 	nodes <-chan Node,
 	dumpFrame bool,
 ) {
-	ctx.lock.Lock()
+	ctx.evalLock.Lock()
 	defer func() {
-		ctx.lock.Unlock()
+		ctx.evalLock.Unlock()
 		ctx.Listeners.Wait()
+
 		close(ctx.ValueStream)
 		close(ctx.ErrorStream)
+		ctx.sessionLock.Unlock()
 	}()
 
 	for node := range nodes {
@@ -1010,9 +1015,9 @@ func (ctx *Context) Eval(
 func (ctx *Context) ExecListener(listener func()) {
 	ctx.Listeners.Add(1)
 	go func() {
-		ctx.lock.Lock()
+		ctx.evalLock.Lock()
 		listener()
-		ctx.lock.Unlock()
+		ctx.evalLock.Unlock()
 
 		ctx.Listeners.Done()
 	}()
@@ -1049,6 +1054,7 @@ func (ctx *Context) ExecStream(
 	e1 := make(chan Err)
 	e2 := make(chan Err)
 
+	ctx.sessionLock.Lock()
 	ctx.ValueStream = make(chan Value)
 	ctx.ErrorStream = make(chan Err)
 
