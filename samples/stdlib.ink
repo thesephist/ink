@@ -140,9 +140,10 @@ filter := (list, f) => (
 
 ` tail recursive reduce `
 reduce := (list, f, acc) => (
+	length := len(list)
 	(reducesub := (idx, acc) => (
 		idx :: {
-			len(list) -> acc
+			length -> acc
 			_ -> reducesub(
 				idx + 1
 				f(acc, list.(idx))

@@ -34,6 +34,6 @@ log := s => out(s + '
 ` primes under N are numbers 2 .. N, filtered by isPrime `
 getPrimesUnder := n => filter(buildConsecutive(n), isPrime)
 
-ps := getPrimesUnder(2000)
+ps := getPrimesUnder(5000)
 log(stringList(ps))
-log('Total number of primes under 2000: ' + string(len(ps)))
+log('Total number of primes under 5000: ' + string(len(ps)))
