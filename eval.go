@@ -980,6 +980,8 @@ func (ctx *Context) Eval(
 	dumpFrame bool,
 ) {
 	ctx.lock.Lock()
+	defer ctx.lock.Unlock()
+
 	for node := range nodes {
 		val, err := node.Eval(ctx.Frame, false)
 		if err != nil {
@@ -997,7 +999,6 @@ func (ctx *Context) Eval(
 	}
 
 	ctx.MaybeClose()
-	ctx.lock.Unlock()
 
 	if dumpFrame {
 		ctx.Dump()
@@ -1008,8 +1009,9 @@ func (ctx *Context) ExecListener(listener func()) {
 	ctx.Listeners++
 	go func() {
 		ctx.lock.Lock()
+		defer ctx.lock.Unlock()
+
 		listener()
-		ctx.lock.Unlock()
 
 		ctx.Listeners--
 		ctx.MaybeClose()
@@ -1054,6 +1056,12 @@ func (ctx *Context) ExecStream(
 	input := make(chan rune)
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
+
+	// updating channel values in ctx might be
+	//	risky without mutex
+	ctx.lock.Lock()
+	defer ctx.lock.Unlock()
+
 	ctx.ValueStream = make(chan Value)
 
 	e1 := make(chan Err)

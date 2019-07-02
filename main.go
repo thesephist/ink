@@ -82,17 +82,17 @@ func main() {
 		)
 
 		file, err := os.Open(path)
+		defer file.Close()
 		if err != nil {
 			logSafeErr(
 				ErrSystem,
 				fmt.Sprintf("could not open %s for execution:\n\t-> %s", path, err),
 			)
+			close(input)
 			return err
 		}
-		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
-
 		for scanner.Scan() {
 			for _, char := range scanner.Text() {
 				input <- char
