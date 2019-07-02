@@ -10,7 +10,8 @@ import (
 
 type NativeFunctionValue struct {
 	name string
-	exec func([]Value) (Value, error)
+	exec func(*Context, []Value) (Value, error)
+	ctx  *Context // runtime context to dispatch async errors
 }
 
 func (v NativeFunctionValue) String() string {
@@ -18,8 +19,7 @@ func (v NativeFunctionValue) String() string {
 }
 
 func (v NativeFunctionValue) Equals(other Value) bool {
-	ov, ok := other.(NativeFunctionValue)
-	if ok {
+	if ov, ok := other.(NativeFunctionValue); ok {
 		return v.name == ov.name
 	} else {
 		return false
@@ -27,35 +27,43 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 }
 
 func (ctx *Context) LoadEnvironment() {
-	ctx.LoadFunc(NativeFunctionValue{"in", inkIn})
-	ctx.LoadFunc(NativeFunctionValue{"out", inkOut})
-	ctx.LoadFunc(NativeFunctionValue{"read", inkRead})
-	ctx.LoadFunc(NativeFunctionValue{"write", inkWrite})
-	ctx.LoadFunc(NativeFunctionValue{"listen", inkListen})
-	ctx.LoadFunc(NativeFunctionValue{"rand", inkRand})
-	ctx.LoadFunc(NativeFunctionValue{"time", inkTime})
+	ctx.LoadFunc("in", inkIn)
+	ctx.LoadFunc("out", inkOut)
+	ctx.LoadFunc("read", inkRead)
+	ctx.LoadFunc("write", inkWrite)
+	ctx.LoadFunc("listen", inkListen)
+	ctx.LoadFunc("rand", inkRand)
+	ctx.LoadFunc("time", inkTime)
+	ctx.LoadFunc("wait", inkWait)
 
-	ctx.LoadFunc(NativeFunctionValue{"sin", inkSin})
-	ctx.LoadFunc(NativeFunctionValue{"cos", inkCos})
-	ctx.LoadFunc(NativeFunctionValue{"pow", inkPow})
-	ctx.LoadFunc(NativeFunctionValue{"ln", inkLn})
-	ctx.LoadFunc(NativeFunctionValue{"floor", inkFloor})
+	ctx.LoadFunc("sin", inkSin)
+	ctx.LoadFunc("cos", inkCos)
+	ctx.LoadFunc("pow", inkPow)
+	ctx.LoadFunc("ln", inkLn)
+	ctx.LoadFunc("floor", inkFloor)
 
-	ctx.LoadFunc(NativeFunctionValue{"string", inkString})
-	ctx.LoadFunc(NativeFunctionValue{"number", inkNumber})
+	ctx.LoadFunc("string", inkString)
+	ctx.LoadFunc("number", inkNumber)
 
-	ctx.LoadFunc(NativeFunctionValue{"len", inkLen})
-	ctx.LoadFunc(NativeFunctionValue{"keys", inkKeys})
+	ctx.LoadFunc("len", inkLen)
+	ctx.LoadFunc("keys", inkKeys)
 
 	// side effects
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func (ctx *Context) LoadFunc(nf NativeFunctionValue) {
-	ctx.Frame.setValue(nf.name, nf)
+func (ctx *Context) LoadFunc(
+	name string,
+	exec func(*Context, []Value) (Value, error),
+) {
+	ctx.Frame.setValue(name, NativeFunctionValue{
+		name,
+		exec,
+		ctx,
+	})
 }
 
-func evalInkFunction(fn Value, args ...Value) (Value, error) {
+func evalInkFunction(ctx *Context, fn Value, args ...Value) (Value, error) {
 	if fnt, isFunc := fn.(FunctionValue); isFunc {
 		argValueTable := ValueTable{}
 		for i, argNode := range fnt.defn.arguments {
@@ -72,7 +80,7 @@ func evalInkFunction(fn Value, args ...Value) (Value, error) {
 		}
 		return fnt.defn.body.Eval(callFrame, false)
 	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
-		return fnt.exec(args)
+		return fnt.exec(ctx, args)
 	} else {
 		return nil, Err{
 			ErrRuntime,
@@ -81,7 +89,7 @@ func evalInkFunction(fn Value, args ...Value) (Value, error) {
 	}
 }
 
-func inkIn(in []Value) (Value, error) {
+func inkIn(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -91,7 +99,7 @@ func inkIn(in []Value) (Value, error) {
 
 	// XXX: Implement as a character-by-character
 	//	getter, since scan() in stdlib gets by line.
-	_, err := evalInkFunction(in[0])
+	_, err := evalInkFunction(ctx, in[0])
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +107,7 @@ func inkIn(in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkOut(in []Value) (Value, error) {
+func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		output, ok := in[0].(StringValue)
 		if ok {
@@ -114,28 +122,61 @@ func inkOut(in []Value) (Value, error) {
 	}
 }
 
-func inkRead(in []Value) (Value, error) {
+func inkRead(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkWrite(in []Value) (Value, error) {
+func inkWrite(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkListen(in []Value) (Value, error) {
+func inkListen(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkRand(in []Value) (Value, error) {
+func inkRand(ctx *Context, in []Value) (Value, error) {
 	return NumberValue{rand.Float64()}, nil
 }
 
-func inkTime(in []Value) (Value, error) {
+func inkTime(ctx *Context, in []Value) (Value, error) {
 	unixSeconds := float64(time.Now().UnixNano()) / 1e9
 	return NumberValue{unixSeconds}, nil
 }
 
-func inkSin(in []Value) (Value, error) {
+func inkWait(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			"wait() takes exactly two arguments",
+		}
+	}
+
+	secs, isNum := in[0].(NumberValue)
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("first argument to wait() should be a number, but got %s",
+				in[0].String()),
+		}
+	}
+
+	ctx.ExecListener(func() {
+		time.Sleep(time.Duration(
+			int64(secs.val * float64(time.Second)),
+		))
+
+		_, err := evalInkFunction(ctx, in[1])
+		if err != nil {
+			if e, isErr := err.(Err); isErr {
+				ctx.ErrorStream <- e
+			}
+		}
+	})
+
+	return NullValue{}, nil
+}
+
+func inkSin(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -153,7 +194,7 @@ func inkSin(in []Value) (Value, error) {
 	return NumberValue{math.Sin(inNum.val)}, nil
 }
 
-func inkCos(in []Value) (Value, error) {
+func inkCos(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -171,7 +212,7 @@ func inkCos(in []Value) (Value, error) {
 	return NumberValue{math.Cos(inNum.val)}, nil
 }
 
-func inkPow(in []Value) (Value, error) {
+func inkPow(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
@@ -203,7 +244,7 @@ func inkPow(in []Value) (Value, error) {
 	}
 }
 
-func inkLn(in []Value) (Value, error) {
+func inkLn(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -231,7 +272,7 @@ func inkLn(in []Value) (Value, error) {
 	return NumberValue{math.Log(n.val)}, nil
 }
 
-func inkFloor(in []Value) (Value, error) {
+func inkFloor(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -251,7 +292,7 @@ func inkFloor(in []Value) (Value, error) {
 	return NumberValue{math.Trunc(n.val)}, nil
 }
 
-func inkString(in []Value) (Value, error) {
+func inkString(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -279,7 +320,7 @@ func inkString(in []Value) (Value, error) {
 	}
 }
 
-func inkNumber(in []Value) (Value, error) {
+func inkNumber(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -311,7 +352,7 @@ func inkNumber(in []Value) (Value, error) {
 	}
 }
 
-func inkLen(in []Value) (Value, error) {
+func inkLen(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,
@@ -338,7 +379,7 @@ func inkLen(in []Value) (Value, error) {
 	}
 }
 
-func inkKeys(in []Value) (Value, error) {
+func inkKeys(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
 			ErrRuntime,

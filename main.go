@@ -74,7 +74,7 @@ func main() {
 	// abstraction for executing ink code from a file at a given path
 	execFile := func(path string) error {
 		// read from file
-		input, values, errors := ctx.ExecStream(
+		input, errors := ctx.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -107,9 +107,12 @@ func main() {
 				if ok {
 					logSafeErr(e.reason,
 						fmt.Sprintf("in %s\n\t-> ", path)+e.message)
+				} else {
+					if ctx.Finished() {
+						break loop
+					}
 				}
-				break loop
-			case <-values:
+			case <-ctx.ValueStream:
 				// continue
 			}
 		}
@@ -119,7 +122,6 @@ func main() {
 
 	if *repl {
 		// run interactively in a repl
-		logDebug("started ink repl")
 		reader := bufio.NewReader(os.Stdin)
 
 		shouldExit := false
@@ -149,7 +151,7 @@ func main() {
 				}
 
 			default:
-				input, values, errors := ctx.ExecStream(
+				input, errors := ctx.ExecStream(
 					*debugLexer || *verbose,
 					*debugParser || *verbose,
 					*dump || *verbose,
@@ -166,9 +168,12 @@ func main() {
 					case e, ok := <-errors:
 						if ok {
 							logSafeErr(e.reason, e.message)
+						} else {
+							if ctx.Finished() {
+								break replLoop
+							}
 						}
-						break replLoop
-					case v, ok := <-values:
+					case v, ok := <-ctx.ValueStream:
 						if ok {
 							logInteractive(v.String())
 						}
@@ -177,10 +182,9 @@ func main() {
 			}
 		}
 
-		logDebug("exited ink repl")
 		os.Exit(0)
 	} else if *eval != "" {
-		input, values, errors := ctx.ExecStream(
+		input, errors := ctx.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -197,9 +201,12 @@ func main() {
 			case e, ok := <-errors:
 				if ok {
 					logErr(e.reason, e.message)
+				} else {
+					if ctx.Finished() {
+						break evalLoop
+					}
 				}
-				break evalLoop
-			case <-values:
+			case <-ctx.ValueStream:
 				// continue
 			}
 		}
@@ -210,7 +217,7 @@ func main() {
 		}
 	} else {
 		// read from stdin
-		input, values, errors := ctx.ExecStream(
+		input, errors := ctx.ExecStream(
 			*debugLexer || *verbose,
 			*debugParser || *verbose,
 			*dump || *verbose,
@@ -232,9 +239,12 @@ func main() {
 			case e, ok := <-errors:
 				if ok {
 					logErr(e.reason, e.message)
+				} else {
+					if ctx.Finished() {
+						break stdinLoop
+					}
 				}
-				break stdinLoop
-			case <-values:
+			case <-ctx.ValueStream:
 				// continue
 			}
 		}

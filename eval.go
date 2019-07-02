@@ -691,7 +691,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 				return nil, err
 			}
 		}
-		return fnt.exec(argResults)
+		return fnt.exec(fnt.ctx, argResults)
 	} else {
 		return nil, Err{
 			ErrRuntime,
@@ -943,11 +943,14 @@ func (sh *StackFrame) setValue(name string, val Value) {
 }
 
 func (sh *StackFrame) String() string {
-	return fmt.Sprintf("frame: %s --prnt-> (%s)", sh.vt, sh.parent)
+	return fmt.Sprintf("%s -prnt-> (%s)", sh.vt, sh.parent)
 }
 
 type Context struct {
-	Frame *StackFrame
+	Frame       *StackFrame
+	Listeners   int
+	ValueStream chan Value
+	ErrorStream chan Err
 }
 
 func (ctx *Context) Dump() {
@@ -964,8 +967,6 @@ func (ctx *Context) Init() {
 
 func (ctx *Context) Eval(
 	nodes <-chan Node,
-	values chan<- Value,
-	errors chan<- Err,
 	dumpFrame bool,
 ) {
 	for node := range nodes {
@@ -973,24 +974,43 @@ func (ctx *Context) Eval(
 		if err != nil {
 			e, isErr := err.(Err)
 			if isErr {
-				errors <- e
+				ctx.ErrorStream <- e
 			} else {
 				logErrf(ErrAssert, "error raised that was not of type Err -> %s",
 					err.Error())
 			}
-			close(values)
-			close(errors)
+			ctx.MaybeClose()
 			return
 		}
-		values <- val
+		ctx.ValueStream <- val
 	}
+
+	ctx.MaybeClose()
 
 	if dumpFrame {
 		ctx.Dump()
 	}
+}
 
-	close(values)
-	close(errors)
+func (ctx *Context) ExecListener(listener func()) {
+	ctx.Listeners++
+	go func() {
+		listener()
+		ctx.Listeners--
+
+		ctx.MaybeClose()
+	}()
+}
+
+func (ctx *Context) Finished() bool {
+	return ctx.Listeners == 0
+}
+
+func (ctx *Context) MaybeClose() {
+	if ctx.Finished() {
+		close(ctx.ValueStream)
+		close(ctx.ErrorStream)
+	}
 }
 
 func combineChan(c1, c2, c3 <-chan Err) <-chan Err {
@@ -1028,19 +1048,19 @@ func combineChan(c1, c2, c3 <-chan Err) <-chan Err {
 
 func (ctx *Context) ExecStream(
 	debugLex, debugParse, dump bool,
-) (chan<- rune, <-chan Value, <-chan Err) {
+) (chan<- rune, <-chan Err) {
 	input := make(chan rune)
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
-	values := make(chan Value)
+	ctx.ValueStream = make(chan Value)
 
 	e1 := make(chan Err)
 	e2 := make(chan Err)
-	e3 := make(chan Err)
+	ctx.ErrorStream = make(chan Err)
 
 	go Tokenize(input, tokens, e1, debugLex)
 	go Parse(tokens, nodes, e2, debugParse)
-	go ctx.Eval(nodes, values, e3, dump)
+	go ctx.Eval(nodes, dump)
 
-	return input, values, combineChan(e1, e2, e3)
+	return input, combineChan(e1, e2, ctx.ErrorStream)
 }
