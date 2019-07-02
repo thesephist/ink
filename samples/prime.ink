@@ -2,30 +2,38 @@
 
 ` is a single number prime? `
 isPrime := n => (
-	ip := (p, acc) => p :: {
-		1 -> acc
-		_ -> ip(p - 1, acc & n % p > 0)
-	}
-	ip(floor(pow(n, 0.5)), true)
+	` is n coprime with nums < p? `
+	max := floor(pow(n, 0.5)) + 1
+	(ip := p => p :: {
+		max -> true
+		_ -> n % p :: {
+			0 -> false
+			_ -> ip(p + 1)
+		}
+	})(2) ` start with smaller # = more efficient `
 )
 
 ` build a list of consecutive integers from 2 .. max `
 buildConsecutive := max => (
-	bc := (i, acc) => (
-		i :: {
-			(max + 1) -> acc
-			_ -> (
-				acc.(i - 2) := i
-				bc(i + 1, acc)
-			)
-		}
-	)
-	bc(2, [])
+	peak := max + 1
+	acc := []
+	(bc := i => i :: {
+		peak -> ()
+		_ -> (
+			acc.(i - 2) := i
+			bc(i + 1)
+		)
+	})(2)
+	acc
 )
+
+` utility function for printing things `
+log := s => out(s + '
+')
 
 ` primes under N are numbers 2 .. N, filtered by isPrime `
 getPrimesUnder := n => filter(buildConsecutive(n), isPrime)
 
 ps := getPrimesUnder(1000)
 log(stringList(ps))
-log('Total number of primes under 1000: ' + string(len(ps)))
+log('Total number of primes under 10000: ' + string(len(ps)))
