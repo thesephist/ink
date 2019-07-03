@@ -35,6 +35,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("out", inkOut)
 	ctx.LoadFunc("read", inkRead)
 	ctx.LoadFunc("write", inkWrite)
+	ctx.LoadFunc("delete", inkDelete)
 	ctx.LoadFunc("listen", inkListen)
 	ctx.LoadFunc("rand", inkRand)
 	ctx.LoadFunc("time", inkTime)
@@ -266,7 +267,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d",
+			fmt.Sprintf("write() expects four arguments: path, offset, length, and callback, but got %d",
 				len(in)),
 		}
 	}
@@ -278,7 +279,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	if !isPathString || !isOffsetNumber || !isComposite || !isCbFunction {
 		return nil, Err{
 			ErrRuntime,
-			"unsupported combination of argument types in read()",
+			"unsupported combination of argument types in write()",
 		}
 	}
 
@@ -366,6 +367,58 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
+func inkDelete(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("delete() expects two arguments: path and callback, but got %d",
+				len(in)),
+		}
+	}
+
+	path, isPathString := in[0].(StringValue)
+	cb, isCbFunction := in[1].(FunctionValue)
+	if !isPathString || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in delete()",
+		}
+	}
+
+	ctx.ExecListener(func() {
+		// delete
+		err := os.Remove(path.val)
+		if err != nil {
+			evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"error"},
+					"message": StringValue{
+						fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
+					},
+				},
+			})
+			return
+		}
+
+		// callback
+		_, err = evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"end"},
+			},
+		})
+		if err != nil {
+			ctx.ErrorStream <- Err{
+				ErrRuntime,
+				fmt.Sprintf("error in callback to write()\n\t-> %s",
+					err.Error()),
+			}
+			return
+		}
+	})
+
+	return NullValue{}, nil
+}
+
 func inkListen(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
@@ -396,18 +449,26 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	ctx.ExecListener(func() {
+	go func() {
+		// This is a bit tricky, since we don't want wait() to hold the evalLock
+		//	on the Context while we're waiting for the timeout, but do want to hold
+		//	the main goroutine from completing with sync.WaitGroup.
+		ctx.Listeners.Add(1)
+		defer ctx.Listeners.Done()
+
 		time.Sleep(time.Duration(
 			int64(secs.val * float64(time.Second)),
 		))
 
-		_, err := evalInkFunction(in[1], false)
-		if err != nil {
-			if e, isErr := err.(Err); isErr {
-				ctx.ErrorStream <- e
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(in[1], false)
+			if err != nil {
+				if e, isErr := err.(Err); isErr {
+					ctx.ErrorStream <- e
+				}
 			}
-		}
-	})
+		})
+	}()
 
 	return NullValue{}, nil
 }
@@ -568,13 +629,10 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	case StringValue:
 		f, err := strconv.ParseFloat(v.val, 64)
 		if err != nil {
-			return nil, Err{
-				ErrRuntime,
-				fmt.Sprintf("cannot convert string %s into number: %s",
-					v.val, err.Error()),
-			}
+			return NullValue{}, nil
+		} else {
+			return NumberValue{f}, nil
 		}
-		return NumberValue{f}, nil
 	case NumberValue:
 		return v, nil
 	case BooleanValue:

@@ -149,6 +149,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `out(string)`: Print to stdout.
 - `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
 - `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset, some given bytes.
+- `delete(string, callback)`: Delete some given file
 - `listen(string, callback<list<number>> => boolean)`: Bind to a local TCP or UDP port and start handling requests.
 - `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
@@ -179,3 +180,4 @@ Ink's standard library is under active development, and contains utilities like 
 
 - Ink source code is fully UTF-8 / Unicode compatible. Unicode printed non-whitespace characters are valid variable and function identifiers, as well as the characters `?`, `!`, and `@`.
 - Ink is fully tail call optimized, and tail calls are the default looping / jump primitive for programming in Ink.
+- I'm still experimenting with how best to idiomatically do exception handling. My current approach has been to halt on assertion errors (wrong number of arguments, type errors, etc.) that are avoidable with good code that another language may catch "at compile time", and to use error events and null values to signal exceptional conditions during normal execution of programs in other cases, like parse failure and operating system errors.

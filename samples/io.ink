@@ -30,13 +30,13 @@ incrementalCopy := (src, dest) => read(src, state.offset, BUFSIZE, evt => (
 		'data'  -> (
 			` compute offsets and state `
 			dataLength   := len(evt.data)
-			ofs          := state.offset
+			ofs		  := state.offset
 			state.offset := state.offset + dataLength
 
 			` if we read less data than we expected, read ended `
 			dataLength :: {
 				BUFSIZE -> ()
-				_       -> state.ended := true
+				_	   -> state.ended := true
 			}
 
 			` log progress `
@@ -61,3 +61,11 @@ incrementalCopy := (src, dest) => read(src, state.offset, BUFSIZE, evt => (
 
 ` copy README.md to WRITEME.md `
 incrementalCopy('README.md', 'WRITEME.md')
+log('copied.')
+
+` delete the file, since we don't need it `
+wait(2, () => delete('WRITEME.md', evt => evt.type :: {
+	'error' -> log('Encountered an error deleting: ' + evt.message)
+	'end'   -> log('Safely deleted the generated file')
+}))
+log('deleted.')
