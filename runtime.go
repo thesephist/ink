@@ -175,10 +175,194 @@ func inkOut(ctx *Context, in []Value) (Value, error) {
 }
 
 func inkRead(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 4 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d",
+				len(in)),
+		}
+	}
+
+	path, isPathString := in[0].(StringValue)
+	offset, isOffsetNumber := in[1].(NumberValue)
+	length, isLengthNumber := in[2].(NumberValue)
+	cb, isCbFunction := in[3].(FunctionValue)
+	if !isPathString || !isOffsetNumber || !isLengthNumber || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in read()",
+		}
+	}
+
+	sendErr := func(msg string) {
+		evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type":    StringValue{"error"},
+				"message": StringValue{msg},
+			},
+		})
+	}
+
+	ctx.ExecListener(func() {
+		// open
+		file, err := os.OpenFile(path.val, os.O_RDONLY, 0644)
+		defer file.Close()
+		if err != nil {
+			sendErr(fmt.Sprintf(
+				"error opening requested file in read(), %s", err.Error(),
+			))
+			return
+		}
+
+		// seek
+		ofs := int64(offset.val)
+		if ofs != 0 {
+			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
+			if err != nil {
+				sendErr(fmt.Sprintf(
+					"error seeking requested file in read(), %s", err.Error(),
+				))
+				return
+			}
+		}
+
+		// read
+		buf := make([]byte, int64(length.val))
+		count, err := file.Read(buf)
+		if err != nil {
+			sendErr(fmt.Sprintf(
+				"error reading requested file in read(), %s", err.Error(),
+			))
+		}
+
+		// marshal
+		vt := ValueTable{}
+		for i, b := range buf[:count] {
+			vt[nToS(float64(i))] = NumberValue{float64(b)}
+		}
+		list := CompositeValue{entries: vt}
+
+		// callback
+		_, err = evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"data"},
+				"data": list,
+			},
+		})
+		if err != nil {
+			ctx.ErrorStream <- Err{
+				ErrRuntime,
+				fmt.Sprintf("error in callback to read()\n\t-> %s",
+					err.Error()),
+			}
+			return
+		}
+	})
+
 	return NullValue{}, nil
 }
 
 func inkWrite(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 4 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d",
+				len(in)),
+		}
+	}
+
+	path, isPathString := in[0].(StringValue)
+	offset, isOffsetNumber := in[1].(NumberValue)
+	encoded, isComposite := in[2].(CompositeValue)
+	cb, isCbFunction := in[3].(FunctionValue)
+	if !isPathString || !isOffsetNumber || !isComposite || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in read()",
+		}
+	}
+
+	sendErr := func(msg string) {
+		evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type":    StringValue{"error"},
+				"message": StringValue{msg},
+			},
+		})
+	}
+
+	ctx.ExecListener(func() {
+		// open
+		var flag int
+		if offset.val == -1 {
+			// -1 offset is append
+			flag = os.O_APPEND | os.O_CREATE | os.O_WRONLY
+		} else {
+			// all other offsets are writing
+			flag = os.O_CREATE | os.O_WRONLY
+		}
+		file, err := os.OpenFile(path.val, flag, 0644)
+		if err != nil {
+			sendErr(fmt.Sprintf(
+				"error opening requested file in write(), %s", err.Error(),
+			))
+			return
+		}
+		defer file.Close()
+
+		// seek
+		if offset.val != -1 {
+			ofs := int64(offset.val)
+			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
+			if err != nil {
+				sendErr(fmt.Sprintf(
+					"error seeking requested file in write(), %s", err.Error(),
+				))
+				return
+			}
+		}
+
+		// unmarshal
+		buf := make([]byte, getLength(encoded))
+		for i, v := range encoded.entries {
+			idx, err := strconv.Atoi(i)
+			if err != nil {
+				sendErr(fmt.Sprintf(
+					"error unmarshaling data in write(), %s", err.Error(),
+				))
+			}
+
+			if num, isNum := v.(NumberValue); isNum {
+				buf[idx] = byte(num.val)
+			} else {
+				sendErr("error unmarshaling data in write(), byte value is not number")
+			}
+		}
+
+		// write
+		_, err = file.Write(buf)
+		if err != nil {
+			sendErr(fmt.Sprintf(
+				"error writing to requested file in write(), %s", err.Error(),
+			))
+		}
+
+		// callback
+		_, err = evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"end"},
+			},
+		})
+		if err != nil {
+			ctx.ErrorStream <- Err{
+				ErrRuntime,
+				fmt.Sprintf("error in callback to write()\n\t-> %s",
+					err.Error()),
+			}
+			return
+		}
+	})
+
 	return NullValue{}, nil
 }
 
@@ -470,6 +654,17 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 	return StringValue{rv}, nil
 }
 
+func getLength(list CompositeValue) int64 {
+	// count up from 0 index until we find an index that doesn't
+	//	contain a value.
+	for idx := 0.0; ; idx++ {
+		_, prs := list.entries[nToS(idx)]
+		if !prs {
+			return int64(idx)
+		}
+	}
+}
+
 func inkLen(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 1 {
 		return nil, Err{
@@ -479,14 +674,7 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 	}
 
 	if list, isComposite := in[0].(CompositeValue); isComposite {
-		// count up from 0 index until we find an index that doesn't
-		//	contain a value.
-		for idx := 0.0; ; idx++ {
-			_, prs := list.entries[nToS(idx)]
-			if !prs {
-				return NumberValue{idx}, nil
-			}
-		}
+		return NumberValue{float64(getLength(list))}, nil
 	} else if str, isString := in[0].(StringValue); isString {
 		return NumberValue{float64(len(str.val))}, nil
 	}

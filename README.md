@@ -60,6 +60,8 @@ fizzbuzz := max => helper(1, max)
 fizzbuzz(100)
 ```
 
+If you're looking for more realistic and complex examples, check out [quicksort.ink](samples/quicksort.ink), [newton.ink](samples/newton.ink), [the standard library](samples/std.ink), and [this file I/O demo](samples.io.ink).
+
 You'll notice a few characteristic things about Ink:
 
 - Functions are defined using arrows (`=>`) _a la_ JavaScript arrow functions

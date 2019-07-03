@@ -40,7 +40,8 @@
 
 ## Standard library / utilities
 
-- [ ] Finish builtin functions: `read()`, `write()`, `listen()` left.
+- [ ] Finish builtin function `listen()`
+    - Let's start with http, for practicality's sake.
 - [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.

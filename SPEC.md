@@ -139,16 +139,20 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ## Builtins
 
+### Metaprogramming and packaging
+
+- `load(string) => composite`: load the Ink expressions from another file as a _module_ to a different program file. The values declared in the top frame of the loaded module will be entries in the composite value returned by `load`.
+
 ### System interfaces
 
-- `in(callback<string> => boolean)`: Read from stdin or until ENTER key (might change later)
-- `out(string)`: Print to stdout
-- `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes
-- `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset
-- `listen(string, callback<list<number>> => boolean)`: Bind to a local TCP or UDP port and start handling requests
-- `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed
+- `in(callback<string> => boolean)`: Read from stdin. The callback function returns a boolean that determines whether to continue reading from input.
+- `out(string)`: Print to stdout.
+- `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
+- `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset, some given bytes.
+- `listen(string, callback<list<number>> => boolean)`: Bind to a local TCP or UDP port and start handling requests.
+- `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
-- `time() => number`: number of seconds in floating point in UNIX epoch
+- `time() => number`: number of seconds in floating point in UNIX epoch.
 
 ### Math
 
@@ -160,14 +164,16 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### Type casts and utilities (implemented as native functions)
 
-- `string(any) => string`
-- `number(any) => number`
-- `len(composite) => number`: length of a list or list-like composite value
+- `string(any) => string`: convert type to string
+- `number(any) => number`: convert type to number
+- `point(string) => number`: take the first byte (i.e. ASCII value) of the string and return its numerical value
+- `char(number) => string`: reverse of `point()`. Note that behavior for values above 255 (full Unicode values) is undefined (so far).
+- `len(composite) => number`: length of a list, string, or list-like composite value
 - `keys(composite) => list<string>`: list of keys of the given composite
 
 ## Standard library
 
-Ink's standard library is under active development, and contains utilities like `map`, `filter`, `reduce`, `clone`, and `slice`. Find the source code in the meantime under [samples/stdlib.ink](samples/stdlib.ink).
+Ink's standard library is under active development, and contains utilities like `map`, `filter`, `reduce`, `clone`, and `slice`. Find the source code in the meantime under [samples/std.ink](samples/std.ink).
 
 ## Other implementation notes
 
