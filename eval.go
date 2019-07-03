@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -954,16 +956,18 @@ func (sh *StackFrame) String() string {
 }
 
 type Context struct {
-	Frame     *StackFrame
-	Listeners sync.WaitGroup
+	Frame       *StackFrame
+	Listeners   sync.WaitGroup
+	ValueStream chan Value
+	ErrorStream chan Err
+	DebugOpts   map[string]bool
+
 	// only a single function may write to the stack frames
 	//	at any moment.
 	evalLock sync.Mutex
 	// only a single round of inputs can be working through the
 	//	context (lex/parse/eval) at any time.
 	sessionLock sync.Mutex
-	ValueStream chan Value
-	ErrorStream chan Err
 }
 
 func (ctx *Context) Dump() {
@@ -1044,9 +1048,7 @@ func combine(cs ...<-chan Err) <-chan Err {
 	return errors
 }
 
-func (ctx *Context) ExecStream(
-	debugLex, debugParse, dump bool,
-) (chan<- rune, <-chan Err) {
+func (ctx *Context) ExecStream() (chan<- rune, <-chan Err) {
 	input := make(chan rune)
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
@@ -1058,9 +1060,49 @@ func (ctx *Context) ExecStream(
 	ctx.ValueStream = make(chan Value)
 	ctx.ErrorStream = make(chan Err)
 
-	go Tokenize(input, tokens, e1, debugLex)
-	go Parse(tokens, nodes, e2, debugParse)
-	go ctx.Eval(nodes, dump)
+	go Tokenize(input, tokens, e1, ctx.DebugOpts["lex"])
+	go Parse(tokens, nodes, e2, ctx.DebugOpts["parse"])
+	go ctx.Eval(nodes, ctx.DebugOpts["dump"])
 
 	return input, combine(e1, e2, ctx.ErrorStream)
+}
+
+func (ctx *Context) ExecFile(path string) error {
+	input, errors := ctx.ExecStream()
+
+	file, err := os.Open(path)
+	defer file.Close()
+	if err != nil {
+		close(input)
+		return err
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		for _, char := range scanner.Text() {
+			input <- char
+		}
+		input <- '\n'
+	}
+	close(input)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		for range ctx.ValueStream {
+			// continue
+		}
+		wg.Done()
+	}()
+	go func() {
+		for e := range errors {
+			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", path)+e.message)
+			wg.Done()
+			return
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return nil
 }

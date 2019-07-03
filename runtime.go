@@ -29,6 +29,8 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 }
 
 func (ctx *Context) LoadEnvironment() {
+	ctx.LoadFunc("load", inkLoad)
+
 	ctx.LoadFunc("in", inkIn)
 	ctx.LoadFunc("out", inkOut)
 	ctx.LoadFunc("read", inkRead)
@@ -134,10 +136,33 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
+func inkLoad(ctx *Context, in []Value) (Value, error) {
+	if len(in) == 1 {
+		if path, ok := in[0].(StringValue); ok {
+			inner := Context{}
+			inner.Init()
+			inner.DebugOpts = ctx.DebugOpts
+
+			err := inner.ExecFile(path.val + ".ink")
+			if err != nil {
+				return NullValue{}, err
+			}
+
+			return CompositeValue{
+				entries: inner.Frame.vt,
+			}, nil
+		}
+	}
+
+	return nil, Err{
+		ErrRuntime,
+		"load() takes one string argument",
+	}
+}
+
 func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
-		output, ok := in[0].(StringValue)
-		if ok {
+		if output, ok := in[0].(StringValue); ok {
 			fmt.Printf(output.val)
 			return NullValue{}, nil
 		}

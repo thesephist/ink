@@ -71,55 +71,10 @@ func main() {
 	// execution context
 	ctx := Context{}
 	ctx.Init()
-
-	// abstraction for executing ink code from a file at a given path
-	execFile := func(path string) error {
-		// read from file
-		input, errors := ctx.ExecStream(
-			*debugLexer || *verbose,
-			*debugParser || *verbose,
-			*dump || *verbose,
-		)
-
-		file, err := os.Open(path)
-		defer file.Close()
-		if err != nil {
-			logSafeErr(
-				ErrSystem,
-				fmt.Sprintf("could not open %s for execution:\n\t-> %s", path, err),
-			)
-			close(input)
-			return err
-		}
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			for _, char := range scanner.Text() {
-				input <- char
-			}
-			input <- '\n'
-		}
-		close(input)
-
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-		go func() {
-			for range ctx.ValueStream {
-				// continue
-			}
-			wg.Done()
-		}()
-		go func() {
-			for e := range errors {
-				logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", path)+e.message)
-				wg.Done()
-				return
-			}
-			wg.Done()
-		}()
-
-		wg.Wait()
-		return nil
+	ctx.DebugOpts = map[string]bool{
+		"lex":   *debugLexer || *verbose,
+		"parse": *debugParser || *verbose,
+		"dump":  *dump || *verbose,
 	}
 
 	if *repl {
@@ -145,19 +100,9 @@ func main() {
 				fmt.Printf("[2J[H")
 			case strings.HasPrefix(text, "@exit"):
 				shouldExit = true
-			case strings.HasPrefix(text, "@load "):
-				path := strings.Trim(text[5:], " \t\n")
-				err := execFile(path)
-				if err == nil {
-					logDebugf("loaded file:\n\t-> %s", path)
-				}
 
 			default:
-				input, errors := ctx.ExecStream(
-					*debugLexer || *verbose,
-					*debugParser || *verbose,
-					*dump || *verbose,
-				)
+				input, errors := ctx.ExecStream()
 
 				for _, char := range text {
 					input <- char
@@ -187,11 +132,7 @@ func main() {
 
 		os.Exit(0)
 	} else if *eval != "" {
-		input, errors := ctx.ExecStream(
-			*debugLexer || *verbose,
-			*debugParser || *verbose,
-			*dump || *verbose,
-		)
+		input, errors := ctx.ExecStream()
 
 		for _, char := range *eval {
 			input <- char
@@ -219,15 +160,18 @@ func main() {
 	} else if len(files) > 0 {
 		// read from file
 		for _, path := range files {
-			execFile(path)
+			err := ctx.ExecFile(path)
+			if err != nil {
+				logSafeErr(
+					ErrSystem,
+					fmt.Sprintf("could not open %s for execution:\n\t-> %s",
+						path, err),
+				)
+			}
 		}
 	} else {
 		// read from stdin
-		input, errors := ctx.ExecStream(
-			*debugLexer || *verbose,
-			*debugParser || *verbose,
-			*dump || *verbose,
-		)
+		input, errors := ctx.ExecStream()
 
 		inputReader := bufio.NewReader(os.Stdin)
 		for {

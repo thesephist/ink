@@ -35,7 +35,6 @@
 ## Language
 
 - [ ] A procedural macro system to extend the language (syntax?). Study Rust's procedural macro system and Sweet.js, build an AST-aware macro system into the standard library.
-- [ ] Ink needs a way of expressing dependencies / file imports. I think a good starting point is to have a special builtin `load(pathToDep)` that imports the top-level values declared in that module. Open question as to whether this should return a composite with all identifiers as keys, or it should just pollute global namespace. Probably former, but that seems like more work. We could also have an import semantics that give you the option to pollute global workspace.
 - [ ] Type system? I like the way typescript does it, I think ink’s type checker should be a completely separate layer in the toolchain from the lex/parse/eval layer. But let’s think about the merits of having type annotations and how we can make it simple to lex/parse out while effective at bringing out the forte’s of ink’s functional style.
     - It seems helpful to think of it as a constraint system on the runtime, instead of as something that’s an attribute of the runtime execution itself. Maybe take the Haskell approach of having definition / type declarations separate from the imperative flow definition/syntax itself? Also look at how Haskell / Erlang / Clojure / other functional languages do type annotation, and keep in mind that while Ink is functional flavor it should still feel great in imperative / OO style.
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-go run . -input samples/stdlib.ink \
+go run . -input samples/std.ink \
     -input samples/test.ink \
     -input samples/orderofops.ink \
     -input samples/logictest.ink \
