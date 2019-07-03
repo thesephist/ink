@@ -133,7 +133,7 @@ A single process of Ink program first executes its entrypoint programs, and then
 
 This is behind rationale that a program is fundamentally a representation of a single system evolving sequentially, and shared state means two threads are actually a single program, which breeds all sorts of complexity when a single system tries to mutate in two different sequences. Rust's solution is innovative (compile time static checking that shared mutation never occurs), but a more minimal and Inky way dealing with this is to not have shared state, and only communicate by passing serialized data (messages) between threads of execution that are otherwise spawned and execute in isolation. This is in essence JavaScript workers, but where messages can be any serialized data. 
 
-Ink implements this with three builtin functions, `listen(processID, handler) => null` and `notify(processID, message) => null` for sending and receiving messages, and `spawn(function) => processID` for spawning threads (spawn should be renamed, but not sure what the ideal name is). ProcessID (pid) is an opaque object passed around but it's a valid Ink value/type. Once a function has been spawned off into a separate thread, it can choose to listen. Notify will _not block_ even if nothing is listening (nothing in Ink does unless explicitly documented / chosen). The handler will receive the message as its only argument.
+Ink implements this with three builtin functions, `receive(processID, handler) => null` and `send(processID, message) => null` for sending and receiving messages, and `create(function) => processID` for spawning threads. ProcessID (pid) is an opaque handle passed around but it's a standard Ink value/type (most likely an integer). Once a function has been spawned off into a separate process, it can choose to listen and receive message. Send will _not block_ even if nothing is listening (nothing in Ink does unless explicitly documented / chosen). The handler will receive the message as its only argument, where the message may be any valid Ink value, including `()` (the null value).
 
 These are the right primitives, but we can build much more sophisticated systems and designs, like a state reducer or a task scheduler, into the standard library as we choose and find useful.
 
@@ -141,7 +141,7 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### Metaprogramming and packaging
 
-- `load(string) => composite`: load the Ink expressions from another file as a _module_ to a different program file. The values declared in the top frame of the loaded module will be entries in the composite value returned by `load`.
+- `load(string) => composite`: load the Ink expressions from another file as a _module_ to a different program file. The values declared in the top frame of the loaded module will be entries in the composite value returned by `load`. If currently executing from a file, Ink will search relative to the executing file. Otherwise (e.g. if running from standard input or through the `-eval` flag), Ink will search relative to the current working directory of the running process.
 
 ### System interfaces
 

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"sync"
 )
@@ -159,13 +160,13 @@ func main() {
 		wg.Wait()
 	} else if len(files) > 0 {
 		// read from file
-		for _, path := range files {
-			err := ctx.ExecFile(path)
+		for _, filePath := range files {
+			err := ctx.ExecFile(path.Join(ctx.Cwd, filePath))
 			if err != nil {
 				logSafeErr(
 					ErrSystem,
 					fmt.Sprintf("could not open %s for execution:\n\t-> %s",
-						path, err),
+						filePath, err),
 				)
 			}
 		}

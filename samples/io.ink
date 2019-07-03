@@ -1,7 +1,7 @@
 ` filesystem i/o demo `
 
 ` std imports `
-std := load('samples/std')
+std := load('std')
 
 log := std.log
 slice := std.slice

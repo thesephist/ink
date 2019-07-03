@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"path"
 	"strconv"
 	"time"
 )
@@ -31,6 +32,7 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("load", inkLoad)
 
+	// system interfaces
 	ctx.LoadFunc("in", inkIn)
 	ctx.LoadFunc("out", inkOut)
 	ctx.LoadFunc("read", inkRead)
@@ -41,17 +43,20 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
 
+	// math
 	ctx.LoadFunc("sin", inkSin)
 	ctx.LoadFunc("cos", inkCos)
 	ctx.LoadFunc("pow", inkPow)
 	ctx.LoadFunc("ln", inkLn)
 	ctx.LoadFunc("floor", inkFloor)
 
+	// type conversions
 	ctx.LoadFunc("string", inkString)
 	ctx.LoadFunc("number", inkNumber)
 	ctx.LoadFunc("point", inkPoint)
 	ctx.LoadFunc("char", inkChar)
 
+	// introspection
 	ctx.LoadFunc("type", inkType)
 	ctx.LoadFunc("len", inkLen)
 	ctx.LoadFunc("keys", inkKeys)
@@ -69,6 +74,32 @@ func (ctx *Context) LoadFunc(
 		exec,
 		ctx,
 	})
+}
+
+func inkLoad(ctx *Context, in []Value) (Value, error) {
+	if len(in) == 1 {
+		if givenPath, ok := in[0].(StringValue); ok && givenPath.val != "" {
+			importPath := path.Join(ctx.Cwd, givenPath.val+".ink")
+
+			inner := Context{}
+			inner.Init()
+			inner.DebugOpts = ctx.DebugOpts
+
+			err := inner.ExecFile(importPath)
+			if err != nil {
+				return NullValue{}, err
+			}
+
+			return CompositeValue{
+				entries: inner.Frame.vt,
+			}, nil
+		}
+	}
+
+	return nil, Err{
+		ErrRuntime,
+		"load() takes one string argument, without the .ink suffix",
+	}
 }
 
 func inkIn(ctx *Context, in []Value) (Value, error) {
@@ -137,30 +168,6 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
-func inkLoad(ctx *Context, in []Value) (Value, error) {
-	if len(in) == 1 {
-		if path, ok := in[0].(StringValue); ok {
-			inner := Context{}
-			inner.Init()
-			inner.DebugOpts = ctx.DebugOpts
-
-			err := inner.ExecFile(path.val + ".ink")
-			if err != nil {
-				return NullValue{}, err
-			}
-
-			return CompositeValue{
-				entries: inner.Frame.vt,
-			}, nil
-		}
-	}
-
-	return nil, Err{
-		ErrRuntime,
-		"load() takes one string argument",
-	}
-}
-
 func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		if output, ok := in[0].(StringValue); ok {
@@ -179,16 +186,16 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d",
+			fmt.Sprintf("read() expects four arguments: filePath, offset, length, and callback, but got %d",
 				len(in)),
 		}
 	}
 
-	path, isPathString := in[0].(StringValue)
+	filePath, isFilePathString := in[0].(StringValue)
 	offset, isOffsetNumber := in[1].(NumberValue)
 	length, isLengthNumber := in[2].(NumberValue)
 	cb, isCbFunction := in[3].(FunctionValue)
-	if !isPathString || !isOffsetNumber || !isLengthNumber || !isCbFunction {
+	if !isFilePathString || !isOffsetNumber || !isLengthNumber || !isCbFunction {
 		return nil, Err{
 			ErrRuntime,
 			"unsupported combination of argument types in read()",
@@ -206,7 +213,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 	ctx.ExecListener(func() {
 		// open
-		file, err := os.OpenFile(path.val, os.O_RDONLY, 0644)
+		file, err := os.OpenFile(filePath.val, os.O_RDONLY, 0644)
 		defer file.Close()
 		if err != nil {
 			sendErr(fmt.Sprintf(
@@ -267,16 +274,16 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("write() expects four arguments: path, offset, length, and callback, but got %d",
+			fmt.Sprintf("write() expects four arguments: filePath, offset, length, and callback, but got %d",
 				len(in)),
 		}
 	}
 
-	path, isPathString := in[0].(StringValue)
+	filePath, isFilePathString := in[0].(StringValue)
 	offset, isOffsetNumber := in[1].(NumberValue)
 	encoded, isComposite := in[2].(CompositeValue)
 	cb, isCbFunction := in[3].(FunctionValue)
-	if !isPathString || !isOffsetNumber || !isComposite || !isCbFunction {
+	if !isFilePathString || !isOffsetNumber || !isComposite || !isCbFunction {
 		return nil, Err{
 			ErrRuntime,
 			"unsupported combination of argument types in write()",
@@ -302,7 +309,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			// all other offsets are writing
 			flag = os.O_CREATE | os.O_WRONLY
 		}
-		file, err := os.OpenFile(path.val, flag, 0644)
+		file, err := os.OpenFile(filePath.val, flag, 0644)
 		if err != nil {
 			sendErr(fmt.Sprintf(
 				"error opening requested file in write(), %s", err.Error(),
@@ -371,14 +378,14 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("delete() expects two arguments: path and callback, but got %d",
+			fmt.Sprintf("delete() expects two arguments: filePath and callback, but got %d",
 				len(in)),
 		}
 	}
 
-	path, isPathString := in[0].(StringValue)
+	filePath, isFilePathString := in[0].(StringValue)
 	cb, isCbFunction := in[1].(FunctionValue)
-	if !isPathString || !isCbFunction {
+	if !isFilePathString || !isCbFunction {
 		return nil, Err{
 			ErrRuntime,
 			"unsupported combination of argument types in delete()",
@@ -387,7 +394,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 
 	ctx.ExecListener(func() {
 		// delete
-		err := os.Remove(path.val)
+		err := os.Remove(filePath.val)
 		if err != nil {
 			evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{

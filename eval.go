@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -960,7 +961,9 @@ type Context struct {
 	Listeners   sync.WaitGroup
 	ValueStream chan Value
 	ErrorStream chan Err
-	DebugOpts   map[string]bool
+	// always-absolute path to current working dir (of module system)
+	Cwd       string
+	DebugOpts map[string]bool
 
 	// only a single function may write to the stack frames
 	//	at any moment.
@@ -979,7 +982,19 @@ func (ctx *Context) Init() {
 		parent: nil,
 		vt:     ValueTable{},
 	}
+	ctx.resetWd()
 	ctx.LoadEnvironment()
+}
+
+func (ctx *Context) resetWd() {
+	var err error
+	ctx.Cwd, err = os.Getwd()
+	if err != nil {
+		logErrf(
+			ErrSystem,
+			"could not identify current working directory\n\t-> %s", err,
+		)
+	}
 }
 
 func (ctx *Context) Eval(
@@ -1067,10 +1082,21 @@ func (ctx *Context) ExecStream() (chan<- rune, <-chan Err) {
 	return input, combine(e1, e2, ctx.ErrorStream)
 }
 
-func (ctx *Context) ExecFile(path string) error {
+func (ctx *Context) ExecFile(filePath string) error {
+	if !path.IsAbs(filePath) {
+		logErrf(
+			ErrAssert,
+			"Context::ExecFile expected an absolute path, got something else",
+		)
+	}
+
+	// update Cwd for any potential load() calls this file will make
+	ctx.Cwd = path.Dir(filePath)
+	defer ctx.resetWd()
+
 	input, errors := ctx.ExecStream()
 
-	file, err := os.Open(path)
+	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {
 		close(input)
@@ -1096,7 +1122,7 @@ func (ctx *Context) ExecFile(path string) error {
 	}()
 	go func() {
 		for e := range errors {
-			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", path)+e.message)
+			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", filePath)+e.message)
 			wg.Done()
 			return
 		}
