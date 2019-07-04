@@ -962,8 +962,9 @@ type Context struct {
 	ValueStream chan Value
 	ErrorStream chan Err
 	// always-absolute path to current working dir (of module system)
-	Cwd       string
-	DebugOpts map[string]bool
+	Cwd         string
+	Permissions PermissionsConfig
+	Debug       DebugConfig
 
 	// only a single function may write to the stack frames
 	//	at any moment.
@@ -971,6 +972,19 @@ type Context struct {
 	// only a single round of inputs can be working through the
 	//	context (lex/parse/eval) at any time.
 	sessionLock sync.Mutex
+}
+
+// PermissionsConfig defines Context's permissions to
+//	operating system interfaces
+type PermissionsConfig struct {
+	Read  bool
+	Write bool
+}
+
+type DebugConfig struct {
+	Lex   bool
+	Parse bool
+	Dump  bool
 }
 
 func (ctx *Context) Dump() {
@@ -1075,9 +1089,9 @@ func (ctx *Context) ExecStream() (chan<- rune, <-chan Err) {
 	ctx.ValueStream = make(chan Value)
 	ctx.ErrorStream = make(chan Err)
 
-	go Tokenize(input, tokens, e1, ctx.DebugOpts["lex"])
-	go Parse(tokens, nodes, e2, ctx.DebugOpts["parse"])
-	go ctx.Eval(nodes, ctx.DebugOpts["dump"])
+	go Tokenize(input, tokens, e1, ctx.Debug.Lex)
+	go Parse(tokens, nodes, e2, ctx.Debug.Parse)
+	go ctx.Eval(nodes, ctx.Debug.Dump)
 
 	return input, combine(e1, e2, ctx.ErrorStream)
 }

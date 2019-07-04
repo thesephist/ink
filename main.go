@@ -43,6 +43,11 @@ func main() {
 		flag.PrintDefaults()
 	}
 
+	// permission flags
+	noRead := flag.Bool("no-read", false, "Silently fail all read operations")
+	noWrite := flag.Bool("no-write", false, "Silently fail all write operations")
+	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write")
+
 	// cli arguments
 	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
 	debugLexer := flag.Bool("debug-lex", false, "Log lexer output")
@@ -72,10 +77,14 @@ func main() {
 	// execution context
 	ctx := Context{}
 	ctx.Init()
-	ctx.DebugOpts = map[string]bool{
-		"lex":   *debugLexer || *verbose,
-		"parse": *debugParser || *verbose,
-		"dump":  *dump || *verbose,
+	ctx.Permissions = PermissionsConfig{
+		Read:  !*noRead && !*isolate,
+		Write: !*noWrite && !*isolate,
+	}
+	ctx.Debug = DebugConfig{
+		Lex:   *debugLexer || *verbose,
+		Parse: *debugParser || *verbose,
+		Dump:  *dump || *verbose,
 	}
 
 	if *repl {

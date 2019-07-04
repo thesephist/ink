@@ -26,8 +26,7 @@
 - [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
     - `prime.ink` is also a good candidate.
-- [ ] `--no-net`, `--no-read`, `--no-write` flags in the CLI to restrict those runtime functions to error (net should block any network restrictions). `--isolate` should turn all three of these on. Pass those flags to load Environment as a `EnvPermissions` struct.
-    - Make a note of this isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
+- Make a note of permissions isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
 - [ ] Think about adding an `exec` builtin alognside the `--no-exec` flag to add ability to execute arbitrary things on the system using `os/exec` pkg.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
 
@@ -40,8 +39,7 @@
 
 ## Standard library / utilities
 
-- [ ] Finish builtin function `listen()`
-    - Let's start with http, for practicality's sake.
+- [ ] Finish builtin function `listen()` with `--no-net` respected. Let's start with http, for practicality's sake.
 - [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.

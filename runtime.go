@@ -83,7 +83,8 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 
 			inner := Context{}
 			inner.Init()
-			inner.DebugOpts = ctx.DebugOpts
+			inner.Permissions = ctx.Permissions
+			inner.Debug = ctx.Debug
 
 			err := inner.ExecFile(importPath)
 			if err != nil {
@@ -212,6 +213,26 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 	}
 
 	ctx.ExecListener(func() {
+		// short-circuit out if no read permission
+		if !ctx.Permissions.Read {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"data"},
+					"data": CompositeValue{
+						entries: ValueTable{},
+					},
+				},
+			})
+			if err != nil {
+				ctx.ErrorStream <- Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to read()\n\t-> %s",
+						err.Error()),
+				}
+			}
+			return
+		}
+
 		// open
 		file, err := os.OpenFile(filePath.val, os.O_RDONLY, 0644)
 		defer file.Close()
@@ -300,6 +321,22 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	}
 
 	ctx.ExecListener(func() {
+		if !ctx.Permissions.Write {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"end"},
+				},
+			})
+			if err != nil {
+				ctx.ErrorStream <- Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to write()\n\t-> %s",
+						err.Error()),
+				}
+			}
+			return
+		}
+
 		// open
 		var flag int
 		if offset.val == -1 {
@@ -393,6 +430,22 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	}
 
 	ctx.ExecListener(func() {
+		if !ctx.Permissions.Write {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"end"},
+				},
+			})
+			if err != nil {
+				ctx.ErrorStream <- Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to delete()\n\t-> %s",
+						err.Error()),
+				}
+			}
+			return
+		}
+
 		// delete
 		err := os.Remove(filePath.val)
 		if err != nil {
@@ -416,7 +469,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		if err != nil {
 			ctx.ErrorStream <- Err{
 				ErrRuntime,
-				fmt.Sprintf("error in callback to write()\n\t-> %s",
+				fmt.Sprintf("error in callback to delete()\n\t-> %s",
 					err.Error()),
 			}
 			return
