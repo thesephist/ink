@@ -1,8 +1,6 @@
 ` test suite for logical and bitwise operators `
 
-EOL := '
-'
-log := s => out(s + EOL)
+log := load('std').log
 
 allpass := [true]
 

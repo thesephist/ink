@@ -1,6 +1,6 @@
 ` the ink standard library `
 
-log := str => out(str + '
+log := val => out(string(val) + '
 ')
 
 scan := callback => (

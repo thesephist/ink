@@ -1,11 +1,13 @@
 ` ink fizzbuzz implementation `
 
+log := load('std').log
+
 fb := n => (
 	[n % 3, n % 5] :: {
 		[0, 0] -> log('FizzBuzz')
 		[0, _] -> log('Fizz')
 		[_, 0] -> log('Buzz')
-		_ -> log(string(n))
+		_ -> log(n)
 	}
 )
 

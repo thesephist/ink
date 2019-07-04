@@ -1,7 +1,6 @@
-` util `
-EOL := '
-'
-log := s => out(s + EOL)
+` testing that Ink respects order of operations `
+
+log := load('std').log
 
 allpass := [true]
 

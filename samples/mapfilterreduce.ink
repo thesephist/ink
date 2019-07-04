@@ -1,5 +1,7 @@
 ` map, filter, reduce demos `
 
+log := load('std').log
+
 list := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 log('Mapped 1-10 list, squared

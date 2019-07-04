@@ -1,6 +1,8 @@
 ` basic key-value storage library
 	built on composite values`
 
+log := load('std').log
+
 makeGet := store => (
 	key => store.(key)
 )

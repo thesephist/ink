@@ -1,5 +1,7 @@
 ` fibonacci sequence generator `
 
+log := load('std').log
+
 ` naive implementation `
 fib := n => (
 	n :: {
@@ -24,5 +26,5 @@ fibMemo := n => (
 )
 
 log('fib(10) is 55:')
-out('Naive solution: '), log(string(fib(10)))
-out('Dynamic solution: '), log(string(fibMemo(10)))
+out('Naive solution: '), log(fib(10))
+out('Dynamic solution: '), log(fibMemo(10))

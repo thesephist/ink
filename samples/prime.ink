@@ -1,5 +1,7 @@
 ` prime sieve `
 
+log := load('std').log
+
 ` is a single number prime? `
 isPrime := n => (
 	` is n coprime with nums < p? `
@@ -26,10 +28,6 @@ buildConsecutive := max => (
 	})(2)
 	acc
 )
-
-` utility function for printing things `
-log := s => out(s + '
-')
 
 ` primes under N are numbers 2 .. N, filtered by isPrime `
 getPrimesUnder := n => filter(buildConsecutive(n), isPrime)

@@ -1,5 +1,7 @@
 ` implementation of Newton's method to square root `
 
+log := load('std').log
+
 ` higher order function that returns a root finder
 	with the given degree of precision threshold `
 makeNewtonRoot := threshold => (
@@ -23,7 +25,5 @@ guess := (target, n) => (n + target / n) / 2
 	ink prints numbers to 8 decimal digits`
 root := makeNewtonRoot(0.00000001)
 
-out('root of 2 (~1.4142): ' + string(root(2)) + '
-')
-out('root of 1000 (~31.6): ' + string(root(1000)) + '
-')
+log('root of 2 (~1.4142): ' + string(root(2)))
+log('root of 1000 (~31.6): ' + string(root(1000)))

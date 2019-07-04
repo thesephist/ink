@@ -1,5 +1,7 @@
 ` Monte-Carlo estimation of pi using random number generator `
 
+log := load('std').log
+
 COUNT := 50000
 
 ` pick a random point in [0, 1) in x and y `

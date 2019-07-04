@@ -1,5 +1,7 @@
 ` let's graph the sine / cosine functions in Ink! `
 
+log := load('std').log
+
 ` repeat a string n times `
 repeat := (s, n) => n :: {
 	0 -> ''

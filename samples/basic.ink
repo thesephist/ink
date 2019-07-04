@@ -1,3 +1,6 @@
+` first program written in Ink, kept for
+	historical reasons `
+
 fn1 := n => log('Hello, World!')
 
 fn2 := () => (

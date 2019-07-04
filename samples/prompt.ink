@@ -1,5 +1,7 @@
 ` scan() / in() based prompt demo `
 
+log := load('std').log
+
 ask := (question, cb) => (
 	log(question)
 	scan(cb)

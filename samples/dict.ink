@@ -1,5 +1,7 @@
 ` composite (dict) `
 
+log := load('std').log
+
 obj := {
 	5: 'fifth item',
 	hi: 'hi text',
@@ -9,7 +11,7 @@ obj := {
 
 log(obj.hi)
 log(obj.hello)
-log(string(obj.what3))
+log(obj.what3)
 log(obj.5)
 
 
@@ -17,7 +19,7 @@ log(obj.5)
 
 arr := [3, 2, 1, 'four']
 
-log(string(arr.2))
+log(arr.2)
 log(arr.3)
 
 ` property access and assignment `
@@ -25,6 +27,6 @@ log(arr.3)
 main := () => (
 	obj.hi := 8
 	out('should be 8: ')
-	log(string(obj.hi))
+	log(obj.hi)
 )
 main()

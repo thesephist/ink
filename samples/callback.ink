@@ -1,3 +1,7 @@
+` simple callback / closure test `
+
+log := load('std').log
+
 parent := num => (
 	log('running parent with ' + string(num))
 	num2 => (
