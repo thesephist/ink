@@ -134,11 +134,11 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.Errors <- Err{
+				ctx.Engine.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to in()\n\t-> %s",
 						err.Error()),
-				}
+				})
 				return
 			}
 
@@ -147,11 +147,11 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 					break
 				}
 			} else {
-				ctx.Engine.Errors <- Err{
+				ctx.Engine.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("callback to in() should return a boolean, but got %s",
 						rv.String()),
-				}
+				})
 				return
 			}
 		}
@@ -162,11 +162,11 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.Engine.Errors <- Err{
+			ctx.Engine.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to in()\n\t-> %s",
 					err.Error()),
-			}
+			})
 			return
 		}
 	})
@@ -229,11 +229,11 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.Errors <- Err{
+				ctx.Engine.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to read()\n\t-> %s",
 						err.Error()),
-				}
+				})
 			}
 			return
 		}
@@ -284,11 +284,11 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.Engine.Errors <- Err{
+			ctx.Engine.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to read()\n\t-> %s",
 					err.Error()),
-			}
+			})
 			return
 		}
 	})
@@ -333,11 +333,11 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.Errors <- Err{
+				ctx.Engine.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to write()\n\t-> %s",
 						err.Error()),
-				}
+				})
 			}
 			return
 		}
@@ -404,11 +404,11 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.Engine.Errors <- Err{
+			ctx.Engine.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to write()\n\t-> %s",
 					err.Error()),
-			}
+			})
 			return
 		}
 	})
@@ -442,11 +442,11 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.Errors <- Err{
+				ctx.Engine.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to delete()\n\t-> %s",
 						err.Error()),
-				}
+				})
 			}
 			return
 		}
@@ -472,11 +472,11 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.Engine.Errors <- Err{
+			ctx.Engine.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to delete()\n\t-> %s",
 					err.Error()),
-			}
+			})
 			return
 		}
 	})
@@ -529,7 +529,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 			_, err := evalInkFunction(in[1], false)
 			if err != nil {
 				if e, isErr := err.(Err); isErr {
-					ctx.Engine.Errors <- e
+					ctx.Engine.LogErr(e)
 				} else {
 					// should never happen
 				}

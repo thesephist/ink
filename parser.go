@@ -96,7 +96,7 @@ func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 func Parse(
 	tokenStream <-chan Tok,
 	nodes chan<- Node,
-	errors chan<- Err,
+	fatalError bool,
 	debugParser bool,
 ) {
 	defer close(nodes)
@@ -114,7 +114,11 @@ func Parse(
 		if err != nil {
 			e, isErr := err.(Err)
 			if isErr {
-				errors <- e
+				if fatalError {
+					logErr(e.reason, e.message)
+				} else {
+					logSafeErr(e.reason, e.message)
+				}
 			} else {
 				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
 					err.Error())

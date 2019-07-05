@@ -111,7 +111,7 @@ func (tok Tok) String() string {
 func Tokenize(
 	input <-chan rune,
 	tokens chan<- Tok,
-	errors chan<- Err,
+	fatalError bool,
 	debugLexer bool,
 ) {
 	defer close(tokens)
@@ -157,9 +157,14 @@ func Tokenize(
 				if unicode.IsDigit(rune(cbuf[0])) {
 					f, err := strconv.ParseFloat(cbuf, 64)
 					if err != nil {
-						errors <- Err{
+						e := Err{
 							ErrSyntax,
 							fmt.Sprintf("parsing error in number at %d:%d, %s", lineNo, colNo, err.Error()),
+						}
+						if fatalError {
+							logErr(e.reason, e.message)
+						} else {
+							logSafeErr(e.reason, e.message)
 						}
 					}
 					simpleCommit(Tok{

@@ -959,17 +959,13 @@ func (sh *StackFrame) String() string {
 type Engine struct {
 	Listeners sync.WaitGroup
 
+	FatalError  bool
 	Permissions PermissionsConfig
 	Debug       DebugConfig
 
 	// only a single function may write to the stack frames
 	//	at any moment.
 	evalLock sync.Mutex
-	Errors   chan Err
-}
-
-func (eng *Engine) Init() {
-	eng.Errors = make(chan Err)
 }
 
 func (eng *Engine) CreateContext() *Context {
@@ -985,6 +981,14 @@ func (eng *Engine) CreateContext() *Context {
 	ctx.LoadEnvironment()
 
 	return ctx
+}
+
+func (eng *Engine) LogErr(e Err) {
+	if eng.FatalError {
+		logErr(e.reason, e.message)
+	} else {
+		logSafeErr(e.reason, e.message)
+	}
 }
 
 type Context struct {
@@ -1030,7 +1034,7 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 		val, err = node.Eval(ctx.Frame, false)
 		if err != nil {
 			if e, isErr := err.(Err); isErr {
-				ctx.Engine.Errors <- e
+				ctx.Engine.LogErr(e)
 			}
 			return
 		}
@@ -1060,8 +1064,8 @@ func (ctx *Context) ExecStream(input <-chan rune) <-chan func() (Value, error) {
 
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
-	go Tokenize(input, tokens, eng.Errors, eng.Debug.Lex)
-	go Parse(tokens, nodes, eng.Errors, eng.Debug.Parse)
+	go Tokenize(input, tokens, eng.FatalError, eng.Debug.Lex)
+	go Parse(tokens, nodes, eng.FatalError, eng.Debug.Parse)
 
 	resolver := make(chan func() (Value, error), 1)
 	eng.Listeners.Add(1)

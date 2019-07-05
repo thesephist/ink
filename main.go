@@ -75,6 +75,7 @@ func main() {
 
 	// execution environment
 	eng := Engine{
+		FatalError: false,
 		Permissions: PermissionsConfig{
 			Read:  !*noRead && !*isolate,
 			Write: !*noWrite && !*isolate,
@@ -85,15 +86,9 @@ func main() {
 			Dump:  *dump || *verbose,
 		},
 	}
-	eng.Init()
 
 	if *repl {
 		ctx := eng.CreateContext()
-		go func() {
-			for e := range eng.Errors {
-				logSafeErr(e.reason, e.message)
-			}
-		}()
 
 		// run interactively in a repl
 		reader := bufio.NewReader(os.Stdin)
@@ -142,11 +137,7 @@ func main() {
 		//	is unreachable
 	} else if *eval != "" {
 		ctx := eng.CreateContext()
-		go func() {
-			for e := range eng.Errors {
-				logErr(e.reason, e.message)
-			}
-		}()
+		eng.FatalError = true
 
 		input := make(chan rune)
 		ctx.ExecStream(input)
@@ -159,12 +150,6 @@ func main() {
 		eng.Listeners.Wait()
 	} else if len(files) > 0 {
 		// read from file
-		go func() {
-			for e := range eng.Errors {
-				logSafeErr(e.reason, e.message)
-			}
-		}()
-
 		for _, filePath := range files {
 			// execution context is one-per-file
 			ctx := eng.CreateContext()
@@ -182,11 +167,7 @@ func main() {
 		}
 	} else {
 		ctx := eng.CreateContext()
-		go func() {
-			for e := range eng.Errors {
-				logErr(e.reason, e.message)
-			}
-		}()
+		eng.FatalError = true
 
 		// read from stdin
 		input := make(chan rune)
