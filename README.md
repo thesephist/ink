@@ -42,7 +42,7 @@ fb := n => (
         [0, 0] -> log('FizzBuzz')
         [0, _] -> log('Fizz')
         [_, 0] -> log('Buzz')
-        _ -> log(string(n))
+        _ -> log(n)
     }
 )
 

@@ -8,7 +8,6 @@
     2. writing web code
     3. having a second independent implementation of the language
     - If we have ink in go and JS we can fuzz both together which allows us to also test for correctness better
-- [ ] Write tests for parser/lexer/evaler separately to catch regressions more easily
 - [ ] Add godoc.
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
@@ -17,17 +16,16 @@
     - Binary Search Tree
     - Computing and rendering the Mendelbrot set.
     - Project Euler solutions?
+- [ ] Document the Go API / bindings
 
 
 ## Interpreter
 
-- [ ] `func (n Node) prettyString() string` to pretty-print AST
-    - Use this to implement `ink -fmt <file>.ink`
+- Make a note of permissions isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
+- [ ] `func (n Node) prettyString() string` to pretty-print AST, use this to implement `ink -fmt <file>.ink`
 - [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
     - `prime.ink` is also a good candidate.
-- Make a note of permissions isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
-- [ ] Think about adding an `exec` builtin alognside the `--no-exec` flag to add ability to execute arbitrary things on the system using `os/exec` pkg.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
 - [ ] Errors should print a stacktrace (elided if tail recursed)
 
@@ -51,6 +49,7 @@
 
 - [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
 - [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
+- [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.
 
 
 ## Potential exampels / projects

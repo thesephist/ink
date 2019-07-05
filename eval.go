@@ -158,10 +158,6 @@ func (v CompositeValue) Equals(other Value) bool {
 	}
 }
 
-// XXX: for now, our GC heuristic is simply to dump/free
-//	frames from functions that are no longer referenced in the
-//	main context's frame, and keep all other frames, recursively descending.
-// This is conservative and inefficient, but will get us started.
 type FunctionValue struct {
 	defn        *FunctionLiteralNode
 	parentFrame *StackFrame
@@ -631,10 +627,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case EqualOp:
 		return BooleanValue{leftValue.Equals(rightValue)}, nil
 	case EqRefOp:
-		// XXX: this is probably not 100% true. To make a 100% faithful
-		//	implementation would require us to roll our own
-		//	name table, which isn't a short-term todo item.
-		return BooleanValue{leftValue == rightValue}, nil
+		return BooleanValue{&leftValue == &rightValue}, nil
 	}
 
 	logErrf(ErrAssert, "unknown binary operator %s", n.String())
@@ -752,9 +745,9 @@ func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			// match expression clauses are tail call optimized,
 			//	so return a maybe ThunkValue
-
 			return rv, nil
 		}
 	}
