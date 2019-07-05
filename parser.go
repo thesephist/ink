@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// Node represents an abstract syntax tree (AST) node in an Ink program.
 type Node interface {
 	String() string
 	Eval(*StackFrame, bool) (Value, error)
@@ -93,6 +94,8 @@ func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 	return nil
 }
 
+// Parse concurrently transforms a stream of Tok (tokens) to Node (AST nodes).
+//	This implementation uses recursive descent parsing.
 func Parse(
 	tokenStream <-chan Tok,
 	nodes chan<- Node,

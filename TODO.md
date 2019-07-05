@@ -8,7 +8,6 @@
     2. writing web code
     3. having a second independent implementation of the language
     - If we have ink in go and JS we can fuzz both together which allows us to also test for correctness better
-- [ ] Add godoc.
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
 - [ ] Set up travis ci for Ink, and for now make it run run-all and then the test-all script. If zero exit value, it worked.

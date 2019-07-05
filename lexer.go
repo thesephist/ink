@@ -76,6 +76,8 @@ func (sp *position) String() string {
 	return fmt.Sprintf("%d:%d", sp.startLine, sp.startCol)
 }
 
+// Tok is the monomorphic struct representing all Ink program tokens
+//	in the lexer.
 type Tok struct {
 	kind int
 	// str and num are both present to implement Tok
@@ -108,6 +110,7 @@ func (tok Tok) String() string {
 	}
 }
 
+// Tokenize takes a stream of characters and concurrently transforms it into a stream of Tok (tokens).
 func Tokenize(
 	input <-chan rune,
 	tokens chan<- Tok,

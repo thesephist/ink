@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// NativeFunctionValue represents a function whose implementation is written
+//	in Go and built-into the runtime.
 type NativeFunctionValue struct {
 	name string
 	exec func(*Context, []Value) (Value, error)
@@ -29,6 +31,7 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 	}
 }
 
+// LoadEnvironment loads all builtins (functions and constants) to a given Context.
 func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("load", inkLoad)
 
@@ -65,6 +68,7 @@ func (ctx *Context) LoadEnvironment() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+// LoadFunc loads a single Go-implemented function into a Context.
 func (ctx *Context) LoadFunc(
 	name string,
 	exec func(*Context, []Value) (Value, error),
