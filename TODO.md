@@ -11,16 +11,14 @@
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
 - [ ] Set up travis ci for Ink, and for now make it run run-all and then the test-all script. If zero exit value, it worked.
-- [ ] implement various data structures and algorithms in Ink/samples
+- [ ] Implement various data structures and algorithms in Ink/samples
     - Binary Search Tree
     - Computing and rendering the Mendelbrot set.
     - Project Euler solutions?
-- [ ] Document the Go API / bindings
 
 
 ## Interpreter
 
-- Make a note of permissions isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
 - [ ] `func (n Node) prettyString() string` to pretty-print AST, use this to implement `ink -fmt <file>.ink`
 - [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
