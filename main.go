@@ -88,8 +88,12 @@ func main() {
 	eng.Init()
 
 	if *repl {
-		// execution context
 		ctx := eng.CreateContext()
+		go func() {
+			for e := range eng.Errors {
+				logSafeErr(e.reason, e.message)
+			}
+		}()
 
 		// run interactively in a repl
 		reader := bufio.NewReader(os.Stdin)
@@ -116,18 +120,7 @@ func main() {
 
 			default:
 				input := make(chan rune)
-				ctx.ExecStream(input)
-
-				go func() {
-					for v := range eng.ValueStream {
-						logInteractive(v.String())
-					}
-				}()
-				go func() {
-					for e := range eng.ErrorStream {
-						logSafeErr(e.reason, e.message)
-					}
-				}()
+				resolver := ctx.ExecStream(input)
 
 				for _, char := range text {
 					input <- char
@@ -136,29 +129,27 @@ func main() {
 
 				// wait for main Context to finish executing before
 				//	yielding to the repl loop
-				eng.Listeners.Wait()
+				val, err := (<-resolver)()
+				if err != nil {
+					// err handled by the error stream
+				} else if val != nil {
+					logInteractive(val.String())
+				}
 			}
 		}
 
 		// no need to wait for eng.Listeners, since this part here
 		//	is unreachable
 	} else if *eval != "" {
-		// execution context
 		ctx := eng.CreateContext()
-
-		input := make(chan rune)
-		ctx.ExecStream(input)
-
 		go func() {
-			for range eng.ValueStream {
-				// continue
-			}
-		}()
-		go func() {
-			for e := range eng.ErrorStream {
+			for e := range eng.Errors {
 				logErr(e.reason, e.message)
 			}
 		}()
+
+		input := make(chan rune)
+		ctx.ExecStream(input)
 
 		for _, char := range *eval {
 			input <- char
@@ -168,6 +159,12 @@ func main() {
 		eng.Listeners.Wait()
 	} else if len(files) > 0 {
 		// read from file
+		go func() {
+			for e := range eng.Errors {
+				logSafeErr(e.reason, e.message)
+			}
+		}()
+
 		for _, filePath := range files {
 			// execution context is one-per-file
 			ctx := eng.CreateContext()
@@ -184,23 +181,16 @@ func main() {
 			eng.Listeners.Wait()
 		}
 	} else {
-		// execution context
 		ctx := eng.CreateContext()
+		go func() {
+			for e := range eng.Errors {
+				logErr(e.reason, e.message)
+			}
+		}()
 
 		// read from stdin
 		input := make(chan rune)
 		ctx.ExecStream(input)
-
-		go func() {
-			for range eng.ValueStream {
-				// continue
-			}
-		}()
-		go func() {
-			for e := range eng.ErrorStream {
-				logErr(e.reason, e.message)
-			}
-		}()
 
 		inputReader := bufio.NewReader(os.Stdin)
 		for {

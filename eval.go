@@ -964,14 +964,12 @@ type Engine struct {
 
 	// only a single function may write to the stack frames
 	//	at any moment.
-	evalLock    sync.Mutex
-	ValueStream chan Value
-	ErrorStream chan Err
+	evalLock sync.Mutex
+	Errors   chan Err
 }
 
 func (eng *Engine) Init() {
-	eng.ValueStream = make(chan Value)
-	eng.ErrorStream = make(chan Err)
+	eng.Errors = make(chan Err)
 }
 
 func (eng *Engine) CreateContext() *Context {
@@ -994,9 +992,6 @@ type Context struct {
 	Cwd    string
 	Engine *Engine
 	Frame  *StackFrame
-
-	ValueStream chan Value
-	ErrorStream chan Err
 }
 
 // PermissionsConfig defines Context's permissions to
@@ -1027,31 +1022,25 @@ func (ctx *Context) resetWd() {
 	}
 }
 
-func (ctx *Context) Eval(
-	nodes <-chan Node,
-	dumpFrame bool,
-) {
+func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err error) {
 	ctx.Engine.evalLock.Lock()
 	defer ctx.Engine.evalLock.Unlock()
 
 	for node := range nodes {
-		val, err := node.Eval(ctx.Frame, false)
+		val, err = node.Eval(ctx.Frame, false)
 		if err != nil {
-			e, isErr := err.(Err)
-			if isErr {
-				ctx.ErrorStream <- e
-			} else {
-				logErrf(ErrAssert, "error raised that was not of type Err\n\t-> %s",
-					err.Error())
+			if e, isErr := err.(Err); isErr {
+				ctx.Engine.Errors <- e
 			}
 			return
 		}
-		ctx.ValueStream <- val
 	}
 
 	if dumpFrame {
 		ctx.Dump()
 	}
+
+	return
 }
 
 func (ctx *Context) ExecListener(callback func()) {
@@ -1066,45 +1055,26 @@ func (ctx *Context) ExecListener(callback func()) {
 	}()
 }
 
-func (ctx *Context) ExecStream(input <-chan rune) {
-	// set up streams for this round of eval
-	ctx.ValueStream = ctx.Engine.ValueStream
-	ctx.ErrorStream = ctx.Engine.ErrorStream
-	// TODO: I think we can just not have Context::*Stream
-	// TODO: rename Value/ErrorStream to just Values/Errors
-	// ctx.ValueStream = make(chan Value)
-	// ctx.ErrorStream = make(chan Err)
-	// go func() {
-	// 	for v := range ctx.ValueStream {
-	// 		ctx.Engine.ValueStream <- v
-	// 	}
-	// }()
-	// go func() {
-	// 	for e := range ctx.ErrorStream {
-	// 		ctx.Engine.ErrorStream <- e
-	// 	}
-	// }()
+func (ctx *Context) ExecStream(input <-chan rune) <-chan func() (Value, error) {
+	eng := ctx.Engine
 
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
-	go Tokenize(input, tokens, ctx.ErrorStream, ctx.Engine.Debug.Lex)
-	go Parse(tokens, nodes, ctx.ErrorStream, ctx.Engine.Debug.Parse)
+	go Tokenize(input, tokens, eng.Errors, eng.Debug.Lex)
+	go Parse(tokens, nodes, eng.Errors, eng.Debug.Parse)
 
-	ctx.Engine.Listeners.Add(1)
+	resolver := make(chan func() (Value, error), 1)
+	eng.Listeners.Add(1)
 	go func() {
-		defer ctx.Engine.Listeners.Done()
+		defer eng.Listeners.Done()
 
-		ctx.Eval(nodes, ctx.Engine.Debug.Dump)
-
-		// lock around swapping Context streams
-		ctx.Engine.evalLock.Lock()
-		defer ctx.Engine.evalLock.Unlock()
-
-		// close(ctx.ValueStream)
-		// close(ctx.ErrorStream)
-		// ctx.ValueStream = ctx.Engine.ValueStream
-		// ctx.ErrorStream = ctx.Engine.ErrorStream
+		val, err := ctx.Eval(nodes, eng.Debug.Dump)
+		resolver <- func() (Value, error) {
+			return val, err
+		}
 	}()
+
+	return resolver
 }
 
 func (ctx *Context) ExecFile(filePath string) error {
@@ -1121,18 +1091,6 @@ func (ctx *Context) ExecFile(filePath string) error {
 	input := make(chan rune)
 	defer close(input)
 	ctx.ExecStream(input)
-
-	go func() {
-		for range ctx.ValueStream {
-			// continue
-		}
-	}()
-	go func() {
-		for e := range ctx.ErrorStream {
-			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", filePath)+e.message)
-			return
-		}
-	}()
 
 	file, err := os.Open(filePath)
 	defer file.Close()

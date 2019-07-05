@@ -1,13 +1,18 @@
 ` filesystem i/o demo `
 
+SOURCE := 'main.go'
+TARGET := 'sub.go'
+
 ` std imports `
 std := load('std')
 
 log := std.log
 slice := std.slice
 decode := std.decode
+rf := std.readFile
+wf := std.writeFile
 
-` we're going to copy README.md to WRITEME.md,
+` we're going to copy main.go to sub.go,
 	and we're going to buffer it `
 BUFSIZE := 512 ` bytes `
 
@@ -35,13 +40,26 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 	}
 ))
 
-` copy README.md to WRITEME.md `
-copy('README.md', 'WRITEME.md')
+` copy main.go to sub.go`
+copy(SOURCE, TARGET)
 log('copy scheduled.')
 
 ` delete the file, since we don't need it `
-wait(2, () => delete('WRITEME.md', evt => evt.type :: {
-	'error' -> log('Encountered an error deleting: ' + evt.message)
-	'end' -> log('Safely deleted the generated file')
-}))
-log('delete scheduled.')
+log('Delete scheduled at ' + string(time()))
+wait(4, () => (
+	log('Delete fired at ' + string(time()))
+	delete('sub.go', evt => evt.type :: {
+		'error' -> log('Encountered an error deleting: ' + evt.message)
+		'end' -> log('Safely deleted the generated file')
+	}))
+)
+
+` as test, schedule a copy-back task in between copy and delete `
+log('Copy-back scheduled at ' + string(time()))
+wait(2, () => (
+	log('Copy-back fired at ' + string(time()))
+	rf(TARGET, data => data :: {
+		() -> log('Error copying-back WRITEME.md')
+		_ -> wf(SOURCE, data, () => log('Copy-back done!'))
+	})
+))

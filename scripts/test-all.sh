@@ -7,6 +7,6 @@ go run . -input samples/std.ink \
 
 go run . -input samples/io.ink
 
-echo 'Should say 14:'
+echo 'Should say hi 14:'
 go run . -eval "f := n => () => out('say hi ' + string(n)), f(14)()"
 echo ''

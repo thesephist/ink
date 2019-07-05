@@ -85,9 +85,10 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 			childCtx := ctx.Engine.CreateContext()
 
 			ctx.Engine.evalLock.Unlock()
+			defer ctx.Engine.evalLock.Lock()
+
 			err := childCtx.ExecFile(importPath)
 			// Lock() blocks until file is eval'd
-			ctx.Engine.evalLock.Lock()
 			if err != nil {
 				return nil, Err{
 					ErrSystem,
@@ -133,7 +134,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.ErrorStream <- Err{
+				ctx.Engine.Errors <- Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to in()\n\t-> %s",
 						err.Error()),
@@ -146,7 +147,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 					break
 				}
 			} else {
-				ctx.ErrorStream <- Err{
+				ctx.Engine.Errors <- Err{
 					ErrRuntime,
 					fmt.Sprintf("callback to in() should return a boolean, but got %s",
 						rv.String()),
@@ -161,7 +162,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.ErrorStream <- Err{
+			ctx.Engine.Errors <- Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to in()\n\t-> %s",
 					err.Error()),
@@ -228,7 +229,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.ErrorStream <- Err{
+				ctx.Engine.Errors <- Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to read()\n\t-> %s",
 						err.Error()),
@@ -283,7 +284,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.ErrorStream <- Err{
+			ctx.Engine.Errors <- Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to read()\n\t-> %s",
 					err.Error()),
@@ -332,7 +333,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.ErrorStream <- Err{
+				ctx.Engine.Errors <- Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to write()\n\t-> %s",
 						err.Error()),
@@ -403,7 +404,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.ErrorStream <- Err{
+			ctx.Engine.Errors <- Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to write()\n\t-> %s",
 					err.Error()),
@@ -441,7 +442,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.ErrorStream <- Err{
+				ctx.Engine.Errors <- Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to delete()\n\t-> %s",
 						err.Error()),
@@ -471,7 +472,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.ErrorStream <- Err{
+			ctx.Engine.Errors <- Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to delete()\n\t-> %s",
 					err.Error()),
@@ -528,7 +529,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 			_, err := evalInkFunction(in[1], false)
 			if err != nil {
 				if e, isErr := err.(Err); isErr {
-					ctx.ErrorStream <- e
+					ctx.Engine.Errors <- e
 				} else {
 					// should never happen
 				}
