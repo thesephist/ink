@@ -241,10 +241,6 @@ func unwrapThunk(v Value) (Value, error) {
 	return v, nil
 }
 
-func (n UnaryExprNode) String() string {
-	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
-}
-
 func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	switch n.operator.kind {
 	case NegationOp:
@@ -268,44 +264,6 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 
 	logErrf(ErrAssert, "unrecognized unary operator %s", n)
 	return nil, nil
-}
-
-func (n BinaryExprNode) String() string {
-	var op = "??"
-	switch n.operator.kind {
-	case AddOp:
-		op = "+"
-	case SubtractOp:
-		op = "-"
-	case MultiplyOp:
-		op = "*"
-	case DivideOp:
-		op = "/"
-	case ModulusOp:
-		op = "%"
-	case GreaterThanOp:
-		op = ">"
-	case LessThanOp:
-		op = "<"
-	case EqualOp:
-		op = "="
-	case EqRefOp:
-		op = "is"
-	case LogicalAndOp:
-		op = "&"
-	case LogicalOrOp:
-		op = "|"
-	case LogicalXorOp:
-		op = "^"
-	case DefineOp:
-		op = ":="
-	case AccessorOp:
-		op = "."
-	}
-	return fmt.Sprintf("Binary (%s) %s (%s)",
-		n.leftOperand.String(),
-		op,
-		n.rightOperand.String())
 }
 
 func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
@@ -650,18 +608,6 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	return nil, err
 }
 
-func (n FunctionCallNode) String() string {
-	if len(n.arguments) == 0 {
-		return fmt.Sprintf("Call (%s) on ()", n.function)
-	} else {
-		args := n.arguments[0].String()
-		for _, a := range n.arguments[1:] {
-			args += ", " + a.String()
-		}
-		return fmt.Sprintf("Call (%s) on (%s)", n.function, args)
-	}
-}
-
 func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	fn, err := n.function.Eval(frame, false)
 	if err != nil {
@@ -719,29 +665,9 @@ func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 	}
 }
 
-func (n MatchClauseNode) String() string {
-	return fmt.Sprintf("Clause (%s) -> (%s)",
-		n.target.String(),
-		n.expression.String())
-}
-
 func (n MatchClauseNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval a MatchClauseNode")
 	return nil, nil
-}
-
-func (n MatchExprNode) String() string {
-	if len(n.clauses) == 0 {
-		return fmt.Sprintf("Match on (%s) to {}", n.condition.String())
-	} else {
-		clauses := n.clauses[0].String()
-		for _, c := range n.clauses[1:] {
-			clauses += ", " + c.String()
-		}
-		return fmt.Sprintf("Match on (%s) to {%s}",
-			n.condition.String(),
-			clauses)
-	}
 }
 
 func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -771,18 +697,6 @@ func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return NullValue{}, nil
 }
 
-func (n ExpressionListNode) String() string {
-	if len(n.expressions) == 0 {
-		return "Expression List ()"
-	} else {
-		exprs := n.expressions[0].String()
-		for _, expr := range n.expressions[1:] {
-			exprs += ", " + expr.String()
-		}
-		return fmt.Sprintf("Expression List (%s)", exprs)
-	}
-}
-
 func (n ExpressionListNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	length := len(n.expressions)
 
@@ -806,16 +720,8 @@ func (n ExpressionListNode) Eval(frame *StackFrame, allowThunk bool) (Value, err
 	return n.expressions[length-1].Eval(callFrame, allowThunk)
 }
 
-func (n EmptyIdentifierNode) String() string {
-	return "Empty Identifier"
-}
-
 func (n EmptyIdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return EmptyValue{}, nil
-}
-
-func (n IdentifierNode) String() string {
-	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
 func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -829,40 +735,16 @@ func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	return val, nil
 }
 
-func (n NumberLiteralNode) String() string {
-	return fmt.Sprintf("Number %s", nToS(n.val))
-}
-
 func (n NumberLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return NumberValue{n.val}, nil
-}
-
-func (n StringLiteralNode) String() string {
-	return fmt.Sprintf("String '%s'", n.val)
 }
 
 func (n StringLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return StringValue{n.val}, nil
 }
 
-func (n BooleanLiteralNode) String() string {
-	return fmt.Sprintf("Boolean %t", n.val)
-}
-
 func (n BooleanLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	return BooleanValue{n.val}, nil
-}
-
-func (n ObjectLiteralNode) String() string {
-	if len(n.entries) == 0 {
-		return fmt.Sprintf("Object {}")
-	} else {
-		entries := n.entries[0].String()
-		for _, e := range n.entries[1:] {
-			entries += ", " + e.String()
-		}
-		return fmt.Sprintf("Object {%s}", entries)
-	}
 }
 
 func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -883,25 +765,9 @@ func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, erro
 	return obj, nil
 }
 
-func (n ObjectEntryNode) String() string {
-	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
-}
-
 func (n ObjectEntryNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	logErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
 	return nil, nil
-}
-
-func (n ListLiteralNode) String() string {
-	if len(n.vals) == 0 {
-		return fmt.Sprintf("List []")
-	} else {
-		vals := n.vals[0].String()
-		for _, v := range n.vals[1:] {
-			vals += ", " + v.String()
-		}
-		return fmt.Sprintf("List [%s]", vals)
-	}
 }
 
 func (n ListLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -918,18 +784,6 @@ func (n ListLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error)
 	}
 
 	return listVal, nil
-}
-
-func (n FunctionLiteralNode) String() string {
-	if len(n.arguments) == 0 {
-		return fmt.Sprintf("Function () => (%s)", n.body.String())
-	} else {
-		args := n.arguments[0].String()
-		for _, a := range n.arguments[1:] {
-			args += ", " + a.String()
-		}
-		return fmt.Sprintf("Function (%s) => (%s)", args, n.body.String())
-	}
 }
 
 func (n FunctionLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {

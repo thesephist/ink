@@ -7,6 +7,7 @@ import (
 // Node represents an abstract syntax tree (AST) node in an Ink program.
 type Node interface {
 	String() string
+	// TODO: Formatted() string
 	Eval(*StackFrame, bool) (Value, error)
 }
 
@@ -15,10 +16,52 @@ type UnaryExprNode struct {
 	operand  Node
 }
 
+func (n UnaryExprNode) String() string {
+	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
+}
+
 type BinaryExprNode struct {
 	operator     Tok
 	leftOperand  Node
 	rightOperand Node
+}
+
+func (n BinaryExprNode) String() string {
+	var op = "??"
+	switch n.operator.kind {
+	case AddOp:
+		op = "+"
+	case SubtractOp:
+		op = "-"
+	case MultiplyOp:
+		op = "*"
+	case DivideOp:
+		op = "/"
+	case ModulusOp:
+		op = "%"
+	case GreaterThanOp:
+		op = ">"
+	case LessThanOp:
+		op = "<"
+	case EqualOp:
+		op = "="
+	case EqRefOp:
+		op = "is"
+	case LogicalAndOp:
+		op = "&"
+	case LogicalOrOp:
+		op = "|"
+	case LogicalXorOp:
+		op = "^"
+	case DefineOp:
+		op = ":="
+	case AccessorOp:
+		op = "."
+	}
+	return fmt.Sprintf("Binary (%s) %s (%s)",
+		n.leftOperand.String(),
+		op,
+		n.rightOperand.String())
 }
 
 type FunctionCallNode struct {
@@ -26,9 +69,27 @@ type FunctionCallNode struct {
 	arguments []Node
 }
 
+func (n FunctionCallNode) String() string {
+	if len(n.arguments) == 0 {
+		return fmt.Sprintf("Call (%s) on ()", n.function)
+	} else {
+		args := n.arguments[0].String()
+		for _, a := range n.arguments[1:] {
+			args += ", " + a.String()
+		}
+		return fmt.Sprintf("Call (%s) on (%s)", n.function, args)
+	}
+}
+
 type MatchClauseNode struct {
 	target     Node
 	expression Node
+}
+
+func (n MatchClauseNode) String() string {
+	return fmt.Sprintf("Clause (%s) -> (%s)",
+		n.target.String(),
+		n.expression.String())
 }
 
 type MatchExprNode struct {
@@ -36,30 +97,88 @@ type MatchExprNode struct {
 	clauses   []MatchClauseNode
 }
 
+func (n MatchExprNode) String() string {
+	if len(n.clauses) == 0 {
+		return fmt.Sprintf("Match on (%s) to {}", n.condition.String())
+	} else {
+		clauses := n.clauses[0].String()
+		for _, c := range n.clauses[1:] {
+			clauses += ", " + c.String()
+		}
+		return fmt.Sprintf("Match on (%s) to {%s}",
+			n.condition.String(),
+			clauses)
+	}
+}
+
 type ExpressionListNode struct {
 	expressions []Node
 }
 
+func (n ExpressionListNode) String() string {
+	if len(n.expressions) == 0 {
+		return "Expression List ()"
+	} else {
+		exprs := n.expressions[0].String()
+		for _, expr := range n.expressions[1:] {
+			exprs += ", " + expr.String()
+		}
+		return fmt.Sprintf("Expression List (%s)", exprs)
+	}
+}
+
 type EmptyIdentifierNode struct{}
+
+func (n EmptyIdentifierNode) String() string {
+	return "Empty Identifier"
+}
 
 type IdentifierNode struct {
 	val string
+}
+
+func (n IdentifierNode) String() string {
+	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
 type NumberLiteralNode struct {
 	val float64
 }
 
+func (n NumberLiteralNode) String() string {
+	return fmt.Sprintf("Number %s", nToS(n.val))
+}
+
 type StringLiteralNode struct {
 	val string
+}
+
+func (n StringLiteralNode) String() string {
+	return fmt.Sprintf("String '%s'", n.val)
 }
 
 type BooleanLiteralNode struct {
 	val bool
 }
 
+func (n BooleanLiteralNode) String() string {
+	return fmt.Sprintf("Boolean %t", n.val)
+}
+
 type ObjectLiteralNode struct {
 	entries []ObjectEntryNode
+}
+
+func (n ObjectLiteralNode) String() string {
+	if len(n.entries) == 0 {
+		return fmt.Sprintf("Object {}")
+	} else {
+		entries := n.entries[0].String()
+		for _, e := range n.entries[1:] {
+			entries += ", " + e.String()
+		}
+		return fmt.Sprintf("Object {%s}", entries)
+	}
 }
 
 type ObjectEntryNode struct {
@@ -67,13 +186,41 @@ type ObjectEntryNode struct {
 	val Node
 }
 
+func (n ObjectEntryNode) String() string {
+	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
+}
+
 type ListLiteralNode struct {
 	vals []Node
+}
+
+func (n ListLiteralNode) String() string {
+	if len(n.vals) == 0 {
+		return fmt.Sprintf("List []")
+	} else {
+		vals := n.vals[0].String()
+		for _, v := range n.vals[1:] {
+			vals += ", " + v.String()
+		}
+		return fmt.Sprintf("List [%s]", vals)
+	}
 }
 
 type FunctionLiteralNode struct {
 	arguments []Node
 	body      Node
+}
+
+func (n FunctionLiteralNode) String() string {
+	if len(n.arguments) == 0 {
+		return fmt.Sprintf("Function () => (%s)", n.body.String())
+	} else {
+		args := n.arguments[0].String()
+		for _, a := range n.arguments[1:] {
+			args += ", " + a.String()
+		}
+		return fmt.Sprintf("Function (%s) => (%s)", args, n.body.String())
+	}
 }
 
 func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
