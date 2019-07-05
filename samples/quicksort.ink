@@ -2,6 +2,11 @@
 ` adopted from https://en.wikipedia.org/wiki/Quicksort
 	... there's probably far more elegant and idiomatic solutions `
 
+std := load('std')
+
+log := std.log
+stringList := std.stringList
+
 ` main recursive quicksort routine `
 quicksort := (list, lo, hi) => (
 	lo < hi :: {true -> (

@@ -162,18 +162,36 @@ reduce := (list, f, acc) => (
 )
 
 ` encode ascii string into a number list `
-encode := str => reduce(
-	str
-	(acc, char) => (
-		acc.(len(acc)) := point(char)
-		acc
-	)
-	{}
-)
+encode := str => reduce(str, (acc, char) => (
+	acc.(len(acc)) := point(char), acc
+), {})
 
 ` decode number list into an ascii string `
-decode := data => reduce(
-	data
-	(acc, cp) => acc + char(cp)
-	''
+decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
+
+` utility for reading an entire file `
+readFile := (path, callback) => (
+	BUFSIZE := 4096 ` bytes `
+	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
+		evt.type :: {
+			'error' -> callback(())
+			'data' -> (
+				dataLen := len(evt.data)
+				dataLen = BUFSIZE :: {
+					true -> accumulate(offset + dataLen, acc + decode(evt.data))
+					false -> callback(acc + decode(evt.data))
+				}
+			)
+		}
+	)))(0, '')
+)
+
+` utility for writing an entire file
+	is not buffered, because it's simpler, but may cause jank later
+	we'll address that if/when it becomes a performance issue `
+writeFile := (path, data, callback) => (
+	write(path, 0, encode(data), evt => evt.type :: {
+		'error' -> callback(())
+		'end' -> callback(true)
+	})
 )

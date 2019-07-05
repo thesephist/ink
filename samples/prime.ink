@@ -1,6 +1,10 @@
 ` prime sieve `
 
-log := load('std').log
+std := load('std')
+
+log := std.log
+filter := std.filter
+stringList := std.stringList
 
 ` is a single number prime? `
 isPrime := n => (

@@ -81,18 +81,22 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 		if givenPath, ok := in[0].(StringValue); ok && givenPath.val != "" {
 			importPath := path.Join(ctx.Cwd, givenPath.val+".ink")
 
-			inner := Context{}
-			inner.Init()
-			inner.Permissions = ctx.Permissions
-			inner.Debug = ctx.Debug
+			// swap out fields
+			childCtx := ctx.Engine.CreateContext()
 
-			err := inner.ExecFile(importPath)
+			ctx.Engine.evalLock.Unlock()
+			err := childCtx.ExecFile(importPath)
+			// Lock() blocks until file is eval'd
+			ctx.Engine.evalLock.Lock()
 			if err != nil {
-				return NullValue{}, err
+				return nil, Err{
+					ErrSystem,
+					fmt.Sprintf("error while executing file, %s", err.Error()),
+				}
 			}
 
 			return CompositeValue{
-				entries: inner.Frame.vt,
+				entries: childCtx.Frame.vt,
 			}, nil
 		}
 	}
@@ -214,7 +218,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 	ctx.ExecListener(func() {
 		// short-circuit out if no read permission
-		if !ctx.Permissions.Read {
+		if !ctx.Engine.Permissions.Read {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"data"},
@@ -321,7 +325,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	}
 
 	ctx.ExecListener(func() {
-		if !ctx.Permissions.Write {
+		if !ctx.Engine.Permissions.Write {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"end"},
@@ -430,7 +434,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	}
 
 	ctx.ExecListener(func() {
-		if !ctx.Permissions.Write {
+		if !ctx.Engine.Permissions.Write {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"end"},
@@ -509,12 +513,12 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
+	// This is a bit tricky, since we don't want wait() to hold the evalLock
+	//	on the Context while we're waiting for the timeout, but do want to hold
+	//	the main goroutine from completing with sync.WaitGroup.
+	ctx.Engine.Listeners.Add(1)
 	go func() {
-		// This is a bit tricky, since we don't want wait() to hold the evalLock
-		//	on the Context while we're waiting for the timeout, but do want to hold
-		//	the main goroutine from completing with sync.WaitGroup.
-		ctx.Listeners.Add(1)
-		defer ctx.Listeners.Done()
+		defer ctx.Engine.Listeners.Done()
 
 		time.Sleep(time.Duration(
 			int64(secs.val * float64(time.Second)),
@@ -525,6 +529,8 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 			if err != nil {
 				if e, isErr := err.(Err); isErr {
 					ctx.ErrorStream <- e
+				} else {
+					// should never happen
 				}
 			}
 		})

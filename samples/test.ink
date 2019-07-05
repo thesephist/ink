@@ -1,3 +1,5 @@
+std := load('std')
+
 section := () => out('
 section - -
 ')
@@ -21,6 +23,9 @@ log2 :=
 log('what wow')
 log(log2)
 
+` log is defined from std for below `
+log := std.log
+
 ` test automatic Separator insertion ` section()
 kl := [
 	5
@@ -38,7 +43,7 @@ log('should be 3: ' + string(kl))
 
 ` fibonacci test for concatenated / minified ink code ` section()
 fb:=n=>([n%3,n%5]::{[0,0]->log('FizzBuzz'),[0,_]->log('Fizz'),[
-_,0]->log('Buzz'),_->log(string(n))}),fizzbuzzhelper:=(n,max)=>
+_,0]->log('Buzz'),_->log(n)}),fizzbuzzhelper:=(n,max)=>
 (n::{max->fb(n),_->(fb(n),fizzbuzzhelper(n+1,max))}),(max=>
 fizzbuzzhelper(1,max))(18)
 
@@ -149,29 +154,33 @@ log('')
 ` object keys / list ` section()
 log('expect: dict, then keys, then modified and clone')
 (
+	clone := std.clone
+
 	obj := {
 		first: 1
 		second: 2
 		third: 3
 	}
 	list := ['red', 'green', 'blue']
-	log(string(obj))
-	log(string(list))
+	log(obj)
+	log(list)
 
 	log('keys --')
-	log(string(keys(obj)))
+	log(keys(obj))
 
 	cobj := clone(obj)
 	obj.fourth := 4
 	out('modified: ')
-	log(string(obj))
-	log(string(cobj))
+	log(obj)
+	log(cobj)
 	log('')
 )
 
 ` pass by reference / mutation check ` section()
 log('checking pass by reference / mutation:')
 (
+	clone := std.clone
+
 	obj := [1, 2, 3]
 	twin := obj
 	clone := clone(obj)
@@ -190,6 +199,8 @@ log('checking pass by reference / mutation:')
 ` number and string conversion tests ` section()
 log('checking number and string conversions')
 (
+	stringList := std.stringList
+
 	allpassed := [true]
 	test := (result, expect) => result = expect :: {
 		false -> (
@@ -278,6 +289,11 @@ log('type() builtin')
 section()
 log('stdlib slice/join functions and stringList')
 (
+	stringList := std.stringList
+	sliceList := std.sliceList
+	slice := std.slice
+	join := std.join
+
 	allpassed := [true]
 	test := (result, expect) => result = expect :: {
 		false -> (
@@ -316,6 +332,9 @@ log('stdlib slice/join functions and stringList')
 section()
 log('ascii <> char point conversions and string encode/decode')
 (
+	encode := std.encode
+	decode := std.decode
+
 	` at this point, we only care about ascii, not full Unicode `
 	allpassed := [true]
 	test := (result, expect) => result = expect :: {

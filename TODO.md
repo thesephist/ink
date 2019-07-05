@@ -29,6 +29,7 @@
 - Make a note of permissions isolation in README (not SPEC since it's not a language feature), and explain why it's open by default and not secure by default: (1) we don't need weblike security of default-everything-sandbox imo because we don't have web problems, and (2) Most other interpreters are default everything by access with no off switch, and I think this is a happy medium that won't be bothersome.
 - [ ] Think about adding an `exec` builtin alognside the `--no-exec` flag to add ability to execute arbitrary things on the system using `os/exec` pkg.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
+- [ ] Errors should print a stacktrace (elided if tail recursed)
 
 
 ## Language

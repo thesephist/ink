@@ -9,50 +9,26 @@ decode := std.decode
 
 ` we're going to copy README.md to WRITEME.md,
 	and we're going to buffer it `
-
-BUFSIZE := 512 `` bytes
-
-` have we read to the end of the file? `
-state := {
-	offset: 0
-	ended: false
-}
+BUFSIZE := 512 ` bytes `
 
 ` main routine that reads/writes through buffer
 	and recursively copies data. This is also tail-recursive `
-incrementalCopy := (src, dest) => read(src, state.offset, BUFSIZE, evt => (
+copy := (in, out) => incrementalCopy(in, out, 0)
+incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 	evt.type :: {
-		'error' -> (
-			log('Encountered an error reading: ' + evt.message)
-			state.ended := true
-		)
-
+		'error' -> log('Encountered an error reading: ' + evt.message)
 		'data' -> (
-			` compute offsets and state `
+			` compute data size from data response `
 			dataLength := len(evt.data)
-			ofs := state.offset
-			state.offset := state.offset + dataLength
-
-			` if we read less data than we expected, read ended `
-			dataLength :: {
-				BUFSIZE -> ()
-				_ -> state.ended := true
-			}
 
 			` log progress `
-			log('copying --> ' + slice(
-				decode(evt.data)
-				0, 50
-			) + '...')
+			log('copying --> ' + slice(decode(evt.data), 0, 50) + '...')
 
 			` write the read bit, and recurse back to reading `
-			write(dest, ofs, evt.data, evt => evt.type :: {
-				'error' -> (
-					log('Encountered an error writing: ' + evt.message)
-					state.ended := true
-				)
-				'end' -> state.ended :: {
-					false -> incrementalCopy(src, dest)
+			write(dest, offset, evt.data, evt => evt.type :: {
+				'error' -> log('Encountered an error writing: ' + evt.message)
+				'end' -> dataLength = BUFSIZE :: {
+					true -> incrementalCopy(src, dest, offset + dataLength)
 				}
 			})
 		)
@@ -60,12 +36,12 @@ incrementalCopy := (src, dest) => read(src, state.offset, BUFSIZE, evt => (
 ))
 
 ` copy README.md to WRITEME.md `
-incrementalCopy('README.md', 'WRITEME.md')
-log('copied.')
+copy('README.md', 'WRITEME.md')
+log('copy scheduled.')
 
 ` delete the file, since we don't need it `
 wait(2, () => delete('WRITEME.md', evt => evt.type :: {
 	'error' -> log('Encountered an error deleting: ' + evt.message)
 	'end' -> log('Safely deleted the generated file')
 }))
-log('deleted.')
+log('delete scheduled.')

@@ -956,22 +956,47 @@ func (sh *StackFrame) String() string {
 	return fmt.Sprintf("%s -prnt-> (%s)", sh.vt, sh.parent)
 }
 
-type Context struct {
-	Frame       *StackFrame
-	Listeners   sync.WaitGroup
-	ValueStream chan Value
-	ErrorStream chan Err
-	// always-absolute path to current working dir (of module system)
-	Cwd         string
+type Engine struct {
+	Listeners sync.WaitGroup
+
 	Permissions PermissionsConfig
 	Debug       DebugConfig
 
 	// only a single function may write to the stack frames
 	//	at any moment.
-	evalLock sync.Mutex
-	// only a single round of inputs can be working through the
-	//	context (lex/parse/eval) at any time.
-	sessionLock sync.Mutex
+	evalLock    sync.Mutex
+	ValueStream chan Value
+	ErrorStream chan Err
+}
+
+func (eng *Engine) Init() {
+	eng.ValueStream = make(chan Value)
+	eng.ErrorStream = make(chan Err)
+}
+
+func (eng *Engine) CreateContext() *Context {
+	ctx := &Context{
+		Engine: eng,
+		Frame: &StackFrame{
+			parent: nil,
+			vt:     ValueTable{},
+		},
+	}
+
+	ctx.resetWd()
+	ctx.LoadEnvironment()
+
+	return ctx
+}
+
+type Context struct {
+	// always-absolute path to current working dir (of module system)
+	Cwd    string
+	Engine *Engine
+	Frame  *StackFrame
+
+	ValueStream chan Value
+	ErrorStream chan Err
 }
 
 // PermissionsConfig defines Context's permissions to
@@ -991,15 +1016,6 @@ func (ctx *Context) Dump() {
 	logDebug("frame dump ->", ctx.Frame.String())
 }
 
-func (ctx *Context) Init() {
-	ctx.Frame = &StackFrame{
-		parent: nil,
-		vt:     ValueTable{},
-	}
-	ctx.resetWd()
-	ctx.LoadEnvironment()
-}
-
 func (ctx *Context) resetWd() {
 	var err error
 	ctx.Cwd, err = os.Getwd()
@@ -1015,15 +1031,8 @@ func (ctx *Context) Eval(
 	nodes <-chan Node,
 	dumpFrame bool,
 ) {
-	ctx.evalLock.Lock()
-	defer func() {
-		ctx.evalLock.Unlock()
-		ctx.Listeners.Wait()
-
-		close(ctx.ValueStream)
-		close(ctx.ErrorStream)
-		ctx.sessionLock.Unlock()
-	}()
+	ctx.Engine.evalLock.Lock()
+	defer ctx.Engine.evalLock.Unlock()
 
 	for node := range nodes {
 		val, err := node.Eval(ctx.Frame, false)
@@ -1032,7 +1041,7 @@ func (ctx *Context) Eval(
 			if isErr {
 				ctx.ErrorStream <- e
 			} else {
-				logErrf(ErrAssert, "error raised that was not of type Err -> %s",
+				logErrf(ErrAssert, "error raised that was not of type Err\n\t-> %s",
 					err.Error())
 			}
 			return
@@ -1045,55 +1054,57 @@ func (ctx *Context) Eval(
 	}
 }
 
-func (ctx *Context) ExecListener(listener func()) {
-	ctx.Listeners.Add(1)
+func (ctx *Context) ExecListener(callback func()) {
+	ctx.Engine.Listeners.Add(1)
 	go func() {
-		ctx.evalLock.Lock()
-		listener()
-		ctx.evalLock.Unlock()
+		defer ctx.Engine.Listeners.Done()
 
-		ctx.Listeners.Done()
+		ctx.Engine.evalLock.Lock()
+		defer ctx.Engine.evalLock.Unlock()
+
+		callback()
 	}()
 }
 
-func combine(cs ...<-chan Err) <-chan Err {
-	errors := make(chan Err)
-	wg := sync.WaitGroup{}
-	wg.Add(len(cs))
+func (ctx *Context) ExecStream(input <-chan rune) {
+	// set up streams for this round of eval
+	ctx.ValueStream = ctx.Engine.ValueStream
+	ctx.ErrorStream = ctx.Engine.ErrorStream
+	// TODO: I think we can just not have Context::*Stream
+	// TODO: rename Value/ErrorStream to just Values/Errors
+	// ctx.ValueStream = make(chan Value)
+	// ctx.ErrorStream = make(chan Err)
+	// go func() {
+	// 	for v := range ctx.ValueStream {
+	// 		ctx.Engine.ValueStream <- v
+	// 	}
+	// }()
+	// go func() {
+	// 	for e := range ctx.ErrorStream {
+	// 		ctx.Engine.ErrorStream <- e
+	// 	}
+	// }()
 
-	for _, c := range cs {
-		go func(c <-chan Err) {
-			for e := range c {
-				errors <- e
-			}
-			wg.Done()
-		}(c)
-	}
-	go func() {
-		wg.Wait()
-		close(errors)
-	}()
-
-	return errors
-}
-
-func (ctx *Context) ExecStream() (chan<- rune, <-chan Err) {
-	input := make(chan rune)
 	tokens := make(chan Tok)
 	nodes := make(chan Node)
+	go Tokenize(input, tokens, ctx.ErrorStream, ctx.Engine.Debug.Lex)
+	go Parse(tokens, nodes, ctx.ErrorStream, ctx.Engine.Debug.Parse)
 
-	e1 := make(chan Err)
-	e2 := make(chan Err)
+	ctx.Engine.Listeners.Add(1)
+	go func() {
+		defer ctx.Engine.Listeners.Done()
 
-	ctx.sessionLock.Lock()
-	ctx.ValueStream = make(chan Value)
-	ctx.ErrorStream = make(chan Err)
+		ctx.Eval(nodes, ctx.Engine.Debug.Dump)
 
-	go Tokenize(input, tokens, e1, ctx.Debug.Lex)
-	go Parse(tokens, nodes, e2, ctx.Debug.Parse)
-	go ctx.Eval(nodes, ctx.Debug.Dump)
+		// lock around swapping Context streams
+		ctx.Engine.evalLock.Lock()
+		defer ctx.Engine.evalLock.Unlock()
 
-	return input, combine(e1, e2, ctx.ErrorStream)
+		// close(ctx.ValueStream)
+		// close(ctx.ErrorStream)
+		// ctx.ValueStream = ctx.Engine.ValueStream
+		// ctx.ErrorStream = ctx.Engine.ErrorStream
+	}()
 }
 
 func (ctx *Context) ExecFile(filePath string) error {
@@ -1106,17 +1117,28 @@ func (ctx *Context) ExecFile(filePath string) error {
 
 	// update Cwd for any potential load() calls this file will make
 	ctx.Cwd = path.Dir(filePath)
-	defer ctx.resetWd()
 
-	input, errors := ctx.ExecStream()
+	input := make(chan rune)
+	defer close(input)
+	ctx.ExecStream(input)
+
+	go func() {
+		for range ctx.ValueStream {
+			// continue
+		}
+	}()
+	go func() {
+		for e := range ctx.ErrorStream {
+			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", filePath)+e.message)
+			return
+		}
+	}()
 
 	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {
-		close(input)
 		return err
 	}
-
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		for _, char := range scanner.Text() {
@@ -1124,25 +1146,6 @@ func (ctx *Context) ExecFile(filePath string) error {
 		}
 		input <- '\n'
 	}
-	close(input)
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		for range ctx.ValueStream {
-			// continue
-		}
-		wg.Done()
-	}()
-	go func() {
-		for e := range errors {
-			logSafeErr(e.reason, fmt.Sprintf("in %s\n\t-> ", filePath)+e.message)
-			wg.Done()
-			return
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
 	return nil
 }

@@ -99,6 +99,8 @@ func Parse(
 	errors chan<- Err,
 	debugParser bool,
 ) {
+	defer close(nodes)
+
 	tokens := make([]Tok, 0)
 	for tok := range tokenStream {
 		tokens = append(tokens, tok)
@@ -117,8 +119,6 @@ func Parse(
 				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
 					err.Error())
 			}
-			close(nodes)
-			close(errors)
 			return
 		}
 
@@ -127,8 +127,6 @@ func Parse(
 		}
 		nodes <- expr
 	}
-	close(nodes)
-	close(errors)
 }
 
 func getOpPriority(t Tok) int {

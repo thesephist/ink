@@ -114,10 +114,10 @@ func Tokenize(
 	errors chan<- Err,
 	debugLexer bool,
 ) {
+	defer close(tokens)
+
 	var buf, strbuf string
 	var strbufStartLine, strbufStartCol int
-
-	syntaxErrored := false
 
 	lastTokKind := Separator
 	lineNo := 1
@@ -161,11 +161,6 @@ func Tokenize(
 							ErrSyntax,
 							fmt.Sprintf("parsing error in number at %d:%d, %s", lineNo, colNo, err.Error()),
 						}
-						close(tokens)
-						close(errors)
-						syntaxErrored = true
-
-						return
 					}
 					simpleCommit(Tok{
 						num:      f,
@@ -205,183 +200,175 @@ func Tokenize(
 		}
 	}
 
-	go func() {
-		// Ink requires max 1 lookahead, so rather than allowing backtracking
-		//	from the lexer's reader, we implement a streaming lexer with a buffer
-		//	of 1, implemented as this lastChar character. Every loop we take char
-		//	from lastChar if not zero, from input channel otherwise.
-		var char, lastChar rune
-		inStringLiteral := false
-		for {
-			if lastChar != 0 {
-				char = lastChar
-				lastChar = 0
-			} else {
-				char = <-input
-				if char == 0 {
-					break
-				}
+	// Ink requires max 1 lookahead, so rather than allowing backtracking
+	//	from the lexer's reader, we implement a streaming lexer with a buffer
+	//	of 1, implemented as this lastChar character. Every loop we take char
+	//	from lastChar if not zero, from input channel otherwise.
+	var char, lastChar rune
+	inStringLiteral := false
+	for {
+		if lastChar != 0 {
+			char, lastChar = lastChar, 0
+		} else {
+			var open bool
+			char, open = <-input
+			if !open {
+				break
 			}
-			switch {
-			case char == '\'':
-				if inStringLiteral {
-					commit(Tok{
-						str:      strbuf,
-						kind:     StringLiteral,
-						position: position{strbufStartLine, strbufStartCol},
-					})
-				} else {
-					strbuf = ""
-					strbufStartLine, strbufStartCol = lineNo, colNo
+		}
+		switch {
+		case char == '\'':
+			if inStringLiteral {
+				commit(Tok{
+					str:      strbuf,
+					kind:     StringLiteral,
+					position: position{strbufStartLine, strbufStartCol},
+				})
+			} else {
+				strbuf = ""
+				strbufStartLine, strbufStartCol = lineNo, colNo
+			}
+			inStringLiteral = !inStringLiteral
+		case inStringLiteral:
+			if char == '\n' {
+				lineNo++
+				colNo = 0
+				strbuf += string(char)
+			} else if char == '\\' {
+				// backtick escapes like in most other languages,
+				//	so just consume whatever the next char is into
+				//	the current string buffer
+				strbuf += string(<-input)
+				colNo++
+			} else {
+				strbuf += string(char)
+			}
+		case char == '`':
+			nextChar := <-input
+			if nextChar == '`' {
+				for nextChar != '\n' {
+					nextChar = <-input
 				}
-				inStringLiteral = !inStringLiteral
-			case inStringLiteral:
-				if char == '\n' {
-					lineNo++
-					colNo = 0
-					strbuf += string(char)
-				} else if char == '\\' {
-					// backtick escapes like in most other languages,
-					//	so just consume whatever the next char is into
-					//	the current string buffer
-					strbuf += string(<-input)
-					colNo++
-				} else {
-					strbuf += string(char)
-				}
-			case char == '`':
-				nextChar := <-input
-				if nextChar == '`' {
-					for nextChar != '\n' {
-						nextChar = <-input
-					}
-					lineNo++
-					colNo = 0
-					ensureSeparator()
-				} else {
-					for nextChar != '`' {
-						nextChar = <-input
-						if nextChar == '\n' {
-							lineNo++
-							colNo = 0
-						}
-						colNo++
-					}
-				}
-			case char == '\n':
 				lineNo++
 				colNo = 0
 				ensureSeparator()
-			case unicode.IsSpace(char):
-				commitClear()
-			case char == '_':
-				commitChar(EmptyIdentifier)
-			case char == '~':
-				commitChar(NegationOp)
-			case char == '+':
-				commitChar(AddOp)
-			case char == '*':
-				commitChar(MultiplyOp)
-			case char == '/':
-				commitChar(DivideOp)
-			case char == '%':
-				commitChar(ModulusOp)
-			case char == '&':
-				commitChar(LogicalAndOp)
-			case char == '|':
-				commitChar(LogicalOrOp)
-			case char == '^':
-				commitChar(LogicalXorOp)
-			case char == '<':
-				commitChar(LessThanOp)
-			case char == '>':
-				commitChar(GreaterThanOp)
-			case char == ',':
-				commitChar(Separator)
-			case char == '.':
-				// only non-AccessorOp case is [Number token] . [Number],
-				//	so we commit and bail early if the buf is empty or contains
-				//	a clearly non-numeric token. Note that this means all numbers
-				//	must start with a digit. i.e. .5 is not 0.5 but a syntax error.
-				//	This is the case since we don't know what the last token was,
-				//	and I think streaming parse is worth the tradeoffs of losing
-				//	that context.
-				committed := false
-				for _, d := range buf {
-					if !unicode.IsDigit(d) {
-						commitChar(AccessorOp)
-						committed = true
-						break
+			} else {
+				for nextChar != '`' {
+					nextChar = <-input
+					if nextChar == '\n' {
+						lineNo++
+						colNo = 0
 					}
+					colNo++
 				}
-				if !committed {
-					if buf == "" {
-						commitChar(AccessorOp)
-					} else {
-						buf += "."
-					}
-				}
-			case char == ':':
-				nextChar := <-input
-				colNo++
-				if nextChar == '=' {
-					commitChar(DefineOp)
-				} else if nextChar == ':' {
-					commitChar(MatchColon)
-				} else {
-					// key is parsed as expression, so make sure
-					//	we mark expression end (Separator)
-					ensureSeparator()
-					commitChar(KeyValueSeparator)
-					lastChar = nextChar
-				}
-			case char == '=':
-				nextChar := <-input
-				colNo++
-				if nextChar == '>' {
-					commitChar(FunctionArrow)
-				} else {
-					commitChar(EqualOp)
-					lastChar = nextChar
-				}
-			case char == '-':
-				nextChar := <-input
-				colNo++
-				if nextChar == '>' {
-					commitChar(CaseArrow)
-				} else {
-					commitChar(SubtractOp)
-					lastChar = nextChar
-				}
-			case char == '(':
-				commitChar(LeftParen)
-			case char == ')':
-				ensureSeparator()
-				commitChar(RightParen)
-			case char == '[':
-				commitChar(LeftBracket)
-			case char == ']':
-				ensureSeparator()
-				commitChar(RightBracket)
-			case char == '{':
-				commitChar(LeftBrace)
-			case char == '}':
-				ensureSeparator()
-				commitChar(RightBrace)
-			default:
-				buf += string(char)
 			}
+		case char == '\n':
+			lineNo++
+			colNo = 0
+			ensureSeparator()
+		case unicode.IsSpace(char):
+			commitClear()
+		case char == '_':
+			commitChar(EmptyIdentifier)
+		case char == '~':
+			commitChar(NegationOp)
+		case char == '+':
+			commitChar(AddOp)
+		case char == '*':
+			commitChar(MultiplyOp)
+		case char == '/':
+			commitChar(DivideOp)
+		case char == '%':
+			commitChar(ModulusOp)
+		case char == '&':
+			commitChar(LogicalAndOp)
+		case char == '|':
+			commitChar(LogicalOrOp)
+		case char == '^':
+			commitChar(LogicalXorOp)
+		case char == '<':
+			commitChar(LessThanOp)
+		case char == '>':
+			commitChar(GreaterThanOp)
+		case char == ',':
+			commitChar(Separator)
+		case char == '.':
+			// only non-AccessorOp case is [Number token] . [Number],
+			//	so we commit and bail early if the buf is empty or contains
+			//	a clearly non-numeric token. Note that this means all numbers
+			//	must start with a digit. i.e. .5 is not 0.5 but a syntax error.
+			//	This is the case since we don't know what the last token was,
+			//	and I think streaming parse is worth the tradeoffs of losing
+			//	that context.
+			committed := false
+			for _, d := range buf {
+				if !unicode.IsDigit(d) {
+					commitChar(AccessorOp)
+					committed = true
+					break
+				}
+			}
+			if !committed {
+				if buf == "" {
+					commitChar(AccessorOp)
+				} else {
+					buf += "."
+				}
+			}
+		case char == ':':
+			nextChar := <-input
 			colNo++
+			if nextChar == '=' {
+				commitChar(DefineOp)
+			} else if nextChar == ':' {
+				commitChar(MatchColon)
+			} else {
+				// key is parsed as expression, so make sure
+				//	we mark expression end (Separator)
+				ensureSeparator()
+				commitChar(KeyValueSeparator)
+				lastChar = nextChar
+			}
+		case char == '=':
+			nextChar := <-input
+			colNo++
+			if nextChar == '>' {
+				commitChar(FunctionArrow)
+			} else {
+				commitChar(EqualOp)
+				lastChar = nextChar
+			}
+		case char == '-':
+			nextChar := <-input
+			colNo++
+			if nextChar == '>' {
+				commitChar(CaseArrow)
+			} else {
+				commitChar(SubtractOp)
+				lastChar = nextChar
+			}
+		case char == '(':
+			commitChar(LeftParen)
+		case char == ')':
+			ensureSeparator()
+			commitChar(RightParen)
+		case char == '[':
+			commitChar(LeftBracket)
+		case char == ']':
+			ensureSeparator()
+			commitChar(RightBracket)
+		case char == '{':
+			commitChar(LeftBrace)
+		case char == '}':
+			ensureSeparator()
+			commitChar(RightBrace)
+		default:
+			buf += string(char)
 		}
+		colNo++
+	}
 
-		ensureSeparator()
-
-		if !syntaxErrored {
-			// must not have closed channels yet
-			close(tokens)
-			close(errors)
-		}
-	}()
+	ensureSeparator()
 }
 
 func isValidIdentifierStartChar(char rune) bool {

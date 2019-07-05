@@ -1,6 +1,15 @@
 ` map, filter, reduce demos `
 
-log := load('std').log
+std := load('std')
+
+log := std.log
+stringList := std.stringList
+
+map := std.map
+filter := std.filter
+reduce := std.reduce
+reverse := std.reverse
+join := std.join
 
 list := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 

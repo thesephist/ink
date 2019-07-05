@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 )
 
 const VERSION = "0.1.0"
@@ -74,25 +73,29 @@ func main() {
 		os.Exit(0)
 	}
 
-	// execution context
-	ctx := Context{}
-	ctx.Init()
-	ctx.Permissions = PermissionsConfig{
-		Read:  !*noRead && !*isolate,
-		Write: !*noWrite && !*isolate,
+	// execution environment
+	eng := Engine{
+		Permissions: PermissionsConfig{
+			Read:  !*noRead && !*isolate,
+			Write: !*noWrite && !*isolate,
+		},
+		Debug: DebugConfig{
+			Lex:   *debugLexer || *verbose,
+			Parse: *debugParser || *verbose,
+			Dump:  *dump || *verbose,
+		},
 	}
-	ctx.Debug = DebugConfig{
-		Lex:   *debugLexer || *verbose,
-		Parse: *debugParser || *verbose,
-		Dump:  *dump || *verbose,
-	}
+	eng.Init()
 
 	if *repl {
+		// execution context
+		ctx := eng.CreateContext()
+
 		// run interactively in a repl
 		reader := bufio.NewReader(os.Stdin)
 
-		shouldExit := false
-		for !shouldExit {
+	replLoop:
+		for {
 			// green arrow
 			fmt.Printf(ANSI_GREEN_BOLD + "> " + ANSI_RESET)
 			text, err := reader.ReadString('\n')
@@ -109,67 +112,66 @@ func main() {
 			case strings.HasPrefix(text, "@clear"):
 				fmt.Printf("[2J[H")
 			case strings.HasPrefix(text, "@exit"):
-				shouldExit = true
+				break replLoop
 
 			default:
-				input, errors := ctx.ExecStream()
+				input := make(chan rune)
+				ctx.ExecStream(input)
+
+				go func() {
+					for v := range eng.ValueStream {
+						logInteractive(v.String())
+					}
+				}()
+				go func() {
+					for e := range eng.ErrorStream {
+						logSafeErr(e.reason, e.message)
+					}
+				}()
 
 				for _, char := range text {
 					input <- char
 				}
 				close(input)
 
-				wg := sync.WaitGroup{}
-				wg.Add(2)
-				go func() {
-					for v := range ctx.ValueStream {
-						logInteractive(v.String())
-					}
-					wg.Done()
-				}()
-				go func() {
-					for e := range errors {
-						logSafeErr(e.reason, e.message)
-						wg.Done()
-						return
-					}
-					wg.Done()
-				}()
-
-				wg.Wait()
+				// wait for main Context to finish executing before
+				//	yielding to the repl loop
+				eng.Listeners.Wait()
 			}
 		}
 
-		os.Exit(0)
+		// no need to wait for eng.Listeners, since this part here
+		//	is unreachable
 	} else if *eval != "" {
-		input, errors := ctx.ExecStream()
+		// execution context
+		ctx := eng.CreateContext()
+
+		input := make(chan rune)
+		ctx.ExecStream(input)
+
+		go func() {
+			for range eng.ValueStream {
+				// continue
+			}
+		}()
+		go func() {
+			for e := range eng.ErrorStream {
+				logErr(e.reason, e.message)
+			}
+		}()
 
 		for _, char := range *eval {
 			input <- char
 		}
 		close(input)
 
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-		go func() {
-			for range ctx.ValueStream {
-				// continue
-			}
-			wg.Done()
-		}()
-		go func() {
-			for e := range errors {
-				logErr(e.reason, e.message)
-				wg.Done()
-				return
-			}
-			wg.Done()
-		}()
-
-		wg.Wait()
+		eng.Listeners.Wait()
 	} else if len(files) > 0 {
 		// read from file
 		for _, filePath := range files {
+			// execution context is one-per-file
+			ctx := eng.CreateContext()
+
 			err := ctx.ExecFile(path.Join(ctx.Cwd, filePath))
 			if err != nil {
 				logSafeErr(
@@ -178,10 +180,27 @@ func main() {
 						filePath, err),
 				)
 			}
+
+			eng.Listeners.Wait()
 		}
 	} else {
+		// execution context
+		ctx := eng.CreateContext()
+
 		// read from stdin
-		input, errors := ctx.ExecStream()
+		input := make(chan rune)
+		ctx.ExecStream(input)
+
+		go func() {
+			for range eng.ValueStream {
+				// continue
+			}
+		}()
+		go func() {
+			for e := range eng.ErrorStream {
+				logErr(e.reason, e.message)
+			}
+		}()
 
 		inputReader := bufio.NewReader(os.Stdin)
 		for {
@@ -193,23 +212,6 @@ func main() {
 		}
 		close(input)
 
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-		go func() {
-			for range ctx.ValueStream {
-				// continue
-			}
-			wg.Done()
-		}()
-		go func() {
-			for e := range errors {
-				logErr(e.reason, e.message)
-				wg.Done()
-				return
-			}
-			wg.Done()
-		}()
-
-		wg.Wait()
+		eng.Listeners.Wait()
 	}
 }

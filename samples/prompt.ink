@@ -1,6 +1,9 @@
 ` scan() / in() based prompt demo `
 
-log := load('std').log
+std := load('std')
+
+log := std.log
+scan := std.scan
 
 ask := (question, cb) => (
 	log(question)
