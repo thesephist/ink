@@ -45,6 +45,7 @@ func main() {
 	// permission flags
 	noRead := flag.Bool("no-read", false, "Silently fail all read operations")
 	noWrite := flag.Bool("no-write", false, "Silently fail all write operations")
+	noNet := flag.Bool("no-net", false, "Silently fail all access to local network")
 	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write")
 
 	// cli arguments
@@ -79,6 +80,7 @@ func main() {
 		Permissions: PermissionsConfig{
 			Read:  !*noRead && !*isolate,
 			Write: !*noWrite && !*isolate,
+			Net:   !*noNet && !*isolate,
 		},
 		Debug: DebugConfig{
 			Lex:   *debugLexer || *verbose,

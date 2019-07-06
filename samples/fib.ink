@@ -13,8 +13,8 @@ fib := n => (
 
 ` memoized / dynamic programming implementation `
 memo := {
-	0: 0,
-	1: 1,
+	0: 0
+	1: 1
 }
 fibMemo := n => (
 	memo.(n) :: {

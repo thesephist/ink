@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -488,8 +490,286 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	return NullValue{}, nil
 }
 
+// inkHTTPHandler fulfills the Handler interface for inkListen() to work
+type inkHTTPHandler struct {
+	ctx         *Context
+	inkCallback FunctionValue
+}
+
+func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := h.ctx
+	cb := h.inkCallback
+
+	callbackErr := func(err error) {
+		ctx.Engine.LogErr(Err{
+			ErrRuntime,
+			fmt.Sprintf("error in callback to listen()\n\t-> %s",
+				err.Error()),
+		})
+		return
+	}
+
+	// This is a bit tricky -- We can't use Context.ExecListener here
+	//	because ServeHTTP already runs in a goroutine and has to operate
+	//	on the http.ResponseWriter synchronously. So we ad-hoc build
+	//	an Engine-locked time block here to do that, instead of leaning on
+	//	Context.ExecListener.
+	ctx.Engine.Listeners.Add(1)
+	defer ctx.Engine.Listeners.Done()
+
+	ctx.Engine.evalLock.Lock()
+	defer ctx.Engine.evalLock.Unlock()
+
+	// unmarshal request
+	method := r.Method
+	url := r.URL.String()
+	headers := ValueTable{}
+	for key, values := range r.Header {
+		headers[key] = StringValue{strings.Join(values, ",")}
+	}
+	var body Value
+	if r.ContentLength == 0 {
+		body = NullValue{}
+	} else {
+		bodyEncoded := ValueTable{}
+		// XXX: in the future, we may move to streams
+		bodyBuf := make([]byte, r.ContentLength)
+		count, err := r.Body.Read(bodyBuf)
+		if err != nil {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"error"},
+					"message": StringValue{fmt.Sprintf(
+						"error reading request in listen(), %s", err.Error(),
+					)},
+				},
+			})
+			if err != nil {
+				callbackErr(err)
+				return
+			}
+		}
+
+		for i, b := range bodyBuf[:count] {
+			bodyEncoded[nToS(float64(i))] = NumberValue{float64(b)}
+		}
+
+		body = CompositeValue{
+			entries: bodyEncoded,
+		}
+	}
+
+	// construct request object to pass to Ink, and call handler
+	responseEnded := false
+	responses := make(chan Value, 1)
+	// this is what Ink's callback calls to send a response
+	endHandler := func(ctx *Context, in []Value) (Value, error) {
+		if len(in) != 1 {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				"end() callback to listen() must have one argument",
+			})
+		}
+		if responseEnded {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				"end() callback to listen() was called more than once",
+			})
+		}
+		responseEnded = true
+		responses <- in[0]
+
+		return NullValue{}, nil
+	}
+
+	_, err := evalInkFunction(cb, false, CompositeValue{
+		entries: ValueTable{
+			"type": StringValue{"req"},
+			"data": CompositeValue{
+				entries: ValueTable{
+					"method":  StringValue{method},
+					"url":     StringValue{url},
+					"headers": CompositeValue{entries: headers},
+					"body":    body,
+				},
+			},
+			"end": NativeFunctionValue{
+				name: "end",
+				exec: endHandler,
+				ctx:  ctx,
+			},
+		},
+	})
+	if err != nil {
+		callbackErr(err)
+		return
+	}
+
+	// validate response from Ink callback
+	resp := <-responses
+	rsp, isComposite := resp.(CompositeValue)
+	if !isComposite {
+		ctx.Engine.LogErr(Err{
+			ErrRuntime,
+			fmt.Sprintf("callback to listen() should return a response, got %s",
+				resp.String()),
+		})
+	}
+
+	// unmarshal response from the return value
+	// response = {status, headers, body}
+	statusVal, okStatus := rsp.entries["status"]
+	headersVal, okHeaders := rsp.entries["headers"]
+	bodyVal, okBody := rsp.entries["body"]
+
+	resStatus, okStatus := statusVal.(NumberValue)
+	resHeaders, okHeaders := headersVal.(CompositeValue)
+	resBody, okBody := bodyVal.(CompositeValue)
+
+	if !okStatus || !okHeaders || !okBody {
+		ctx.Engine.LogErr(Err{
+			ErrRuntime,
+			fmt.Sprintf("callback to listen() returned malformed response\n\t-> %s",
+				rsp.String()),
+		})
+	}
+
+	// marshal response object
+	writeBuf := make([]byte, len(resBody.entries))
+	for i, v := range resBody.entries {
+		idx, err := strconv.Atoi(i)
+		if err != nil {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				fmt.Sprintf("response body in listen() is malformed, %s", err.Error()),
+			})
+		}
+
+		if num, isNum := v.(NumberValue); isNum {
+			writeBuf[idx] = byte(num.val)
+		} else {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				fmt.Sprintf(
+					"response body in listen() is malformed, byte value is not a number",
+				),
+			})
+		}
+	}
+
+	// write values to response
+	w.WriteHeader(int(resStatus.val))
+	wHeaders := w.Header()
+	for k, v := range resHeaders.entries {
+		if str, isStr := v.(StringValue); isStr {
+			wHeaders.Set(k, str.val)
+		}
+		// blech. silently fail here, it's ok
+	}
+	_, err = w.Write(writeBuf)
+	if err != nil {
+		_, err := evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"error"},
+				"message": StringValue{fmt.Sprintf(
+					"error writing request body in listen(), %s", err.Error(),
+				)},
+			},
+		})
+		if err != nil {
+			callbackErr(err)
+			return
+		}
+	}
+}
+
 func inkListen(ctx *Context, in []Value) (Value, error) {
-	return NullValue{}, nil
+	if len(in) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("listen() expects two arguments: host and handler, but got %d",
+				len(in)),
+		}
+	}
+
+	host, isString := in[0].(StringValue)
+	cb, isCbFunction := in[1].(FunctionValue)
+
+	if !isString || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in listen()",
+		}
+	}
+
+	// short-circuit out if no read permission
+	if !ctx.Engine.Permissions.Net {
+		return NativeFunctionValue{
+			name: "close",
+			exec: func(ctx *Context, in []Value) (Value, error) {
+				// fake close callback
+				return NullValue{}, nil
+			},
+			ctx: ctx,
+		}, nil
+	}
+
+	server := &http.Server{
+		Addr: host.val,
+		Handler: inkHTTPHandler{
+			ctx:         ctx,
+			inkCallback: cb,
+		},
+	}
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"error"},
+						"message": StringValue{fmt.Sprintf(
+							"error starting http server in listen(), %s", err.Error(),
+						)},
+					},
+				})
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to listen(), %s",
+							err.Error()),
+					})
+				}
+			})
+		}
+	}()
+
+	return NativeFunctionValue{
+		name: "close",
+		exec: func(ctx *Context, in []Value) (Value, error) {
+			err := server.Close()
+			if err != nil {
+				_, err = evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"error"},
+						"message": StringValue{fmt.Sprintf(
+							"error closing server in listen(), %s", err.Error(),
+						)},
+					},
+				})
+			}
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to listen(), %s",
+						err.Error()),
+				})
+			}
+			return NullValue{}, nil
+		},
+		ctx: ctx,
+	}, nil
 }
 
 func inkRand(ctx *Context, in []Value) (Value, error) {

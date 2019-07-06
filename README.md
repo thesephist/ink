@@ -24,7 +24,7 @@ You can run Ink in three main ways:
 1. The Ink binary `ink` defaults to executing whatever comes through standard input. So you can pipe any Ink script to the binary to execute it.
 ```
 $ cat <file>.ink | ink
-    # or
+	# or
 $ ink < <file>.ink
 ```
 2. Use `ink -input <file>.ink` to execute an ink script file. You may pass the flag multiple times to execute multiple scripts, like `ink -input a.ink -input b.ink`.
@@ -37,30 +37,57 @@ Here's an implementation of FizzBuzz in the Ink language.
 ```ink
 ` ink fizzbuzz implementation `
 
+log := load('std').log
+
 fb := n => (
-    [n % 3, n % 5] :: {
-        [0, 0] -> log('FizzBuzz')
-        [0, _] -> log('Fizz')
-        [_, 0] -> log('Buzz')
-        _ -> log(n)
-    }
+	[n % 3, n % 5] :: {
+		[0, 0] -> log('FizzBuzz')
+		[0, _] -> log('Fizz')
+		[_, 0] -> log('Buzz')
+		_ -> log(n)
+	}
 )
 
 helper := (n, max) => (
-    n :: {
-        max -> fb(n)
-        _ -> (
-            fb(n)
-            helper(n + 1, max)
-        )
-    }
+	n :: {
+		max -> fb(n)
+		_ -> (
+			fb(n)
+			helper(n + 1, max)
+		)
+	}
 )
 
 fizzbuzz := max => helper(1, max)
 fizzbuzz(100)
 ```
 
-If you're looking for more realistic and complex examples, check out [quicksort.ink](samples/quicksort.ink), [newton.ink](samples/newton.ink), [the standard library](samples/std.ink), and [this file I/O demo](samples/io.ink).
+If you're looking for more realistic and complex examples, check out [quicksort.ink](samples/quicksort.ink), [server.ink (a small HTTP server)](samples/server.ink), [the standard library](samples/std.ink), and [this file I/O demo](samples/io.ink).
+
+Here's a snippet of the HTTP server program.
+
+```ink
+std := load('std')
+
+log := std.log
+encode := std.encode
+
+close := listen('0.0.0.0:8080', evt => (
+	log(evt)
+
+	evt.type :: {
+		'error' -> log('Error: ' + evt.message)
+		'req' -> (evt.end)({
+			status: 200
+			headers: {'Content-Type': 'text/plain'}
+			body: encode('Hello, World!')
+		})
+	}
+))
+
+` shut down server after 5 seconds `
+wait(5, close)
+```
 
 You'll notice a few characteristic things about Ink:
 

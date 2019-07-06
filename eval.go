@@ -888,6 +888,7 @@ type Context struct {
 type PermissionsConfig struct {
 	Read  bool
 	Write bool
+	Net   bool
 }
 
 // DebugConfig defines any debugging flags referenced at runtime
