@@ -37,8 +37,8 @@ clamp := (start, end, min, max) => (
 	})
 
 	{
-		start: start,
-		end: end,
+		start: start
+		end: end
 	}
 )
 

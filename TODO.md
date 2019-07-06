@@ -45,11 +45,16 @@
 ## Bugs
 
 - [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
-- [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
-- [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.
 
 
 ## Potential exampels / projects
 
 - [ ] Path tracer
 - [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
+
+
+## Considerations
+
+- [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
+- [ ] Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte ararys are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first thing to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array.
+- [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.

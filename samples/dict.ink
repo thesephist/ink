@@ -3,10 +3,10 @@
 log := load('std').log
 
 obj := {
-	5: 'fifth item',
-	hi: 'hi text',
-	hello: 'hello text',
-	what3: 3.14,
+	5: 'fifth item'
+	hi: 'hi text'
+	hello: 'hello text'
+	what3: 3.14
 }
 
 log(obj.hi)

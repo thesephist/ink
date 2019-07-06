@@ -19,11 +19,11 @@ create := () => (
 	store := {}
 
 	{
-		type: 'kv-store',
-		store: store,
-		get: makeGet(store),
-		set: makeSet(store),
-		delete: makeDelete(store),
+		type: 'kv-store'
+		store: store
+		get: makeGet(store)
+		set: makeSet(store)
+		delete: makeDelete(store)
 	}
 )
 
