@@ -57,7 +57,7 @@ func main() {
 	help := flag.Bool("help", false, "Print help message and exit")
 
 	repl := flag.Bool("repl", false, "Run as an interactive repl")
-	eval := flag.String("eval", "", "Evaluate argument as an Ink script")
+	eval := flag.String("eval", "", "Evaluate argument as an Ink program")
 
 	var files inkFiles
 	flag.Var(&files, "input", "Source code to execute, can be invoked multiple times")

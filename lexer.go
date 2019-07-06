@@ -72,8 +72,8 @@ type position struct {
 	startLine, startCol int
 }
 
-func (sp *position) String() string {
-	return fmt.Sprintf("%d:%d", sp.startLine, sp.startCol)
+func (p position) String() string {
+	return fmt.Sprintf("%d:%d", p.startLine, p.startCol)
 }
 
 // Tok is the monomorphic struct representing all Ink program tokens
@@ -214,6 +214,7 @@ func Tokenize(
 	//	from lastChar if not zero, from input channel otherwise.
 	var char, lastChar rune
 	inStringLiteral := false
+lexLoop:
 	for {
 		if lastChar != 0 {
 			char, lastChar = lastChar, 0
@@ -254,15 +255,26 @@ func Tokenize(
 		case char == '`':
 			nextChar := <-input
 			if nextChar == '`' {
+				// single-line comment, keep taking until EOL
 				for nextChar != '\n' {
-					nextChar = <-input
+					var ok bool
+					nextChar, ok = <-input
+					if !ok {
+						break lexLoop // input closed
+					}
 				}
+
 				lineNo++
 				colNo = 0
 				ensureSeparator()
 			} else {
+				// multi-line block comment, keep taking until end of block
 				for nextChar != '`' {
-					nextChar = <-input
+					var ok bool
+					nextChar, ok = <-input
+					if !ok {
+						break lexLoop // input closed
+					}
 					if nextChar == '\n' {
 						lineNo++
 						colNo = 0

@@ -19,7 +19,6 @@
 
 ## Interpreter
 
-- [ ] `func (n Node) Formatted() string` to pretty-print AST, use this to implement `ink -fmt <file>.ink`
 - [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
     - `prime.ink` is also a good candidate.

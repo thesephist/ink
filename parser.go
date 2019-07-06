@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Node represents an abstract syntax tree (AST) node in an Ink program.
 type Node interface {
 	String() string
-	// TODO: Formatted() string
 	Eval(*StackFrame, bool) (Value, error)
 }
 
@@ -16,8 +16,12 @@ type UnaryExprNode struct {
 	operand  Node
 }
 
+func (n UnaryExprNode) opChar() string {
+	return "~"
+}
+
 func (n UnaryExprNode) String() string {
-	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
+	return fmt.Sprintf("Unary %s (%s)", n.opChar(), n.operand.String())
 }
 
 type BinaryExprNode struct {
@@ -26,41 +30,46 @@ type BinaryExprNode struct {
 	rightOperand Node
 }
 
-func (n BinaryExprNode) String() string {
-	var op = "??"
+func (n BinaryExprNode) opChar() string {
 	switch n.operator.kind {
 	case AddOp:
-		op = "+"
+		return "+"
 	case SubtractOp:
-		op = "-"
+		return "-"
 	case MultiplyOp:
-		op = "*"
+		return "*"
 	case DivideOp:
-		op = "/"
+		return "/"
 	case ModulusOp:
-		op = "%"
+		return "%"
 	case GreaterThanOp:
-		op = ">"
+		return ">"
 	case LessThanOp:
-		op = "<"
+		return "<"
 	case EqualOp:
-		op = "="
+		return "="
 	case EqRefOp:
-		op = "is"
+		return "is"
 	case LogicalAndOp:
-		op = "&"
+		return "&"
 	case LogicalOrOp:
-		op = "|"
+		return "|"
 	case LogicalXorOp:
-		op = "^"
+		return "^"
 	case DefineOp:
-		op = ":="
+		return ":="
 	case AccessorOp:
-		op = "."
+		return "."
+	default:
+		logErr(ErrAssert, "unknown operator in binary expression")
+		return "?"
 	}
+}
+
+func (n BinaryExprNode) String() string {
 	return fmt.Sprintf("Binary (%s) %s (%s)",
 		n.leftOperand.String(),
-		op,
+		n.opChar(),
 		n.rightOperand.String())
 }
 
@@ -70,15 +79,13 @@ type FunctionCallNode struct {
 }
 
 func (n FunctionCallNode) String() string {
-	if len(n.arguments) == 0 {
-		return fmt.Sprintf("Call (%s) on ()", n.function)
-	} else {
-		args := n.arguments[0].String()
-		for _, a := range n.arguments[1:] {
-			args += ", " + a.String()
-		}
-		return fmt.Sprintf("Call (%s) on (%s)", n.function, args)
+	args := make([]string, len(n.arguments))
+	for i, a := range n.arguments {
+		args[i] = a.String()
 	}
+	return fmt.Sprintf("Call (%s) on (%s)",
+		n.function,
+		strings.Join(args, ", "))
 }
 
 type MatchClauseNode struct {
@@ -98,17 +105,13 @@ type MatchExprNode struct {
 }
 
 func (n MatchExprNode) String() string {
-	if len(n.clauses) == 0 {
-		return fmt.Sprintf("Match on (%s) to {}", n.condition.String())
-	} else {
-		clauses := n.clauses[0].String()
-		for _, c := range n.clauses[1:] {
-			clauses += ", " + c.String()
-		}
-		return fmt.Sprintf("Match on (%s) to {%s}",
-			n.condition.String(),
-			clauses)
+	clauses := make([]string, len(n.clauses))
+	for i, c := range n.clauses {
+		clauses[i] = c.String()
 	}
+	return fmt.Sprintf("Match on (%s) to {%s}",
+		n.condition.String(),
+		clauses)
 }
 
 type ExpressionListNode struct {
@@ -116,15 +119,11 @@ type ExpressionListNode struct {
 }
 
 func (n ExpressionListNode) String() string {
-	if len(n.expressions) == 0 {
-		return "Expression List ()"
-	} else {
-		exprs := n.expressions[0].String()
-		for _, expr := range n.expressions[1:] {
-			exprs += ", " + expr.String()
-		}
-		return fmt.Sprintf("Expression List (%s)", exprs)
+	exprs := make([]string, len(n.expressions))
+	for i, expr := range n.expressions {
+		exprs[i] = expr.String()
 	}
+	return fmt.Sprintf("Expression List (%s)", strings.Join(exprs, ", "))
 }
 
 type EmptyIdentifierNode struct{}
@@ -170,15 +169,12 @@ type ObjectLiteralNode struct {
 }
 
 func (n ObjectLiteralNode) String() string {
-	if len(n.entries) == 0 {
-		return fmt.Sprintf("Object {}")
-	} else {
-		entries := n.entries[0].String()
-		for _, e := range n.entries[1:] {
-			entries += ", " + e.String()
-		}
-		return fmt.Sprintf("Object {%s}", entries)
+	entries := make([]string, len(n.entries))
+	for i, e := range n.entries {
+		entries[i] = e.String()
 	}
+	return fmt.Sprintf("Object {%s}",
+		strings.Join(entries, ", "))
 }
 
 type ObjectEntryNode struct {
@@ -195,15 +191,11 @@ type ListLiteralNode struct {
 }
 
 func (n ListLiteralNode) String() string {
-	if len(n.vals) == 0 {
-		return fmt.Sprintf("List []")
-	} else {
-		vals := n.vals[0].String()
-		for _, v := range n.vals[1:] {
-			vals += ", " + v.String()
-		}
-		return fmt.Sprintf("List [%s]", vals)
+	vals := make([]string, len(n.vals))
+	for i, v := range n.vals {
+		vals[i] = v.String()
 	}
+	return fmt.Sprintf("List [%s]", strings.Join(vals, ", "))
 }
 
 type FunctionLiteralNode struct {
@@ -212,15 +204,14 @@ type FunctionLiteralNode struct {
 }
 
 func (n FunctionLiteralNode) String() string {
-	if len(n.arguments) == 0 {
-		return fmt.Sprintf("Function () => (%s)", n.body.String())
-	} else {
-		args := n.arguments[0].String()
-		for _, a := range n.arguments[1:] {
-			args += ", " + a.String()
-		}
-		return fmt.Sprintf("Function (%s) => (%s)", args, n.body.String())
+	args := make([]string, len(n.arguments))
+	for i, a := range n.arguments {
+		args[i] = a.String()
 	}
+	return fmt.Sprintf("Function (%s) => (%s)",
+		strings.Join(args, ", "),
+		n.body.String(),
+	)
 }
 
 func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
@@ -258,6 +249,12 @@ func Parse(
 
 	idx, length := 0, len(tokens)
 	for idx < length {
+		if tokens[idx].kind == Separator {
+			// this sometimes happens when the repl receives comment inputs
+			idx++
+			continue
+		}
+
 		expr, incr, err := parseExpression(tokens[idx:])
 		idx += incr
 
