@@ -50,11 +50,13 @@
 ## Potential exampels / projects
 
 - [ ] Path tracer
+- [ ] Simple file server
 - [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
+- [ ] Math guessing game, but where we show you a product of two 2x2 or 2x3 digit numbers and you have to guess the output. It should ask you to retry until you get it.
 
 
 ## Considerations
 
 - [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
-- [ ] Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte ararys are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first thing to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array.
+- [ ] Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte ararys are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first things to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array; and to optimize the standard library I/O functions more.
 - [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.
