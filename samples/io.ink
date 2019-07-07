@@ -1,6 +1,6 @@
 ` filesystem i/o demo `
 
-SOURCE := 'main.go'
+SOURCE := 'eval.go'
 TARGET := 'sub.go'
 
 ` std imports `

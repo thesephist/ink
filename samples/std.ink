@@ -161,10 +161,20 @@ reduce := (list, f, acc) => (
 	)(0, acc)
 )
 
-` encode ascii string into a number list `
-encode := str => reduce(str, (acc, char) => (
-	acc.(len(acc)) := point(char), acc
-), {})
+` encode ascii string into a number list
+	we don't use reduce here, because this has to be fast,
+	and we implement an optimized loop instead with minimal copying `
+encode := str => (
+	acc := [{}]
+	strln := len(str)
+	(encsub := idx => idx :: {
+		strln -> acc.0
+		_ -> (
+			(acc.0).(idx) := point(str.(idx))
+			encsub(idx + 1)
+		)
+	})(0)
+)
 
 ` decode number list into an ascii string `
 decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
