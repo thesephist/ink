@@ -745,11 +745,10 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		}
 	}()
 
-	return NativeFunctionValue{
-		name: "close",
-		exec: func(ctx *Context, in []Value) (Value, error) {
-			err := server.Close()
-			if err != nil {
+	closer := func(ctx *Context, in []Value) (Value, error) {
+		err := server.Close()
+		if err != nil {
+			ctx.ExecListener(func() {
 				_, err = evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
 						"type": StringValue{"error"},
@@ -758,17 +757,22 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 						)},
 					},
 				})
-			}
-			if err != nil {
-				ctx.Engine.LogErr(Err{
-					ErrRuntime,
-					fmt.Sprintf("error in callback to listen(), %s",
-						err.Error()),
-				})
-			}
-			return NullValue{}, nil
-		},
-		ctx: ctx,
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to listen(), %s",
+							err.Error()),
+					})
+				}
+			})
+		}
+		return NullValue{}, nil
+	}
+
+	return NativeFunctionValue{
+		name: "close",
+		exec: closer,
+		ctx:  ctx,
 	}, nil
 }
 
