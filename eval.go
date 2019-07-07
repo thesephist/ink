@@ -632,6 +632,7 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 	return evalInkFunction(fn, allowThunk, argResults...)
 }
 
+// call into an Ink callback function synchronously
 func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 	if fnt, isFunc := fn.(FunctionValue); isFunc {
 		argValueTable := ValueTable{}

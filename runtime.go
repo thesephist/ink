@@ -215,32 +215,36 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 	}
 
 	sendErr := func(msg string) {
-		evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type":    StringValue{"error"},
-				"message": StringValue{msg},
-			},
+		ctx.ExecListener(func() {
+			evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type":    StringValue{"error"},
+					"message": StringValue{msg},
+				},
+			})
 		})
 	}
 
-	ctx.ExecListener(func() {
+	go func() {
 		// short-circuit out if no read permission
 		if !ctx.Engine.Permissions.Read {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue{"data"},
-					"data": CompositeValue{
-						entries: ValueTable{},
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"data"},
+						"data": CompositeValue{
+							entries: ValueTable{},
+						},
 					},
-				},
-			})
-			if err != nil {
-				ctx.Engine.LogErr(Err{
-					ErrRuntime,
-					fmt.Sprintf("error in callback to read()\n\t-> %s",
-						err.Error()),
 				})
-			}
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to read()\n\t-> %s",
+							err.Error()),
+					})
+				}
+			})
 			return
 		}
 
@@ -283,21 +287,22 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		list := CompositeValue{entries: vt}
 
 		// callback
-		_, err = evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue{"data"},
-				"data": list,
-			},
-		})
-		if err != nil {
-			ctx.Engine.LogErr(Err{
-				ErrRuntime,
-				fmt.Sprintf("error in callback to read()\n\t-> %s",
-					err.Error()),
+		ctx.ExecListener(func() {
+			_, err = evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"data"},
+					"data": list,
+				},
 			})
-			return
-		}
-	})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to read()\n\t-> %s",
+						err.Error()),
+				})
+			}
+		})
+	}()
 
 	return NullValue{}, nil
 }
@@ -323,28 +328,32 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	}
 
 	sendErr := func(msg string) {
-		evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type":    StringValue{"error"},
-				"message": StringValue{msg},
-			},
+		ctx.ExecListener(func() {
+			evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type":    StringValue{"error"},
+					"message": StringValue{msg},
+				},
+			})
 		})
 	}
 
-	ctx.ExecListener(func() {
+	go func() {
 		if !ctx.Engine.Permissions.Write {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue{"end"},
-				},
-			})
-			if err != nil {
-				ctx.Engine.LogErr(Err{
-					ErrRuntime,
-					fmt.Sprintf("error in callback to write()\n\t-> %s",
-						err.Error()),
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"end"},
+					},
 				})
-			}
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to write()\n\t-> %s",
+							err.Error()),
+					})
+				}
+			})
 			return
 		}
 
@@ -404,20 +413,21 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// callback
-		_, err = evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue{"end"},
-			},
-		})
-		if err != nil {
-			ctx.Engine.LogErr(Err{
-				ErrRuntime,
-				fmt.Sprintf("error in callback to write()\n\t-> %s",
-					err.Error()),
+		ctx.ExecListener(func() {
+			_, err = evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"end"},
+				},
 			})
-			return
-		}
-	})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to write()\n\t-> %s",
+						err.Error()),
+				})
+			}
+		})
+	}()
 
 	return NullValue{}, nil
 }
@@ -442,7 +452,42 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 
 	ctx.ExecListener(func() {
 		if !ctx.Engine.Permissions.Write {
-			_, err := evalInkFunction(cb, false, CompositeValue{
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"end"},
+					},
+				})
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to delete()\n\t-> %s",
+							err.Error()),
+					})
+				}
+			})
+			return
+		}
+
+		// delete
+		err := os.Remove(filePath.val)
+		if err != nil {
+			ctx.ExecListener(func() {
+				evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"error"},
+						"message": StringValue{
+							fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
+						},
+					},
+				})
+			})
+			return
+		}
+
+		// callback
+		ctx.ExecListener(func() {
+			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue{"end"},
 				},
@@ -454,37 +499,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 						err.Error()),
 				})
 			}
-			return
-		}
-
-		// delete
-		err := os.Remove(filePath.val)
-		if err != nil {
-			evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue{"error"},
-					"message": StringValue{
-						fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
-					},
-				},
-			})
-			return
-		}
-
-		// callback
-		_, err = evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue{"end"},
-			},
 		})
-		if err != nil {
-			ctx.Engine.LogErr(Err{
-				ErrRuntime,
-				fmt.Sprintf("error in callback to delete()\n\t-> %s",
-					err.Error()),
-			})
-			return
-		}
 	})
 
 	return NullValue{}, nil
@@ -509,17 +524,6 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This is a bit tricky -- We can't use Context.ExecListener here
-	//	because ServeHTTP already runs in a goroutine and has to operate
-	//	on the http.ResponseWriter synchronously. So we ad-hoc build
-	//	an Engine-locked time block here to do that, instead of leaning on
-	//	Context.ExecListener.
-	ctx.Engine.Listeners.Add(1)
-	defer ctx.Engine.Listeners.Done()
-
-	ctx.Engine.evalLock.Lock()
-	defer ctx.Engine.evalLock.Unlock()
-
 	// unmarshal request
 	method := r.Method
 	url := r.URL.String()
@@ -536,18 +540,20 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		bodyBuf := make([]byte, r.ContentLength)
 		count, err := r.Body.Read(bodyBuf)
 		if err != nil {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue{"error"},
-					"message": StringValue{fmt.Sprintf(
-						"error reading request in listen(), %s", err.Error(),
-					)},
-				},
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue{"error"},
+						"message": StringValue{fmt.Sprintf(
+							"error reading request in listen(), %s", err.Error(),
+						)},
+					},
+				})
+				if err != nil {
+					callbackErr(err)
+				}
 			})
-			if err != nil {
-				callbackErr(err)
-				return
-			}
+			return
 		}
 
 		for i, b := range bodyBuf[:count] {
@@ -582,28 +588,29 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return NullValue{}, nil
 	}
 
-	_, err := evalInkFunction(cb, false, CompositeValue{
-		entries: ValueTable{
-			"type": StringValue{"req"},
-			"data": CompositeValue{
-				entries: ValueTable{
-					"method":  StringValue{method},
-					"url":     StringValue{url},
-					"headers": CompositeValue{entries: headers},
-					"body":    body,
+	ctx.ExecListener(func() {
+		_, err := evalInkFunction(cb, false, CompositeValue{
+			entries: ValueTable{
+				"type": StringValue{"req"},
+				"data": CompositeValue{
+					entries: ValueTable{
+						"method":  StringValue{method},
+						"url":     StringValue{url},
+						"headers": CompositeValue{entries: headers},
+						"body":    body,
+					},
+				},
+				"end": NativeFunctionValue{
+					name: "end",
+					exec: endHandler,
+					ctx:  ctx,
 				},
 			},
-			"end": NativeFunctionValue{
-				name: "end",
-				exec: endHandler,
-				ctx:  ctx,
-			},
-		},
+		})
+		if err != nil {
+			callbackErr(err)
+		}
 	})
-	if err != nil {
-		callbackErr(err)
-		return
-	}
 
 	// validate response from Ink callback
 	resp := <-responses
@@ -658,28 +665,34 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// write values to response
-	w.WriteHeader(int(resStatus.val))
-	wHeaders := w.Header()
 	for k, v := range resHeaders.entries {
 		if str, isStr := v.(StringValue); isStr {
-			wHeaders.Set(k, str.val)
+			w.Header().Set(k, str.val)
+		} else {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				fmt.Sprintf("could not set response header, value %s was not a string",
+					v.String()),
+			})
 		}
-		// blech. silently fail here, it's ok
 	}
-	_, err = w.Write(writeBuf)
+	// must follow all other header writes
+	w.WriteHeader(int(resStatus.val))
+	_, err := w.Write(writeBuf)
 	if err != nil {
-		_, err := evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue{"error"},
-				"message": StringValue{fmt.Sprintf(
-					"error writing request body in listen(), %s", err.Error(),
-				)},
-			},
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"error"},
+					"message": StringValue{fmt.Sprintf(
+						"error writing request body in listen(), %s", err.Error(),
+					)},
+				},
+			})
+			if err != nil {
+				callbackErr(err)
+			}
 		})
-		if err != nil {
-			callbackErr(err)
-			return
-		}
 	}
 }
 
@@ -722,7 +735,9 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		},
 	}
 
+	ctx.Engine.Listeners.Add(1)
 	go func() {
+		defer ctx.Engine.Listeners.Done()
 		err := server.ListenAndServe()
 		if err != nil {
 			ctx.ExecListener(func() {

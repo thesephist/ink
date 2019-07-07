@@ -179,7 +179,9 @@ encode := str => (
 ` decode number list into an ascii string `
 decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
 
-` utility for reading an entire file `
+` utility for reading an entire file
+	readFile does not lean on readRawFile because a string-based
+	implementation can be more efficient here `
 readFile := (path, callback) => (
 	BUFSIZE := 4096 ` bytes `
 	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
@@ -196,11 +198,31 @@ readFile := (path, callback) => (
 	)))(0, '')
 )
 
+` utility for reading an entire file without string conversion `
+readRawFile := (path, callback) => (
+	BUFSIZE := 4096 ` bytes `
+	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
+		evt.type :: {
+			'error' -> callback(())
+			'data' -> (
+				dataLen := len(evt.data)
+				dataLen = BUFSIZE :: {
+					true -> accumulate(offset + dataLen, append(acc, evt.data))
+					false -> callback(append(acc, evt.data))
+				}
+			)
+		}
+	)))(0, [])
+)
+
 ` utility for writing an entire file
 	is not buffered, because it's simpler, but may cause jank later
 	we'll address that if/when it becomes a performance issue `
-writeFile := (path, data, callback) => (
-	write(path, 0, encode(data), evt => evt.type :: {
+writeFile := (path, data, callback) => writeRawFile(path, encode(data), callback)
+
+` analogue of readRawFile for writeFile `
+writeRawFile := (path, data, callback) => (
+	write(path, 0, data, evt => evt.type :: {
 		'error' -> callback(())
 		'end' -> callback(true)
 	})
