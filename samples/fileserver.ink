@@ -1,7 +1,7 @@
 ` a primitive HTTP static file server `
 
 DIR := '.'
-PORT := 8080
+PORT := 7800
 
 ` short non-comprehensive list of MIME types `
 TYPES := {
@@ -63,8 +63,8 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 					(evt.end)({
 						status: 200
 						headers: {
-							'X-Served-By': 'ink-serve'
 							'Content-Type': getType(path)
+							'X-Served-By': 'ink-serve'
 						}
 						body: fileBody,
 					})
