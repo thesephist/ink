@@ -27,7 +27,7 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 			dataLength := len(evt.data)
 
 			` log progress `
-			log('copying --> ' + slice(decode(evt.data), 0, 50) + '...')
+			log('copying --> ' + slice(decode(evt.data), 0, 20) + '...')
 
 			` write the read bit, and recurse back to reading `
 			write(dest, offset, evt.data, evt => evt.type :: {
