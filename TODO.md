@@ -52,6 +52,7 @@
 - [ ] Path tracer
 - [ ] Simple file server
 - [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
+- [ ] The Knuth/McIlroy test -- read a text file (stream), find the top N most frequent words and print it.
 - [ ] Math guessing game, but where we show you a product of two 2x2 or 2x3 digit numbers and you have to guess the output. It should ask you to retry until you get it.
 
 
