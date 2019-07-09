@@ -29,12 +29,11 @@ func isIntable(n float64) bool {
 
 // Utility func to get a consistent, language spec-compliant
 //	string representation of numbers
-func nToS(n float64) string {
-	i := int64(n)
-	if n == float64(i) {
-		return fmt.Sprintf("%d", i)
+func nToS(f float64) string {
+	if i := int64(f); f == float64(i) {
+		return strconv.FormatInt(i, 10)
 	} else {
-		return fmt.Sprintf("%.8f", n)
+		return strconv.FormatFloat(f, 'f', 8, 64)
 	}
 }
 
@@ -242,7 +241,7 @@ func unwrapThunk(v Value) (Value, error) {
 }
 
 func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	switch n.operator.kind {
+	switch n.operator {
 	case NegationOp:
 		operand, err := n.operand.Eval(frame, false)
 		if err != nil {
@@ -257,7 +256,8 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 		default:
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot negate non-boolean and non-number value %s", o.String()),
+				fmt.Sprintf("cannot negate non-boolean and non-number value %s [%s]",
+					o.String(), poss(n.operand)),
 			}
 		}
 	}
@@ -291,21 +291,21 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 		default:
 			return "", Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access invalid property name %s of a composite value",
-					rightEvaluatedValue.String()),
+				fmt.Sprintf("cannot access invalid property name %s of a composite value [%s]",
+					rightEvaluatedValue.String(), poss(rightOperand)),
 			}
 		}
 	}
 }
 
 func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	if n.operator.kind == DefineOp {
+	if n.operator == DefineOp {
 		if leftIdent, okIdent := n.leftOperand.(IdentifierNode); okIdent {
 			if _, isEmpty := n.rightOperand.(EmptyIdentifierNode); isEmpty {
 				return nil, Err{
 					ErrRuntime,
-					fmt.Sprintf("cannot assign an empty identifier value to %s",
-						leftIdent.String()),
+					fmt.Sprintf("cannot assign an empty identifier value to %s [%s]",
+						leftIdent.String(), poss(n.leftOperand)),
 				}
 			}
 
@@ -317,7 +317,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			frame.setValue(leftIdent.val, rightValue)
 			return rightValue, nil
 		} else if leftAccess, okAccess := n.leftOperand.(BinaryExprNode); okAccess &&
-			leftAccess.operator.kind == AccessorOp {
+			leftAccess.operator == AccessorOp {
 
 			leftObject, err := leftAccess.leftOperand.Eval(frame, false)
 			if err != nil {
@@ -340,18 +340,19 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			} else {
 				return nil, Err{
 					ErrRuntime,
-					fmt.Sprintf("cannot set property of a non-composite value %s",
-						leftObject.String()),
+					fmt.Sprintf("cannot set property of a non-composite value %s [%s]",
+						leftObject.String(), poss(leftAccess.leftOperand)),
 				}
 			}
 		} else {
 			left, _ := n.leftOperand.Eval(frame, false)
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot assign value to non-identifier %s", left.String()),
+				fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
+					left.String(), poss(n.leftOperand)),
 			}
 		}
-	} else if n.operator.kind == AccessorOp {
+	} else if n.operator == AccessorOp {
 		leftValue, err := n.leftOperand.Eval(frame, false)
 		if err != nil {
 			return nil, err
@@ -374,16 +375,20 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if err != nil {
 				return nil, Err{
 					ErrRuntime,
-					fmt.Sprintf("while accessing string %s at an index, found non-integer index %s",
-						leftString.val, rightValueStr),
+					fmt.Sprintf("while accessing string %s at an index, found non-integer index %s [%s]",
+						leftString.val, rightValueStr, poss(n.rightOperand)),
 				}
 			}
-			return StringValue{string(leftString.val[rightNum])}, nil
+			if int(rightNum) < len(leftString.val) {
+				return StringValue{string(leftString.val[rightNum])}, nil
+			} else {
+				return NullValue{}, nil
+			}
 		} else {
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access property of a non-composite value %s",
-					leftValue),
+				fmt.Sprintf("cannot access property of a non-composite value %s [%s]",
+					leftValue, poss(n.rightOperand)),
 			}
 		}
 	}
@@ -397,7 +402,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		return nil, err
 	}
 
-	switch n.operator.kind {
+	switch n.operator {
 	case AddOp:
 		switch left := leftValue.(type) {
 		case NumberValue:
@@ -415,8 +420,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support addition",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support addition [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case SubtractOp:
 		switch left := leftValue.(type) {
@@ -427,8 +432,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support subtraction",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support subtraction [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case MultiplyOp:
 		switch left := leftValue.(type) {
@@ -443,8 +448,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support multiplication",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support multiplication [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case DivideOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
@@ -452,7 +457,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				if right.val == 0 {
 					return nil, Err{
 						ErrRuntime,
-						"division by zero error",
+						fmt.Sprintf("division by zero error [%s]", poss(n.rightOperand)),
 					}
 				} else {
 					return NumberValue{leftNum.val / right.val}, nil
@@ -461,8 +466,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support division",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support division [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case ModulusOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
@@ -470,7 +475,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				if right.val == 0 {
 					return nil, Err{
 						ErrRuntime,
-						"division by zero error in modulus",
+						fmt.Sprintf("division by zero error in modulus [%s]", poss(n.rightOperand)),
 					}
 				}
 
@@ -481,15 +486,16 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				} else {
 					return nil, Err{
 						ErrRuntime,
-						fmt.Sprintf("cannot take modulus of non-integer value %s", nToS(right.val)),
+						fmt.Sprintf("cannot take modulus of non-integer value %s [%s]",
+							nToS(right.val), poss(n.leftOperand)),
 					}
 				}
 			}
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support modulus",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support modulus [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case LogicalAndOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
@@ -501,8 +507,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				} else {
 					return nil, Err{
 						ErrRuntime,
-						fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s",
-							nToS(rightNum.val), nToS(leftNum.val)),
+						fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s [%s]",
+							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
 					}
 				}
 			}
@@ -513,8 +519,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support bitwise or logical &",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support bitwise or logical & [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case LogicalOrOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
@@ -526,8 +532,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				} else {
 					return nil, Err{
 						ErrRuntime,
-						fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s",
-							nToS(rightNum.val), nToS(leftNum.val)),
+						fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s [%s]",
+							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
 					}
 				}
 			}
@@ -538,8 +544,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support bitwise or logical |",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support bitwise or logical | [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case LogicalXorOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
@@ -551,8 +557,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				} else {
 					return nil, Err{
 						ErrRuntime,
-						fmt.Sprintf("cannot take logical & of non-integer values %s, %s",
-							nToS(rightNum.val), nToS(leftNum.val)),
+						fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
+							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
 					}
 				}
 			}
@@ -563,8 +569,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support bitwise or logical ^",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support bitwise or logical ^ [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case GreaterThanOp:
 		switch left := leftValue.(type) {
@@ -579,8 +585,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support comparison",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support comparison [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case LessThanOp:
 		switch left := leftValue.(type) {
@@ -595,8 +601,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("values %s and %s do not support comparison",
-				leftValue, rightValue),
+			fmt.Sprintf("values %s and %s do not support comparison [%s]",
+				leftValue, rightValue, poss(n)),
 		}
 	case EqualOp:
 		return BooleanValue{leftValue.Equals(rightValue)}, nil
@@ -612,14 +618,6 @@ func (n FunctionCallNode) Eval(frame *StackFrame, allowThunk bool) (Value, error
 	fn, err := n.function.Eval(frame, false)
 	if err != nil {
 		return nil, err
-	}
-
-	if fn == nil {
-		return nil, Err{
-			ErrRuntime,
-			fmt.Sprintf("attempted to call an unknown function at %s",
-				n.function.String()),
-		}
 	}
 
 	argResults := make([]Value, len(n.arguments))
@@ -730,7 +728,7 @@ func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	if !prs {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("%s is not defined", n.val),
+			fmt.Sprintf("%s is not defined [%s]", n.val, poss(n)),
 		}
 	}
 	return val, nil

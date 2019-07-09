@@ -23,7 +23,6 @@
     - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
     - `prime.ink` is also a good candidate.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
-- [ ] Errors should print a stacktrace (elided if tail recursed)
 
 
 ## Language

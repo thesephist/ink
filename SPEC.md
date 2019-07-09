@@ -96,6 +96,8 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 
 Composite and Function types are reference-typed, which means assigning a composite to a variable just assigns a reference to the same composite or function value. All other types are value-typed, which means assigning these values to variables or calling a function with these values as arguments will create new copies of those values. i.e.
 
+In Ink, the Null value `()` is globally unique and often also used to represent an empty or error value. For example, accessing a nonexistent index of a string or key of a composite value will return not an error, but the null value. Likewise, attempting to read from a nonexistent file will return a null value in the standard library. This borrows and furthers the idea of zero values from Go, and is an experiment I'm taking in Ink towards an exception-free interpreted language.
+
 ```
 ` for simple values `
 a := 3, b := a

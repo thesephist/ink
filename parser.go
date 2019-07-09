@@ -8,12 +8,20 @@ import (
 // Node represents an abstract syntax tree (AST) node in an Ink program.
 type Node interface {
 	String() string
+	Position() position
 	Eval(*StackFrame, bool) (Value, error)
 }
 
+// a string representation of the Position of a given node,
+//	appropriate for an error message
+func poss(n Node) string {
+	return n.Position().String()
+}
+
 type UnaryExprNode struct {
-	operator Tok
+	operator Kind
 	operand  Node
+	position
 }
 
 func (n UnaryExprNode) opChar() string {
@@ -24,14 +32,19 @@ func (n UnaryExprNode) String() string {
 	return fmt.Sprintf("Unary %s (%s)", n.opChar(), n.operand.String())
 }
 
+func (n UnaryExprNode) Position() position {
+	return n.position
+}
+
 type BinaryExprNode struct {
-	operator     Tok
+	operator     Kind
 	leftOperand  Node
 	rightOperand Node
+	position
 }
 
 func (n BinaryExprNode) opChar() string {
-	switch n.operator.kind {
+	switch n.operator {
 	case AddOp:
 		return "+"
 	case SubtractOp:
@@ -73,6 +86,10 @@ func (n BinaryExprNode) String() string {
 		n.rightOperand.String())
 }
 
+func (n BinaryExprNode) Position() position {
+	return n.position
+}
+
 type FunctionCallNode struct {
 	function  Node
 	arguments []Node
@@ -88,6 +105,10 @@ func (n FunctionCallNode) String() string {
 		strings.Join(args, ", "))
 }
 
+func (n FunctionCallNode) Position() position {
+	return n.function.Position()
+}
+
 type MatchClauseNode struct {
 	target     Node
 	expression Node
@@ -99,9 +120,14 @@ func (n MatchClauseNode) String() string {
 		n.expression.String())
 }
 
+func (n MatchClauseNode) Position() position {
+	return n.target.Position()
+}
+
 type MatchExprNode struct {
 	condition Node
 	clauses   []MatchClauseNode
+	position
 }
 
 func (n MatchExprNode) String() string {
@@ -114,8 +140,13 @@ func (n MatchExprNode) String() string {
 		clauses)
 }
 
+func (n MatchExprNode) Position() position {
+	return n.position
+}
+
 type ExpressionListNode struct {
 	expressions []Node
+	position
 }
 
 func (n ExpressionListNode) String() string {
@@ -126,46 +157,77 @@ func (n ExpressionListNode) String() string {
 	return fmt.Sprintf("Expression List (%s)", strings.Join(exprs, ", "))
 }
 
-type EmptyIdentifierNode struct{}
+func (n ExpressionListNode) Position() position {
+	return n.position
+}
+
+type EmptyIdentifierNode struct {
+	position
+}
 
 func (n EmptyIdentifierNode) String() string {
 	return "Empty Identifier"
 }
 
+func (n EmptyIdentifierNode) Position() position {
+	return n.position
+}
+
 type IdentifierNode struct {
 	val string
+	position
 }
 
 func (n IdentifierNode) String() string {
 	return fmt.Sprintf("Identifier '%s'", n.val)
 }
 
+func (n IdentifierNode) Position() position {
+	return n.position
+}
+
 type NumberLiteralNode struct {
 	val float64
+	position
 }
 
 func (n NumberLiteralNode) String() string {
 	return fmt.Sprintf("Number %s", nToS(n.val))
 }
 
+func (n NumberLiteralNode) Position() position {
+	return n.position
+}
+
 type StringLiteralNode struct {
 	val string
+	position
 }
 
 func (n StringLiteralNode) String() string {
 	return fmt.Sprintf("String '%s'", n.val)
 }
 
+func (n StringLiteralNode) Position() position {
+	return n.position
+}
+
 type BooleanLiteralNode struct {
 	val bool
+	position
 }
 
 func (n BooleanLiteralNode) String() string {
 	return fmt.Sprintf("Boolean %t", n.val)
 }
 
+func (n BooleanLiteralNode) Position() position {
+	return n.position
+}
+
 type ObjectLiteralNode struct {
 	entries []ObjectEntryNode
+	position
 }
 
 func (n ObjectLiteralNode) String() string {
@@ -177,9 +239,14 @@ func (n ObjectLiteralNode) String() string {
 		strings.Join(entries, ", "))
 }
 
+func (n ObjectLiteralNode) Position() position {
+	return n.position
+}
+
 type ObjectEntryNode struct {
 	key Node
 	val Node
+	position
 }
 
 func (n ObjectEntryNode) String() string {
@@ -188,6 +255,7 @@ func (n ObjectEntryNode) String() string {
 
 type ListLiteralNode struct {
 	vals []Node
+	position
 }
 
 func (n ListLiteralNode) String() string {
@@ -198,9 +266,14 @@ func (n ListLiteralNode) String() string {
 	return fmt.Sprintf("List [%s]", strings.Join(vals, ", "))
 }
 
+func (n ListLiteralNode) Position() position {
+	return n.position
+}
+
 type FunctionLiteralNode struct {
 	arguments []Node
 	body      Node
+	position
 }
 
 func (n FunctionLiteralNode) String() string {
@@ -212,6 +285,10 @@ func (n FunctionLiteralNode) String() string {
 		strings.Join(args, ", "),
 		n.body.String(),
 	)
+}
+
+func (n FunctionLiteralNode) Position() position {
+	return n.position
 }
 
 func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
@@ -390,9 +467,10 @@ func parseBinaryExpression(
 	nodes = nodes[1:]
 	for len(ops) > 0 {
 		tree = BinaryExprNode{
-			operator:     ops[0],
+			operator:     ops[0].kind,
 			leftOperand:  tree,
 			rightOperand: nodes[0],
+			position:     ops[0].position,
 		}
 		ops = ops[1:]
 		nodes = nodes[1:]
@@ -446,6 +524,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 
 		// Binary expressions are often followed by a match
 		if idx < len(tokens) && tokens[idx].kind == MatchColon {
+			colonPos := tokens[idx].position
 			idx++ // MatchColon
 
 			clauses, incr, err := parseMatchBody(tokens[idx:])
@@ -458,6 +537,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 			return MatchExprNode{
 				condition: binExpr,
 				clauses:   clauses,
+				position:  colonPos,
 			}, idx, nil
 		} else {
 			consumeDanglingSeparator()
@@ -475,6 +555,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 		return MatchExprNode{
 			condition: atom,
 			clauses:   clauses,
+			position:  nextTok.position,
 		}, idx, nil
 
 	default:
@@ -499,8 +580,9 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			return nil, 0, err
 		}
 		return UnaryExprNode{
-			operator: tok,
+			operator: tok.kind,
 			operand:  atom,
+			position: tok.position,
 		}, idx + 1, nil
 	}
 
@@ -512,13 +594,13 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 	var atom Node
 	switch tok.kind {
 	case NumberLiteral:
-		return NumberLiteralNode{tok.num}, idx, nil
+		return NumberLiteralNode{tok.num, tok.position}, idx, nil
 	case StringLiteral:
-		return StringLiteralNode{tok.str}, idx, nil
+		return StringLiteralNode{tok.str, tok.position}, idx, nil
 	case TrueLiteral:
-		return BooleanLiteralNode{true}, idx, nil
+		return BooleanLiteralNode{true, tok.position}, idx, nil
 	case FalseLiteral:
-		return BooleanLiteralNode{false}, idx, nil
+		return BooleanLiteralNode{false, tok.position}, idx, nil
 	case Identifier:
 		if tokens[idx].kind == FunctionArrow {
 			var err error
@@ -532,7 +614,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			// 	so we backtrack one token.
 			idx--
 		} else {
-			atom = IdentifierNode{tok.str}
+			atom = IdentifierNode{tok.str, tok.position}
 		}
 		// may be called as a function, so flows beyond
 		//	switch case
@@ -549,7 +631,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			// 	so we backtrack one token.
 			return atom, idx - 1, nil
 		} else {
-			return EmptyIdentifierNode{}, idx, nil
+			return EmptyIdentifierNode{tok.position}, idx, nil
 		}
 	case LeftParen:
 		// grouped expression or function literal
@@ -587,7 +669,10 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			// 	so we backtrack one token.
 			idx--
 		} else {
-			atom = ExpressionListNode{exprs}
+			atom = ExpressionListNode{
+				expressions: exprs,
+				position:    tok.position,
+			}
 		}
 		// may be called as a function, so flows beyond
 		//	switch case
@@ -614,7 +699,11 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 
 			// Separator consumed by parseExpression
 			idx += valIncr
-			entries = append(entries, ObjectEntryNode{key: keyExpr, val: valExpr})
+			entries = append(entries, ObjectEntryNode{
+				key:      keyExpr,
+				val:      valExpr,
+				position: keyExpr.Position(),
+			})
 
 			err = guardUnexpectedInputEnd(tokens, idx)
 			if err != nil {
@@ -622,7 +711,10 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		idx++ // RightBrace
-		return ObjectLiteralNode{entries}, idx, nil
+		return ObjectLiteralNode{
+			entries:  entries,
+			position: tok.position,
+		}, idx, nil
 	case LeftBracket:
 		vals := make([]Node, 0)
 		for tokens[idx].kind != RightBracket {
@@ -640,9 +732,12 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		idx++ // RightBracket
-		return ListLiteralNode{vals}, idx, nil
+		return ListLiteralNode{
+			vals:     vals,
+			position: tok.position,
+		}, idx, nil
 	default:
-		return IdentifierNode{}, 0, Err{
+		return nil, 0, Err{
 			ErrSyntax,
 			fmt.Sprintf("unexpected start of atom, found %s", tok),
 		}
@@ -747,11 +842,12 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	switch tok.kind {
 	case LeftParen:
 		for {
-			if tokens[idx].kind == Identifier {
-				idNode := IdentifierNode{tokens[idx].str}
+			tk := tokens[idx]
+			if tk.kind == Identifier {
+				idNode := IdentifierNode{tk.str, tk.position}
 				arguments = append(arguments, idNode)
-			} else if tokens[idx].kind == EmptyIdentifier {
-				idNode := EmptyIdentifierNode{}
+			} else if tk.kind == EmptyIdentifier {
+				idNode := EmptyIdentifierNode{tk.position}
 				arguments = append(arguments, idNode)
 			} else {
 				break
@@ -786,10 +882,10 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 		}
 		idx++ // RightParen
 	case Identifier:
-		idNode := IdentifierNode{tok.str}
+		idNode := IdentifierNode{tok.str, tok.position}
 		arguments = append(arguments, idNode)
 	case EmptyIdentifier:
-		idNode := EmptyIdentifierNode{}
+		idNode := EmptyIdentifierNode{tok.position}
 		arguments = append(arguments, idNode)
 	default:
 		return FunctionLiteralNode{}, 0, Err{
@@ -820,6 +916,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	return FunctionLiteralNode{
 		arguments: arguments,
 		body:      body,
+		position:  tokens[0].position,
 	}, idx, nil
 }
 

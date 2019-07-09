@@ -6,8 +6,10 @@ import (
 	"unicode"
 )
 
+type Kind int
+
 const (
-	Separator = iota
+	Separator Kind = iota
 
 	Block
 	UnaryExpr
@@ -69,17 +71,17 @@ const (
 )
 
 type position struct {
-	startLine, startCol int
+	line, col int
 }
 
 func (p position) String() string {
-	return fmt.Sprintf("%d:%d", p.startLine, p.startCol)
+	return fmt.Sprintf("%d:%d", p.line, p.col)
 }
 
 // Tok is the monomorphic struct representing all Ink program tokens
 //	in the lexer.
 type Tok struct {
-	kind int
+	kind Kind
 	// str and num are both present to implement Tok
 	//	as a monomorphic type for all tokens; will be zero
 	//	values often.
@@ -122,18 +124,18 @@ func Tokenize(
 	var buf, strbuf string
 	var strbufStartLine, strbufStartCol int
 
-	lastTokKind := Separator
+	lastKind := Separator
 	lineNo := 1
 	colNo := 1
 
 	simpleCommit := func(tok Tok) {
-		lastTokKind = tok.kind
+		lastKind = tok.kind
 		if debugLexer {
 			logDebug("lex ->", tok.String())
 		}
 		tokens <- tok
 	}
-	simpleCommitChar := func(kind int) {
+	simpleCommitChar := func(kind Kind) {
 		simpleCommit(Tok{
 			kind:     kind,
 			position: position{lineNo, colNo},
@@ -189,7 +191,7 @@ func Tokenize(
 		commitClear()
 		simpleCommit(tok)
 	}
-	commitChar := func(kind int) {
+	commitChar := func(kind Kind) {
 		commit(Tok{
 			kind:     kind,
 			position: position{lineNo, colNo},
@@ -197,7 +199,7 @@ func Tokenize(
 	}
 	ensureSeparator = func() {
 		commitClear()
-		switch lastTokKind {
+		switch lastKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace,
 			AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp, NegationOp,
 			GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp,
@@ -408,7 +410,7 @@ func isValidIdentifierChar(char rune) bool {
 	return isValidIdentifierStartChar(char) || unicode.IsDigit(char)
 }
 
-func tokKindToName(kind int) string {
+func tokKindToName(kind Kind) string {
 	switch kind {
 	case Block:
 		return "Block"
