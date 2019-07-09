@@ -34,14 +34,6 @@ func logInteractivef(s string, args ...interface{}) {
 	logInteractive(fmt.Sprintf(s, args...))
 }
 
-func logWarn(args ...string) {
-	fmt.Println(ANSI_YELLOW_BOLD + "warn: " + ANSI_YELLOW + strings.Join(args, " ") + ANSI_RESET)
-}
-
-func logWarnf(s string, args ...interface{}) {
-	logWarn(fmt.Sprintf(s, args...))
-}
-
 func logSafeErr(reason int, args ...string) {
 	errStr := "error"
 	switch reason {
@@ -56,7 +48,7 @@ func logSafeErr(reason int, args ...string) {
 	default:
 		errStr = "error"
 	}
-	fmt.Println(ANSI_RED_BOLD + errStr + ": " + ANSI_RED + strings.Join(args, " ") + ANSI_RESET)
+	fmt.Fprintln(os.Stderr, ANSI_RED_BOLD+errStr+": "+ANSI_RED+strings.Join(args, " ")+ANSI_RESET)
 }
 
 func logErr(reason int, args ...string) {
