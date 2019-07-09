@@ -12,8 +12,14 @@ log :=
 	out('
 ')
 ))
+1 :: ` line break after match `
+{1 -> 'hi', 2 ->
+	'thing'}
+() =>
+	() ` line break after arrow `
 log2 :=
-	(str => (
+	(str =>
+	(
 
 	out(str)
 		out('

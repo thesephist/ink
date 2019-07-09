@@ -2,7 +2,6 @@
 
 ## Codebase / Golang
 
-- [ ] Go through it with Effective Go with a fine toothed comb
 - [ ] As we get time also make a ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
     1. correctness checking against Go implementation
     2. writing web code

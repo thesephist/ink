@@ -91,23 +91,20 @@ type Tok struct {
 }
 
 func (tok Tok) String() string {
-	label := tokKindToName(tok.kind)
-
 	switch tok.kind {
 	case Identifier, StringLiteral:
-
 		return fmt.Sprintf("%s %s [%s]",
-			label,
+			tok.kind.String(),
 			tok.str,
 			tok.position.String())
 	case NumberLiteral:
 		return fmt.Sprintf("%s %s [%s]",
-			label,
+			tok.kind.String(),
 			nToS(tok.num),
 			tok.position.String())
 	default:
 		return fmt.Sprintf("%s [%s]",
-			label,
+			tok.kind.String(),
 			tok.position.String())
 	}
 }
@@ -410,7 +407,7 @@ func isValidIdentifierChar(char rune) bool {
 	return isValidIdentifierStartChar(char) || unicode.IsDigit(char)
 }
 
-func tokKindToName(kind Kind) string {
+func (kind Kind) String() string {
 	switch kind {
 	case Block:
 		return "Block"
