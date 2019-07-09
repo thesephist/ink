@@ -183,7 +183,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		if output, ok := in[0].(StringValue); ok {
-			fmt.Printf(output.val)
+			fmt.Print(output.val)
 			return NullValue{}, nil
 		}
 	}
