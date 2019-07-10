@@ -1,6 +1,6 @@
 # Todo items
 
-## Codebase / Golang
+## Interpreter
 
 - [ ] As we get time also make a ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
     1. correctness checking against Go implementation
@@ -14,13 +14,6 @@
     - Binary Search Tree
     - Computing and rendering the Mendelbrot set.
     - Project Euler solutions?
-
-
-## Interpreter
-
-- [ ] Start benchmarking Ink against JavaScript and Python and keep a progress history. A suite of tests across different aspects of the interpreter, like calling stack frames vs allocating lots of objects etc.
-    - `quicksort.ink` implementation with 50k/100k elements seems like a good starting point for a benchmark. Let's measure that every commit, and pit that against JavaScript?
-    - `prime.ink` is also a good candidate.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
 
 
@@ -31,6 +24,7 @@
     - It seems helpful to think of it as a constraint system on the runtime, instead of as something that’s an attribute of the runtime execution itself. I like the Haskell approach of having definition / type declarations separate from the imperative flow definition/syntax itself. Also look at how Haskell / Erlang / Clojure / other functional languages do type annotation, and keep in mind that while Ink is functional flavor it should still feel great in imperative / OO style.
     - Since Ink has no implicit casts, this seems like it'll be straightforward to infer most variable types from their declaration (what they're bound to in the beginning) and recurse up the tree. So to compute "what's the type of this expression?" the type checker will recursively ask its children for their types, and assuming none of them return an error, we can define a `func (n Node) TypeCheck() (Type, error)` that recursively descends to type check an entire AST node from the top. We can expose this behind an `ink -type-check <file>.ink` flag.
     - To support Ink's way of error handling and signaling (returning null data values), the type system must support sum types, i.e. `number | ()`
+
 
 ## Standard library / utilities
 
