@@ -63,7 +63,7 @@ BinaryOp: (
 )
 ```
 
-A few quirks of this syntax:
+A few quirks of this syntax, and notes about the language:
 
 - All variables use lexical binding and scope, and are bound to the most local ExpressionList (execution block)
 - Commas (`Separator` tokens) are always required where they are marked in the formal grammar, but the tokenizer inserts commas on newlines if it can be inserted, except after unary and binary operators and after opening delimiters, so few are required after expressions, before closing delimiters, and before the ':' in an Object literal. Here, they are auto-inserted during tokenization.
@@ -81,6 +81,7 @@ A few quirks of this syntax:
 - Object (dictionary) keys can be arbitrary expressions, including variable names. If the key is a single identifier, the identifier's name will be used as a key in the dict, and if it's not an identifier (a literal, function call, etc.) the value of the expression will be computed and used as the key. This seems like it may cause trouble conceptually, but turns out to be intuitive in practice.
 - Assignment is always (re)declaration of a variable in its local scope; this means, for the moment, there is no way to mutate a variable from a parents scope (it'll just shadow the variable in the local scope). I think this is fine, since it forbids a class of potentially confusing state mutations, but I might change my mind in the future and add an assignment-that-isn't-declare. Note that this doesn't affect composite values -- you can mutate objects from a parents scope.
 - Ink allows boolean algebra with both logical/bitwise (`&|^`) and algebraic (`+*~`) operators, and which one is used depends on context.
+    - Notably, Ink does not lazy-evaluate logical operators. That means, given `A & B` or `A | B`, both operands are _always evaluated_. This seems simpler and leaves less room for abuse of logical operators in the style of JavaScript's `&&` used as a conditional. I might change my mind on this in the future, but seems like unnecessary complexity at the moment.
 - The only control flow constructs are the function call and the match expression (`a :: {b -> c...}`), and the only control flow construct that branches the execution flow is the match expression. This makes Ink programs simple to analyze programmatically and simple to audit manually.
 
 ## Types
