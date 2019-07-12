@@ -33,10 +33,12 @@ $ ink < <file>.ink
 Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with the command `ink -input`, which will then accept this file and run it for you when you execute the file.
 
 ```ink
-#!/usr/bin/env ink -input
+#!/usr/bin/env -S ink -input
 
 ... the rest of your program
 ```
+
+_(For those curious, the `-S` tells `env` to treat `ink -input` as a list of arguments, not a single binary called `ink -input`.)_
 
 You can find an example of this in `samples/fileserver.ink`, which you can start by simply running `./samples/fileserver.ink` (without having to specifically call `ink -input samples/fileserver.ink`).
 

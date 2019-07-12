@@ -1,4 +1,4 @@
-#!/usr/bin/env ink -input
+#!/usr/bin/env -S ink -input
 
 ` a primitive HTTP static file server `
 
