@@ -1,19 +1,21 @@
 #!/bin/sh
 
 # for stdin / scan() test
-echo 'Linus' | go run -race . -input samples/std.ink \
-    -input samples/fizzbuzz.ink \
-    -input samples/graph.ink \
-    -input samples/basic.ink \
-    -input samples/dict.ink \
-    -input samples/kv.ink \
-    -input samples/fib.ink \
-    -input samples/newton.ink \
-    -input samples/callback.ink \
-    -input samples/pi.ink \
-    -input samples/prime.ink \
-    -input samples/quicksort.ink \
-    -input samples/mapfilterreduce.ink \
-    -input samples/undefinedme.ink \
-    -input samples/error.ink \
-    -input samples/prompt.ink \
+# std.ink is tested through other samples that consume it
+#   so no need to specifically test it
+echo 'Linus' | go run -race . \
+    samples/fizzbuzz.ink \
+    samples/graph.ink \
+    samples/basic.ink \
+    samples/dict.ink \
+    samples/kv.ink \
+    samples/fib.ink \
+    samples/newton.ink \
+    samples/callback.ink \
+    samples/pi.ink \
+    samples/prime.ink \
+    samples/quicksort.ink \
+    samples/mapfilterreduce.ink \
+    samples/undefinedme.ink \
+    samples/error.ink \
+    samples/prompt.ink

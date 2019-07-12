@@ -17,24 +17,15 @@ Ink is a minimal, functional programming language.
 
 By default, ink interprets from stdin.
 	ink < main.ink
-Run an ink script on files with -input.
-	ink -input main.ink
+Run an ink script on files by passing it to the interpreter.
+	ink main.ink other.ink
+Start an interactive repl with -repl.
+	ink -repl
+	> ...
 Run from the command line with -eval.
 	ink -eval "f := () => out('hi'), f()"
 
 `
-
-// for input files flag parsing
-type inkFiles []string
-
-func (i *inkFiles) Set(val string) error {
-	*i = append(*i, val)
-	return nil
-}
-
-func (i *inkFiles) String() string {
-	return strings.Join(*i, ", ")
-}
 
 func main() {
 	flag.Usage = func() {
@@ -60,10 +51,8 @@ func main() {
 	repl := flag.Bool("repl", false, "Run as an interactive repl")
 	eval := flag.String("eval", "", "Evaluate argument as an Ink program")
 
-	var files inkFiles
-	flag.Var(&files, "input", "Source code to execute, can be invoked multiple times")
-
 	flag.Parse()
+	files := flag.Args()
 
 	// if asked for version, disregard everything else
 	if *version {

@@ -27,20 +27,20 @@ $ cat <file>.ink | ink
 	# or
 $ ink < <file>.ink
 ```
-2. Use `ink -input <file>.ink` to execute an ink script file. You may pass the flag multiple times to execute multiple scripts, like `ink -input a.ink -input b.ink`.
+2. Use `ink <file>.ink` to execute an ink script file. You may pass multiple files to execute multiple scripts, like `ink a.ink b.ink`.
 3. Invoke `ink -repl` to start an interactive repl session, and start typing ink code. You can run files in this context by loading Ink files into the context using the `load(<filename>)` function in the repl.
 
-Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with the command `ink -input`, which will then accept this file and run it for you when you execute the file.
+Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with `ink`, which will then accept this file and run it for you when you execute the file.
 
 ```ink
-#!/usr/bin/env -S ink -input
+#!/usr/bin/env ink
 
 ... the rest of your program
 ```
 
-_(For those curious, the `-S` tells `env` to treat `ink -input` as a list of arguments, not a single binary called `ink -input`.)_
+You can find an example of this in `samples/fileserver.ink`, which you can start by simply running `./samples/fileserver.ink` (without having to specifically call `ink samples/fileserver.ink`).
 
-You can find an example of this in `samples/fileserver.ink`, which you can start by simply running `./samples/fileserver.ink` (without having to specifically call `ink -input samples/fileserver.ink`).
+To summarize, ink's input priority is, from highest to lowest, `-repl` -> `-eval` -> files -> `stdin`. Note that command line flags to `ink` should _precede_ any program files given as arguments. If you need to pass a file name that begins with a dash, use `--`.
 
 ## Introduction
 
@@ -109,7 +109,7 @@ You'll notice a few characteristic things about Ink:
 - Ink does not have explicit return statements. Instead, everything is an expression that evaluates to a value, and function bodies are a list of expressions whose last-evaluated expression value becomes the "return value" of the function.
 - As a general convention, Ink tries not to use to many English keywords in favor of a small set of short symbols. In fact, the only keyword using the English alphabet in the language is `is`, for reference equality checks.
 
-You can find more sample code in the `samples/` directory and run them with `ink -input <sample>.ink`.
+You can find more sample code in the `samples/` directory and run them with `ink samples/<file>.ink`.
 
 ## Why?
 
@@ -135,7 +135,7 @@ To run an Ink program completely untrusted, run `ink -isolate` (with the "isolat
 
 Ink is currently a single go package. Run `go run .` to run from source, and `go build -ldflags="-s -w"` to build the release binary.
 
-The `ink` binary takes in scripts from standard input, unless at least one `-input` flag is provided, in which case it reads from the filesystem.
+The `ink` binary takes in scripts from standard input, unless at least one input file is provided, in which case it reads from the filesystem.
 
 ### Go API
 
