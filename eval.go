@@ -1001,6 +1001,17 @@ func (ctx *Context) ExecFile(filePath string) error {
 		return err
 	}
 	scanner := bufio.NewScanner(file)
+
+	// special case for first line, detect #!/...
+	scanner.Scan()
+	line := scanner.Text()
+	if !strings.HasPrefix(line, "#!") {
+		for _, char := range line {
+			input <- char
+		}
+		input <- '\n'
+	}
+
 	for scanner.Scan() {
 		for _, char := range scanner.Text() {
 			input <- char

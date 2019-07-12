@@ -28,7 +28,17 @@ $ cat <file>.ink | ink
 $ ink < <file>.ink
 ```
 2. Use `ink -input <file>.ink` to execute an ink script file. You may pass the flag multiple times to execute multiple scripts, like `ink -input a.ink -input b.ink`.
-3. Invoke `ink -repl` to start an interactive repl session, and start typing ink code. You can run files in this context by executing `@load <file>.ink` in the repl prompt.
+3. Invoke `ink -repl` to start an interactive repl session, and start typing ink code. You can run files in this context by loading Ink files into the context using the `load(<filename>)` function in the repl.
+
+Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with the command `ink -input`, which will then accept this file and run it for you when you execute the file.
+
+```ink
+#!/usr/bin/env ink -input
+
+... the rest of your program
+```
+
+You can find an example of this in `samples/fileserver.ink`, which you can start by simply running `./samples/fileserver.ink` (without having to specifically call `ink -input samples/fileserver.ink`).
 
 ## Introduction
 

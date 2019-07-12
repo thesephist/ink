@@ -71,5 +71,8 @@ highlight link inkComment Comment
 " -- line-ending comment
 syntax match inkLineComment "\v``.*"
 highlight link inkLineComment Comment
+" -- shebang, highlighted as comment
+syntax match inkShebangComment "\v^#!.*"
+highlight link inkShebangComment Comment
 
 let b:current_syntax = "ink"

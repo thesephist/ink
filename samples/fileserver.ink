@@ -1,3 +1,5 @@
+#!/usr/bin/env ink -input
+
 ` a primitive HTTP static file server `
 
 DIR := '.'
