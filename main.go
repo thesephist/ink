@@ -12,12 +12,12 @@ import (
 const VERSION = "0.1.2"
 
 const HELP_MSG = `
-Ink is a minimal, functional programming language.
+Ink is a minimal, powerful, functional programming language.
 	ink v%s
 
 By default, ink interprets from stdin.
 	ink < main.ink
-Run an ink script on files by passing it to the interpreter.
+Run Ink programs from source files by passing it to the interpreter.
 	ink main.ink other.ink
 Start an interactive repl with -repl.
 	ink -repl
@@ -37,7 +37,7 @@ func main() {
 	noRead := flag.Bool("no-read", false, "Silently fail all read operations")
 	noWrite := flag.Bool("no-write", false, "Silently fail all write operations")
 	noNet := flag.Bool("no-net", false, "Silently fail all access to local network")
-	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write")
+	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write, net")
 
 	// cli arguments
 	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
