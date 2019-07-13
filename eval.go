@@ -177,7 +177,14 @@ type FunctionValue struct {
 }
 
 func (v FunctionValue) String() string {
-	return v.defn.String()
+	// ellipsize function body at a reasonable length,
+	//	so as not to be too verbose in repl environments
+	fstr := v.defn.String()
+	if len(fstr) < 120 {
+		return fstr
+	} else {
+		return v.defn.String()[:120] + ".."
+	}
 }
 
 func (v FunctionValue) Equals(other Value) bool {

@@ -293,10 +293,12 @@ log('type() builtin')
 )
 
 section()
-log('stdlib slice/join functions and stringList')
+log('stdlib range/slice/join functions and stringList')
 (
 	stringList := std.stringList
 	sliceList := std.sliceList
+	range := std.range
+	reverse := std.reverse
 	slice := std.slice
 	join := std.join
 
@@ -309,13 +311,17 @@ log('stdlib slice/join functions and stringList')
 	}
 
 	sl := (l, s, e) => stringList(sliceList(l, s, e))
-	list := [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+	list := range(10, ~1, ~1)
 	str := 'abracadabra'
 
 	test(sl(list, 0, 5), '[10, 9, 8, 7, 6]')
 	test(sl(list, ~5, 2), '[10, 9]')
 	test(sl(list, 7, 20), '[3, 2, 1, 0]')
 	test(sl(list, 20, 1), '[]')
+
+	` redefine list using range and reverse, to test those `
+	list := reverse(range(0, 11, 1))
+
 	test(stringList(join(
 		sliceList(list, 0, 5), sliceList(list, 5, 200)
 	)), '[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]')

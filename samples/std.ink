@@ -16,6 +16,24 @@ scan := callback => (
 	in(cb)
 )
 
+` like Python's range(), but no optional arguments `
+range := (start, end, step) => (
+	span := end - start
+	sub := (i, v, acc) => (v - start) / span < 1 :: {
+		true -> (
+			acc.(i) := v
+			sub(i + 1, v + step, acc)
+		)
+		false -> acc,
+	}
+
+	` preempt potential infinite loops `
+	(end - start) / step > 0 :: {
+		true -> sub(0, start, [])
+		false -> []
+	}
+)
+
 ` clamp start and end numbers to ranges, such that
 	start < end. Utility used in slice/sliceList`
 clamp := (start, end, min, max) => (
