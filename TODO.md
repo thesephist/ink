@@ -15,6 +15,7 @@
     - Computing and rendering the Mendelbrot set.
     - Project Euler solutions?
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
+- [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
 
 
 ## Language
@@ -32,11 +33,7 @@
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
 - [ ] We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
-
-
-## Bugs
-
-- [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
+- [ ] The standard library needs a string formatting function that works like `format('my name is {{first}}, {{last}}', {first: 'Linus', last: 'Lee'})` This is some middle ground between Python / C style format strings and the good UX of JS templates.
 
 
 ## Potential exampels / projects
@@ -52,3 +49,4 @@
 - [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
 - [ ] Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte ararys are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first things to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array; and to optimize the standard library I/O functions more.
 - [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.
+- [ ] Think about making an ANSI C implementation? It'll be much more portable and potentially meaningfully faster.
