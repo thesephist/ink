@@ -396,7 +396,11 @@ log('std::format -- the standard library formatter / templater')
 		'magic+eye': 'add_sign'
 	}
 
+	test(f('', {}), '')
 	test(f('one two {{ first }} four', values), 'one two ABC four')
+	test(f('new
+	{{ sup }} line', {sup: 42}), 'new
+	42 line')
 	test(f(
 		' {{thingTwo}}+{{ magic+eye }}  '
 		values
