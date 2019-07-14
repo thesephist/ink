@@ -57,7 +57,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 							'Content-Type': 'text/plain'
 							'X-Served-By': 'ink-serve'
 						}
-						body: encode('not found'),
+						body: encode('not found')
 					})
 				)
 				_ -> (
@@ -68,7 +68,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 							'Content-Type': getType(path)
 							'X-Served-By': 'ink-serve'
 						}
-						body: fileBody,
+						body: fileBody
 					})
 				)
 			}
@@ -84,7 +84,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 							'Content-Type': 'text/plain'
 							'X-Served-By': 'ink-serve'
 						}
-						body: encode('method not allowed'),
+						body: encode('method not allowed')
 					})
 				)
 			}

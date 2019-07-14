@@ -360,12 +360,55 @@ log('ascii <> char point conversions and string encode/decode')
 	test(char(65), 'A')
 
 	s1 := 'this is a long piece of string
-	with weird line breaks'
+	with weird line
+	breaks
+	'
 	s2 := ''
 	s3 := 'AaBbCcDdZzYyXx123456789!@#$%^&*()_+-='
 	test(decode(encode(decode(encode(s1)))), s1)
 	test(decode(encode(decode(encode(s2)))), s2)
 	test(decode(encode(decode(encode(s3)))), s3)
+
+	allpassed.0 :: {true -> (
+		log('all passed!')
+	)}
+	log('')
+)
+
+section()
+log('std::format -- the standard library formatter / templater')
+(
+	f := std.format
+
+	allpassed := [true]
+	test := (result, expect) => result = expect :: {
+		false -> (
+			allpassed.0 := false
+			log('expected ' + string(result) + ' to be ' + string(expect))
+		)
+	}
+
+	values := {
+		first: 'ABC'
+		'la' + 'st': 'XYZ'
+		thingOne: 1
+		thingTwo: (std.stringList)([5, 4, 3, 2, 1])
+		'magic+eye': 'add_sign'
+	}
+
+	test(f('one two {{ first }} four', values), 'one two ABC four')
+	test(f(
+		' {{thingTwo}}+{{ magic+eye }}  '
+		values
+	), ' [5, 4, 3, 2, 1]+add_sign  ')
+	test(f(
+		'{{last }} {{ first}} {{ thing One }} {{ thing Two }}'
+		values
+	), 'XYZ ABC 1 [5, 4, 3, 2, 1]')
+	test(
+		f('{ {  this is not } {{ thingOne } wut } {{ nonexistent }}', values)
+		'{ {  this is not } 1 ()'
+	)
 
 	allpassed.0 :: {true -> (
 		log('all passed!')

@@ -33,7 +33,6 @@
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
 - [ ] We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
-- [ ] The standard library needs a string formatting function that works like `format('my name is {{first}}, {{last}}', {first: 'Linus', last: 'Lee'})` This is some middle ground between Python / C style format strings and the good UX of JS templates.
 
 
 ## Potential exampels / projects
