@@ -60,6 +60,35 @@ syntax match inkIdentifier "\v[A-Za-z@!?][A-Za-z0-9@!?]*"
 syntax match inkIdentifier "\v_"
 highlight link inkIdentifier Identifier
 
+" builtin functions
+syntax keyword inkBuiltin load nextgroup=Delimiter
+
+syntax keyword inkBuiltin in nextgroup=Delimiter
+syntax keyword inkBuiltin out nextgroup=Delimiter
+syntax keyword inkBuiltin read nextgroup=Delimiter
+syntax keyword inkBuiltin write nextgroup=Delimiter
+syntax keyword inkBuiltin delete nextgroup=Delimiter
+syntax keyword inkBuiltin listen nextgroup=Delimiter
+syntax keyword inkBuiltin rand nextgroup=Delimiter
+syntax keyword inkBuiltin time nextgroup=Delimiter
+syntax keyword inkBuiltin wait nextgroup=Delimiter
+
+syntax keyword inkBuiltin sin nextgroup=Delimiter
+syntax keyword inkBuiltin cos nextgroup=Delimiter
+syntax keyword inkBuiltin pow nextgroup=Delimiter
+syntax keyword inkBuiltin ln nextgroup=Delimiter
+syntax keyword inkBuiltin floor nextgroup=Delimiter
+
+syntax keyword inkBuiltin string nextgroup=Delimiter
+syntax keyword inkBuiltin number nextgroup=Delimiter
+syntax keyword inkBuiltin point nextgroup=Delimiter
+syntax keyword inkBuiltin char nextgroup=Delimiter
+
+syntax keyword inkBuiltin type nextgroup=Delimiter
+syntax keyword inkBuiltin len nextgroup=Delimiter
+syntax keyword inkBuiltin keys nextgroup=Delimiter
+highlight link inkBuiltin Keyword
+
 " strings
 syntax region inkString start=/\v'/ skip=/\v(\\.|\r|\n)/ end=/\v'/
 highlight link inkString String
