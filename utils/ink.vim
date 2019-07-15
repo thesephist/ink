@@ -8,10 +8,12 @@ if exists("b:current_syntax")
 endif
 
 " ink syntax highlight definition for vi/vim
+syntax sync fromstart
 
-" delimiters ()[]{}
-syntax match inkDelim "\v[\(\)\[\]\{\}]"
-highlight link inkDelim Delimiter
+" case
+syntax match inkLabel "\v\:"
+syntax match inkLabel "\v\-\>"
+highlight link inkCase Label
 
 " operators
 syntax match inkOp "\v\~"
@@ -29,14 +31,9 @@ syntax match inkOp "\v\<"
 syntax match inkOp "\v\>"
 syntax match inkOp "\v\="
 syntax match inkOp "\v\."
+syntax match inkOp "\v\:\="
 syntax keyword inkOp is
 highlight link inkOp Operator
-
-" case
-syntax match inkLabel "\v\:"
-syntax match inkLabel "\v\:\="
-syntax match inkLabel "\v\-\>"
-highlight link inkCase Label
 
 " match
 syntax match inkMatch "\v\:\:"
@@ -61,32 +58,34 @@ syntax match inkIdentifier "\v_"
 highlight link inkIdentifier Identifier
 
 " builtin functions
-syntax keyword inkBuiltin load nextgroup=Delimiter
+syntax match builtinFunctionCall "\v[A-Za-z@!?][A-Za-z0-9@!?]*\(" contains=inkIdentifier,inkBuiltin,inkDelim
+syntax keyword inkBuiltin load contained
 
-syntax keyword inkBuiltin in nextgroup=Delimiter
-syntax keyword inkBuiltin out nextgroup=Delimiter
-syntax keyword inkBuiltin read nextgroup=Delimiter
-syntax keyword inkBuiltin write nextgroup=Delimiter
-syntax keyword inkBuiltin delete nextgroup=Delimiter
-syntax keyword inkBuiltin listen nextgroup=Delimiter
-syntax keyword inkBuiltin rand nextgroup=Delimiter
-syntax keyword inkBuiltin time nextgroup=Delimiter
-syntax keyword inkBuiltin wait nextgroup=Delimiter
+syntax keyword inkBuiltin in contained
+syntax keyword inkBuiltin out contained
+syntax keyword inkBuiltin read contained
+syntax keyword inkBuiltin write contained
+syntax keyword inkBuiltin delete contained
+syntax keyword inkBuiltin listen contained
+syntax keyword inkBuiltin req contained
+syntax keyword inkBuiltin rand contained
+syntax keyword inkBuiltin time contained
+syntax keyword inkBuiltin wait contained
 
-syntax keyword inkBuiltin sin nextgroup=Delimiter
-syntax keyword inkBuiltin cos nextgroup=Delimiter
-syntax keyword inkBuiltin pow nextgroup=Delimiter
-syntax keyword inkBuiltin ln nextgroup=Delimiter
-syntax keyword inkBuiltin floor nextgroup=Delimiter
+syntax keyword inkBuiltin sin contained
+syntax keyword inkBuiltin cos contained
+syntax keyword inkBuiltin pow contained
+syntax keyword inkBuiltin ln contained
+syntax keyword inkBuiltin floor contained
 
-syntax keyword inkBuiltin string nextgroup=Delimiter
-syntax keyword inkBuiltin number nextgroup=Delimiter
-syntax keyword inkBuiltin point nextgroup=Delimiter
-syntax keyword inkBuiltin char nextgroup=Delimiter
+syntax keyword inkBuiltin string contained
+syntax keyword inkBuiltin number contained
+syntax keyword inkBuiltin point contained
+syntax keyword inkBuiltin char contained
 
-syntax keyword inkBuiltin type nextgroup=Delimiter
-syntax keyword inkBuiltin len nextgroup=Delimiter
-syntax keyword inkBuiltin keys nextgroup=Delimiter
+syntax keyword inkBuiltin type contained
+syntax keyword inkBuiltin len contained
+syntax keyword inkBuiltin keys contained
 highlight link inkBuiltin Keyword
 
 " strings
@@ -95,7 +94,7 @@ highlight link inkString String
 
 " comment
 " -- block
-syntax region inkComment start=/\v`/ skip=/\v(\\.|\r|\n)/ end=/\v`/
+syntax region inkComment start=/\v`/ skip=/\v(\\.|\r|\n)/ end=/\v`/ contains=inkTodo
 highlight link inkComment Comment
 " -- line-ending comment
 syntax match inkLineComment "\v``.*"
@@ -103,5 +102,15 @@ highlight link inkLineComment Comment
 " -- shebang, highlighted as comment
 syntax match inkShebangComment "\v^#!.*"
 highlight link inkShebangComment Comment
+" -- TODO in comments
+syntax match inkTodo "\v(TODO\(.*\)|TODO)" contained
+syntax keyword inkTodo XXX contained
+highlight link inkTodo Todo
+
+" syntax-based code folds
+syntax region inkExpressionList start="(" end=")" transparent fold
+syntax region inkMatchExpression start="{" end="}" transparent fold
+syntax region inkComposite start="\v\[" end="\v\]" transparent fold
+set foldmethod=syntax
 
 let b:current_syntax = "ink"
