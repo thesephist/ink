@@ -2,6 +2,7 @@
 
 ## Interpreter
 
+- [ ] Implement the concurrency system (`send()`, `receive()`, `create()` builtins) as described in the language spec.
 - [ ] As we get time also make a ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
     1. correctness checking against Go implementation
     2. writing web code
