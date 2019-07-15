@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"net/http"
@@ -44,6 +47,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("write", inkWrite)
 	ctx.LoadFunc("delete", inkDelete)
 	ctx.LoadFunc("listen", inkListen)
+	ctx.LoadFunc("req", inkReq)
 	ctx.LoadFunc("rand", inkRand)
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
@@ -216,17 +220,23 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			evalInkFunction(cb, false, CompositeValue{
+			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type":    StringValue{"error"},
 					"message": StringValue{msg},
 				},
 			})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to read(), %s",
+						err.Error()),
+				})
+			}
 		})
 	}
 
 	go func() {
-		// short-circuit out if no read permission
 		if !ctx.Engine.Permissions.Read {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
@@ -329,12 +339,19 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			evalInkFunction(cb, false, CompositeValue{
+			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type":    StringValue{"error"},
 					"message": StringValue{msg},
 				},
 			})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to write(), %s",
+						err.Error()),
+				})
+			}
 		})
 	}
 
@@ -473,7 +490,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		err := os.Remove(filePath.val)
 		if err != nil {
 			ctx.ExecListener(func() {
-				evalInkFunction(cb, false, CompositeValue{
+				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
 						"type": StringValue{"error"},
 						"message": StringValue{
@@ -481,6 +498,13 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 						},
 					},
 				})
+				if err != nil {
+					ctx.Engine.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to delete()\n\t-> %s",
+							err.Error()),
+					})
+				}
 			})
 			return
 		}
@@ -535,10 +559,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.ContentLength == 0 {
 		body = NullValue{}
 	} else {
-		bodyEncoded := ValueTable{}
-		// XXX: in the future, we may move to streams
-		bodyBuf := make([]byte, r.ContentLength)
-		count, err := r.Body.Read(bodyBuf)
+		bodyBuf, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
@@ -556,7 +577,8 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		for i, b := range bodyBuf[:count] {
+		bodyEncoded := ValueTable{}
+		for i, b := range bodyBuf {
 			bodyEncoded[nToS(float64(i))] = NumberValue{float64(b)}
 		}
 
@@ -657,14 +679,14 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ctx.Engine.LogErr(Err{
 				ErrRuntime,
-				fmt.Sprintf(
-					"response body in listen() is malformed, byte value is not a number",
-				),
+				fmt.Sprintf("response body in listen() is malformed, byte value %s is not a number",
+					v.String()),
 			})
 		}
 	}
 
 	// write values to response
+	// Content-Length is automatically set for us by Go
 	for k, v := range resHeaders.entries {
 		if str, isStr := v.(StringValue); isStr {
 			w.Header().Set(k, str.val)
@@ -715,7 +737,6 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	// short-circuit out if no read permission
 	if !ctx.Engine.Permissions.Net {
 		return NativeFunctionValue{
 			name: "close",
@@ -783,6 +804,202 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		}
 		return NullValue{}, nil
 	}
+
+	return NativeFunctionValue{
+		name: "close",
+		exec: closer,
+		ctx:  ctx,
+	}, nil
+}
+
+func inkReq(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("req() expects two arguments: data and callback, but got %d",
+				len(in)),
+		}
+	}
+
+	data, isComposite := in[0].(CompositeValue)
+	cb, isCbFunction := in[1].(FunctionValue)
+
+	if !isComposite || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in req()",
+		}
+	}
+
+	if !ctx.Engine.Permissions.Net {
+		return NativeFunctionValue{
+			name: "close",
+			exec: func(ctx *Context, in []Value) (Value, error) {
+				// fake close callback
+				return NullValue{}, nil
+			},
+			ctx: ctx,
+		}, nil
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// do not follow redirects
+			return http.ErrUseLastResponse
+		},
+	}
+	reqContext, reqCancel := context.WithCancel(context.Background())
+
+	closer := func(ctx *Context, in []Value) (Value, error) {
+		reqCancel()
+		return NullValue{}, nil
+	}
+
+	sendErr := func(msg string) {
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type":    StringValue{"error"},
+					"message": StringValue{msg},
+				},
+			})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to req(), %s",
+						err.Error()),
+				})
+			}
+		})
+	}
+
+	ctx.Engine.Listeners.Add(1)
+	go func() {
+		defer ctx.Engine.Listeners.Done()
+
+		// unmarshal request contents
+		methodVal, okMethod := data.entries["method"]
+		urlVal, okURL := data.entries["url"]
+		headersVal, okHeaders := data.entries["headers"]
+		bodyVal, okBody := data.entries["body"]
+
+		reqMethod, okMethod := methodVal.(StringValue)
+		reqURL, okURL := urlVal.(StringValue)
+		reqHeaders, okHeaders := headersVal.(CompositeValue)
+		reqBody, okBody := bodyVal.(CompositeValue)
+
+		if !okMethod || !okURL || !okHeaders || !okBody {
+			ctx.Engine.LogErr(Err{
+				ErrRuntime,
+				fmt.Sprintf("request in req() is malformed, %s", data.String()),
+			})
+		}
+
+		// construct body
+		reqBodyBuf := make([]byte, len(reqBody.entries))
+		for i, v := range reqBody.entries {
+			idx, err := strconv.Atoi(i)
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("request body in req() is malformed, %s", err.Error()),
+				})
+			}
+
+			if num, isNum := v.(NumberValue); isNum {
+				reqBodyBuf[idx] = byte(num.val)
+			} else {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("request body in req() is malformed, byte value %s is not a number",
+						v.String()),
+				})
+			}
+		}
+
+		req, err := http.NewRequest(
+			reqMethod.val,
+			reqURL.val,
+			bytes.NewReader(reqBodyBuf),
+		)
+		if err != nil {
+			sendErr(fmt.Sprintf("error creating request in req(), %s", err.Error()))
+			return
+		}
+
+		req = req.WithContext(reqContext)
+
+		// construct headers
+		// Content-Length is automatically set for us by Go
+		req.Header.Set("User-Agent", "") // remove Go's default user agent header
+		for k, v := range reqHeaders.entries {
+			if str, isStr := v.(StringValue); isStr {
+				req.Header.Set(k, str.val)
+			} else {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("could not set request header, value %s was not a string",
+						v.String()),
+				})
+			}
+		}
+
+		// send request
+		resp, err := client.Do(req)
+		if err != nil {
+			sendErr(fmt.Sprintf("error sending request in req(), %s", err.Error()))
+			return
+		}
+
+		resStatus := NumberValue{float64(resp.StatusCode)}
+		resHeaders := ValueTable{}
+		for key, values := range resp.Header {
+			resHeaders[key] = StringValue{strings.Join(values, ",")}
+		}
+
+		var resBody Value
+		if resp.ContentLength == 0 {
+			resBody = NullValue{}
+		} else {
+			bodyBuf, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				sendErr(fmt.Sprintf("error reading response in req(), %s", err.Error()))
+				return
+			}
+
+			bodyEncoded := ValueTable{}
+			for i, b := range bodyBuf {
+				bodyEncoded[nToS(float64(i))] = NumberValue{float64(b)}
+			}
+
+			resBody = CompositeValue{
+				entries: bodyEncoded,
+			}
+		}
+
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue{"resp"},
+					"data": CompositeValue{
+						entries: ValueTable{
+							"status": resStatus,
+							"headers": CompositeValue{
+								entries: resHeaders,
+							},
+							"body": resBody,
+						},
+					},
+				},
+			})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to req(), %s", err.Error()),
+				})
+			}
+		})
+	}()
 
 	return NativeFunctionValue{
 		name: "close",
