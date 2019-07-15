@@ -947,7 +947,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		// send request
 		resp, err := client.Do(req)
 		if err != nil {
-			sendErr(fmt.Sprintf("error sending request in req(), %s", err.Error()))
+			sendErr(fmt.Sprintf("error processing request in req(), %s", err.Error()))
 			return
 		}
 
