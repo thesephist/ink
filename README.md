@@ -126,8 +126,8 @@ I'm also very interested in Elixir's approach towards language development, wher
 Ink has a very small surface area to interface with the rest of the interpreter and runtime, which is through the list of builtin functions defined in `runtime.go`. In an effort to make it safe and easy to run potentially untrusted scripts, the Ink interpreter provides a few flags that determines whether the running Ink program may interface with the operating system in certain ways. Rather than simply fail or error on any restricted interface calls, the runtime will silently ignore the requested action and potentially return empty but valid data.
 
 - `--no-read`: When enabled, the builtin `read()` function will simply return an empty read, as if the file being read was of size 0.
-- `--no-write`: When enabled, the builtin `write()` function will pretend to have written the requested data safely.
-- `--no-net`: When enabled, the builtin `listen()` function will pretend to have bound to a local network socket, but will not actually bind.
+- `--no-write`: When enabled, the builtins `write()` and `delete()` will pretend to have written the requested data or deleted the requested file safely.
+- `--no-net`: When enabled, the builtin `listen()` function will pretend to have bound to a local network socket, but will not actually bind. The builtin `req()` will also pretend to have sent a valid request, but will do nothing.
 
 To run an Ink program completely untrusted, run `ink -isolate` (with the "isolate" flag), which will revoke all revokable permissions from the running script.
 
