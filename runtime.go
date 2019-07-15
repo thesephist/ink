@@ -1292,7 +1292,7 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 		rv = "()"
 	case CompositeValue:
 		rv = "composite"
-	case FunctionValue:
+	case FunctionValue, NativeFunctionValue:
 		rv = "function"
 	}
 
