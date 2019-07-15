@@ -39,28 +39,33 @@ closeServer := listen('0.0.0.0:9600', evt => evt.type :: {
 })
 
 ` send a request `
-closeRequest := req({
-	method: 'POST'
-	url: 'http://127.0.0.1:9600/test'
-	headers: {
-		'Accept': 'text/html'
-	}
-	body: encode('ping')
-}, evt => evt.type :: {
-	'error' -> logErr(evt.message)
-	'resp' -> (
-		log(f('Response ---> {{ data }}', evt))
-
-		dt := evt.data
-		[dt.status, dt.body] :: {
-			[302, encode('pong')] -> (
-				log('---> ping-pong, success!')
-				closeServer()
-			)
-			_ -> logErr('communication failed!')
+send := () => (
+	closeRequest := req({
+		method: 'POST'
+		url: 'http://127.0.0.1:9600/test'
+		headers: {
+			'Accept': 'text/html'
 		}
-	)
-})
+		body: encode('ping')
+	}, evt => evt.type :: {
+		'error' -> logErr(evt.message)
+		'resp' -> (
+			log(f('Response ---> {{ data }}', evt))
 
-` half-second timeout on the request `
-wait(0.5, closeRequest)
+			dt := evt.data
+			[dt.status, dt.body] :: {
+				[302, encode('pong')] -> (
+					log('---> ping-pong, success!')
+					closeServer()
+				)
+				_ -> logErr('communication failed!')
+			}
+		)
+	})
+
+	` half-second timeout on the request `
+	wait(0.5, closeRequest)
+)
+
+` give server time to start up before sending first request `
+wait(0.5, send)
