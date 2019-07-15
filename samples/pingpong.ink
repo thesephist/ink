@@ -51,24 +51,22 @@ closeRequest := req({
 		'Accept': 'text/html'
 	}
 	body: encode('ping')
-}, evt => (
-	log(f('Response ---> {{ data }}', evt))
+}, evt => evt.type :: {
+	'error' -> logErr(evt.message)
+	'resp' -> (
+		log(f('Response ---> {{ data }}', evt))
 
-	evt.type :: {
-		'error' -> logErr(evt.message)
-		'resp' -> (
-			dt := evt.data
-			[dt.status, dt.body] :: {
-				[302, encode('pong')] -> (
-					log('---> ping-pong, success!')
-					srvClosed.0 := true
-					closeServer()
-				)
-				_ -> logErr('communication failed!')
-			}
-		)
-	}
-))
+		dt := evt.data
+		[dt.status, dt.body] :: {
+			[302, encode('pong')] -> (
+				log('---> ping-pong, success!')
+				srvClosed.0 := true
+				closeServer()
+			)
+			_ -> logErr('communication failed!')
+		}
+	)
+})
 
 ` half-second timeout on the request `
 wait(0.5, closeRequest)
