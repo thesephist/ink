@@ -7,17 +7,12 @@ encode := std.encode
 decode := std.decode
 f := std.format
 
-` state: is the server closed intentionally? `
-srvClosed := [false]
-
 ` helper for logging errors `
 logErr := msg => log('error: ' + msg)
 
 ` start a server `
 closeServer := listen('0.0.0.0:9600', evt => evt.type :: {
-	'error' -> srvClosed.0 :: {
-		false -> logErr(evt.message)
-	}
+	'error' -> logErr(evt.message)
 	'req' -> (
 		log(f('Request ---> {{ data }}', evt))
 
@@ -60,7 +55,6 @@ closeRequest := req({
 		[dt.status, dt.body] :: {
 			[302, encode('pong')] -> (
 				log('---> ping-pong, success!')
-				srvClosed.0 := true
 				closeServer()
 			)
 			_ -> logErr('communication failed!')

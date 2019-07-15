@@ -748,6 +748,24 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		}, nil
 	}
 
+	sendErr := func(msg string) {
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type":    StringValue{"error"},
+					"message": StringValue{msg},
+				},
+			})
+			if err != nil {
+				ctx.Engine.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to listen(), %s",
+						err.Error()),
+				})
+			}
+		})
+	}
+
 	server := &http.Server{
 		Addr: host.val,
 		Handler: inkHTTPHandler{
@@ -760,48 +778,26 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 	go func() {
 		defer ctx.Engine.Listeners.Done()
 		err := server.ListenAndServe()
-		if err != nil {
-			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{fmt.Sprintf(
-							"error starting http server in listen(), %s", err.Error(),
-						)},
-					},
-				})
-				if err != nil {
-					ctx.Engine.LogErr(Err{
-						ErrRuntime,
-						fmt.Sprintf("error in callback to listen(), %s",
-							err.Error()),
-					})
-				}
-			})
+		if err != nil && err != http.ErrServerClosed {
+			sendErr(fmt.Sprintf("error starting http server in listen(), %s",
+				err.Error()))
 		}
 	}()
 
 	closer := func(ctx *Context, in []Value) (Value, error) {
-		err := server.Close()
-		if err != nil {
-			ctx.ExecListener(func() {
-				_, err = evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{fmt.Sprintf(
-							"error closing server in listen(), %s", err.Error(),
-						)},
-					},
-				})
-				if err != nil {
-					ctx.Engine.LogErr(Err{
-						ErrRuntime,
-						fmt.Sprintf("error in callback to listen(), %s",
-							err.Error()),
-					})
-				}
-			})
-		}
+		// attempt graceful shutdown, concurrently, without
+		//	blocking Ink evaluation thread
+		ctx.Engine.Listeners.Add(1)
+		go func() {
+			defer ctx.Engine.Listeners.Done()
+
+			err := server.Shutdown(context.Background())
+			if err != nil {
+				sendErr(fmt.Sprintf("error closing server in listen(), %s",
+					err.Error()))
+			}
+		}()
+
 		return NullValue{}, nil
 	}
 
