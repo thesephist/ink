@@ -36,6 +36,33 @@ m('composite value access')
 	t(comp.list.2, {what: 'thing'})
 )
 
+m('function, expression, and lexical scope')
+(
+	thing := 3
+	state := {
+		thing: 21
+	}
+	fn := () => thing := 4
+	fn2 := thing => thing := 24
+	fn3 := () => (
+		state.thing := 100
+		thing := ~3
+	)
+
+	fn()
+	fn2()
+	fn3()
+	(
+		thing := 200
+	)
+
+	t(fn(), 4)
+	t(fn2(), 24)
+	t(fn3(), ~3)
+	t(thing, 3)
+	t(state.thing, 100)
+)
+
 m('match expressions')
 (
 	x := 'what ' + string(1 + 2 + 3 + 4) :: {
@@ -318,13 +345,14 @@ m('ascii <-> char point conversions and string encode/decode')
 	t(decode(encode(decode(encode(s3)))), s3)
 )
 
-m('functional list reducers: map, filter, reduce, reverse, join/append')
+m('functional list reducers: map, filter, reduce, each, reverse, join/append')
 (
 	std := load('std')
 
 	map := std.map
 	filter := std.filter
 	reduce := std.reduce
+	each := std.each
 	reverse := std.reverse
 	append := std.append
 	join := std.join
@@ -338,6 +366,14 @@ m('functional list reducers: map, filter, reduce, reverse, join/append')
 	t(join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 	
+	` each doesn't return anything meaningful `
+	acc := {
+		str: ''
+	}
+	twice := f => x => (f(x), f(x))
+	each(list, twice(n => acc.str := acc.str + string(n)))
+	t(acc.str, '1122334455667788991010')
+
 	` append mutates `
 	append(list, list)
 	t(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,

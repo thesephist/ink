@@ -69,11 +69,11 @@ slice := (str, start, end) => (
 	start := x.start
 	end := x.end
 
-	(sl := idx => idx :: {
+	(sl := i => i :: {
 		end -> result.0
 		_ -> (
-			result.0 := result.0 + str.(idx)
-			sl(idx + 1)
+			result.0 := result.0 + str.(i)
+			sl(i + 1)
 		)
 	})(start)
 )
@@ -87,11 +87,11 @@ sliceList := (list, start, end) => (
 	start := x.start
 	end := x.end
 
-	(sl := idx => idx :: {
+	(sl := i => i :: {
 		end -> result
 		_ -> (
-			result.(len(result)) := list.(idx)
-			sl(idx + 1)
+			result.(len(result)) := list.(i)
+			sl(i + 1)
 		)
 	})(start)
 )
@@ -100,11 +100,11 @@ sliceList := (list, start, end) => (
 append := (base, child) => (
 	baseLength := len(base)
 	childLength := len(child)
-	(append := idx => idx :: {
+	(sub := i => i :: {
 		childLength -> base
 		_ -> (
-			base.(baseLength + idx) := child.(idx)
-			append(idx + 1)
+			base.(baseLength + i) := child.(i)
+			sub(i + 1)
 		)
 	})(0)
 )
@@ -167,16 +167,25 @@ filter := (list, f) => (
 ` tail recursive reduce `
 reduce := (list, f, acc) => (
 	length := len(list)
-	(reducesub := (idx, acc) => (
-		idx :: {
+	(sub := (i, acc) => i :: {
 			length -> acc
-			_ -> reducesub(
-				idx + 1
-				f(acc, list.(idx))
+			_ -> sub(
+				i + 1
+				f(acc, list.(i))
 			)
-		}
-	)
-	)(0, acc)
+	})(0, acc)
+)
+
+` for-each loop over a list `
+each := (list, f) => (
+	length := len(list)
+	(sub := i => i :: {
+		length -> ()
+		_ -> (
+			f(list.(i))
+			sub(i + 1)
+		)
+	})(0)
 )
 
 ` encode ascii string into a number list
@@ -185,11 +194,11 @@ reduce := (list, f, acc) => (
 encode := str => (
 	acc := [{}]
 	strln := len(str)
-	(encsub := idx => idx :: {
+	(sub := i => i :: {
 		strln -> acc.0
 		_ -> (
-			(acc.0).(idx) := point(str.(idx))
-			encsub(idx + 1)
+			(acc.0).(i) := point(str.(i))
+			sub(i + 1)
 		)
 	})(0)
 )
