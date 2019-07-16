@@ -4,6 +4,7 @@ std := load('std')
 
 ` borrow from std `
 log := std.log
+each := std.each
 f := std.format
 
 ` suite constructor `
@@ -21,20 +22,10 @@ suite := label => (
 	` signal end of test suite, print out results `
 	end := () => (
 		log(f('suite: {{ label }}', {label: label}))
-
-		max := len(s.msgs)
-		(sub := i => i :: {
-			max -> ()
-			_ -> (
-				log('  ' + s.msgs.(i))
-				sub(i + 1)
-			)
-		})(0)
-
-		log('')
+		each(s.msgs, m => log('  ' + m))
 		s.passed :: {
 			(s.all) -> log(f('ALL {{ passed }} / {{ all }} PASSED', s))
-			_ -> log(f('{{ passed }} / {{ all }} PASSED', s))
+			_ -> log(f('PARTIAL: {{ passed }} / {{ all }} PASSED', s))
 		}
 	)
 
