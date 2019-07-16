@@ -999,8 +999,13 @@ func (ctx *Context) ExecFile(filePath string) error {
 	ctx.Cwd = path.Dir(filePath)
 
 	input := make(chan rune)
+	resolver := ctx.ExecStream(input)
+	defer func() {
+		// wait for the file to finish executing before returning
+		<-resolver
+	}()
+	// must close input first, then wait for eval stream to resolve
 	defer close(input)
-	ctx.ExecStream(input)
 
 	file, err := os.Open(filePath)
 	defer file.Close()
