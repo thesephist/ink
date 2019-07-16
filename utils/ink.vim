@@ -97,7 +97,7 @@ highlight link inkString String
 syntax region inkComment start=/\v`/ skip=/\v(\\.|\r|\n)/ end=/\v`/ contains=inkTodo
 highlight link inkComment Comment
 " -- line-ending comment
-syntax match inkLineComment "\v``.*"
+syntax match inkLineComment "\v``.*" contains=inkTodo
 highlight link inkLineComment Comment
 " -- shebang, highlighted as comment
 syntax match inkShebangComment "\v^#!.*"
