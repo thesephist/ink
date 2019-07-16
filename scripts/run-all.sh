@@ -7,7 +7,6 @@ echo 'Linus' | go run -race . \
     samples/fizzbuzz.ink \
     samples/graph.ink \
     samples/basic.ink \
-    samples/dict.ink \
     samples/kv.ink \
     samples/fib.ink \
     samples/newton.ink \

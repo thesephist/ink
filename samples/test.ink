@@ -11,7 +11,10 @@ t := s.test
 
 m('composite value access')
 (
-	obj := {}
+	obj := {
+		39: 'clues'
+		('ex' + 'pr'): 'ession'
+	}
 
 	` when calling a function that's a prop of a composite,
 		we need to remember that AccessorOp is just a binary op
@@ -21,7 +24,9 @@ m('composite value access')
 
 	t((obj.fn)(), 'xyz')
 	t((obj.fz)(obj.fn), 'xyzxyz')
-	t(obj.fx, ())
+	t(obj.nonexistent, ())
+	t(obj.39, 'clues')
+	t(obj.expr, 'ession')
 
 	` nested composites `
 	comp := {list: ['hi', 'hello', {what: 'thing'}]}

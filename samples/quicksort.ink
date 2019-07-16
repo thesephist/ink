@@ -8,13 +8,13 @@ log := std.log
 stringList := std.stringList
 
 ` main recursive quicksort routine `
-quicksort := (list, lo, hi) => (
-	lo < hi :: {true -> (
+quicksort := (list, lo, hi) => lo < hi :: {
+	true -> (
 		p := partition(list, lo, hi)
 		quicksort(list, lo, p - 1)
 		quicksort(list, p + 1, hi)
-	)}
-)
+	)
+}
 
 ` Lomuto partition scheme `
 partition := (list, lo, hi) => (
@@ -27,10 +27,12 @@ partition := (list, lo, hi) => (
 	jLoop := j => j :: {
 		hi -> ()
 		_ -> (
-			list.(j) < pivot :: {true -> (
-				swap(list, acc.i, j)
-				acc.i := acc.i + 1
-			)}
+			list.(j) < pivot :: {
+				true -> (
+					swap(list, acc.i, j)
+					acc.i := acc.i + 1
+				)
+			}
 			jLoop(j + 1)
 		)
 	}

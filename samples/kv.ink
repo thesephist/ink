@@ -3,17 +3,9 @@
 
 log := load('std').log
 
-makeGet := store => (
-	key => store.(key)
-)
-
-makeSet := store => (
-	(key, val) => store.(key) := val
-)
-
-makeDelete := store => (
-	key => store.(key) := ()
-)
+makeGet := store => key => store.(key)
+makeSet := store => (key, val) => store.(key) := val
+makeDelete := store => key => store.(key) := ()
 
 create := () => (
 	store := {}
@@ -26,18 +18,3 @@ create := () => (
 		delete: makeDelete(store)
 	}
 )
-
-` test `
-s := create()
-(s.set)('hi', 'value')
-out('expect: value --> ')
-log((s.get)('hi'))
-
-(s.delete)('hi')
-out('expect: null --> ')
-(s.get)('hi') :: {
-	() ->
-		log('null')
-	_ ->
-		log('not null... it\'s broken')
-}
