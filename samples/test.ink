@@ -1,300 +1,269 @@
-std := load('std')
+` ink language test suite,
+	built on the suite library for testing `
 
-section := () => out('
-section - -
-')
-
-` test weird line breaks ` section()
-log :=
-(str => (
-	out(str)
-
-	out('
-')
-))
-1 :: ` line break after match `
-{1 -> 'hi', 2 ->
-	'thing'}
-() =>
-	() ` line break after arrow `
-log2 :=
-	(str =>
-	(
-
-	out(str)
-		out('
-')
-	'log2 text'
-))('hilog')
-log('what wow')
-log(log2)
-
-` log is defined from std for below `
-log := std.log
-
-` test automatic Separator insertion ` section()
-kl := [
-	5
-	4
-	3
-	2
-	1
-].2
-ol := {
-	('te' +
-		'-st'): 'magic'
-}.('te-st')
-log('should be magic: ' + ol)
-log('should be 3: ' + string(kl))
-
-` fibonacci test for concatenated / minified ink code ` section()
-fb:=n=>([n%3,n%5]::{[0,0]->log('FizzBuzz'),[0,_]->log('Fizz'),[
-_,0]->log('Buzz'),_->log(n)}),fizzbuzzhelper:=(n,max)=>
-(n::{max->fb(n),_->(fb(n),fizzbuzzhelper(n+1,max))}),(max=>
-fizzbuzzhelper(1,max))(18)
-
-` test composite value access` section()
-obj := {}
-` when calling a function that's a prop of a composite,
-	we need to remember that AccessorOp is just a binary op
-	and the function call precedes it in priority `
-obj.xyz := log, (obj.xyz)('this statement sho' +
-	'uld be logged.')
-` another case of something similar `
-obj:=({a:()=>{xyz:n => (log(n),log(n))}}.a)()
-(obj.xyz)('this should be printed twice!')
-
-` composite inside composite inside composite ` section()
-comp := {
-	list: ['hi', 'hello', {what: 'thing to be printed'}]
-}
-log('should log thing to be printed:')
-out('		-> ')
-` can't just do comp.list.2.what because
-	2.what is not a valid identifier.
-	these are some other recommended ways `
-log(comp.list.(2).what)
-log('again...')
-out('		-> ')
-log((comp.list.2).what)
-
-` binary and other complex expressions in match expression ` section()
-log('should log hello mac:')
-log(
-	'what ' + string(1 + 2 + 3 + 4) :: {
-		'what 10' -> 'hello mac'
-		'what 1234' -> 'wrong answer!'
-	}
+s := (load('suite').suite)(
+	'Ink language and standard library'
 )
 
-` accessing properties strangely, accessing nonexistent properties ` section()
-{}.1
-[].1
-{}.'1'
-[].(1)
-log('should say hi:')
-log(
-	string(
-		{1: 'hi'}.(1.0)
-	)
-)
-log('should say hi again:')
-log(
-	string(
-		{1: 'hi again'}.('1')
-	)
-)
-log('should print 4200 here:')
-log(string({test: 4200}.('te' + 'st')))
-dashed := {
-	'test-key': 14
-}
-log('expect 14:')
-log(string(dashed.('test-key')))
+` short helper functions on the suite `
+m := s.mark
+t := s.test
 
-` calling functions with mismatched argument length ` section()
-tooLong := (a, b, c, d, e) => a + b
-log('should be 3:')
-log(string(
-	tooLong(1, 2)
-))
-tooShort := (a, b) => a + b
-log('should be 5, then 17:')
-log(string(
-	tooShort(9, 8, 7, 6, 5, 4, log('5'))
-))
-
-` EmptyIdentifier in arguments list of functions ` section()
-emptySingle := _ => out('snowman ')
-emptyMultiple := (_, a, _, b) => out(a + b)
-out('should print snowman, then rainbow
--> ')
-emptySingle()
-emptyMultiple('bright', 'rain', 'sky', 'bow')
-log('')
-
-` comment syntaxes ` section()
-`` log('this should NEVER be seen')
-`` log('neither should this')
-log('this line should be seen.') `` but here's still a comment
-log(`right` '... and this line')
-
-` more complex pattern matching ` section()
-log('expect: true true false false')
-log(string([_, [2, _], 6] = [10, [2, 7], 6]))
-log(string({
-	hi: 'hello'
-	bye: {
-		good: 'goodbye'
-	}
-} = {
-	hi: _
-	bye: {
-		good: _
-	}
-}))
-log(string([_, [2, _], 6, _] = [10, [2, 7], 6]))
-log(string({6: 9} = {6: _, 7: _}))
-log('')
-
-` object keys / list ` section()
-log('expect: dict, then keys, then modified and clone')
+m('composite value access')
 (
-	clone := std.clone
+	obj := {}
 
+	` when calling a function that's a prop of a composite,
+		we need to remember that AccessorOp is just a binary op
+		and the function call precedes it in priority `
+	obj.fn := () => 'xyz'
+	obj.fz := f => (f() + f())
+
+	t((obj.fn)(), 'xyz')
+	t((obj.fz)(obj.fn), 'xyzxyz')
+	t(obj.fx, ())
+
+	` nested composites `
+	comp := {list: ['hi', 'hello', {what: 'thing'}]}
+
+	` can't just do comp.list.2.what because
+		2.what is not a valid identifier.
+		these are some other recommended ways `
+	t(comp.list.(2).what, 'thing')
+	t((comp.list.2).what, 'thing')
+	t((comp.list).(2).what, 'thing')
+	t(comp.('li' + 'st').0, 'hi')
+	t(comp.list.2, {what: 'thing'})
+)
+
+m('match expressions')
+(
+	x := 'what ' + string(1 + 2 + 3 + 4) :: {
+		'what 10' -> 'what 10'
+		_ -> '??'
+	}
+	t(x, 'what 10')
+
+	x := [1, 2, [3, 4, ['thing']], {a: ['b']}]
+	t(x, [1, 2, [3, 4, ['thing']], {a: ['b']}])
+)
+
+m('accessing properties strangely, accessing nonexistent properties')
+(
+	t({1: ~1}.1, ~1)
+	t(['y', 'z'].1, ('z'))
+	t({1: 4.2}.'1', 4.2)
+	t({1: 4.2}.(1), 4.2)
+	t({1: 'hi'}.(1.0000), 'hi')
+	` also: composite parts can be empty `
+	t([_, _, 'hix'].('2'), 'hix')
+	t(string({test: 4200.00}.('te' + 'st')), '4200')
+	` types should be accounted for in equality `
+	t(string({test: 4200.00}.('te' + 'st')) = 4200, false)
+
+	dashed := {'test-key': 14}
+	t(string(dashed.('test-key')), '14')
+)
+
+m('calling functions with mismatched argument length')
+(
+	tooLong := (a, b, c, d, e) => a + b
+	tooShort := (a, b) => a + b
+
+	t(tooLong(1, 2), 3)
+	t(tooShort(9, 8, 7, 6, 5, 4, 3), 17)
+)
+
+m('argument order of evaluation')
+(
+	acc := []
+	fn := (x, y) => (acc.len(acc) := x, y)
+
+	t(fn(fn(fn(fn('i', '?'), 'h'), 'g'), 'k'), 'k')
+	t(acc, ['i', '?', 'h', 'g'])
+)
+
+m('empty identifier "_" in arguments and functions')
+(
+	emptySingle := _ => 'snowman'
+	emptyMultiple := (_, a, _, b) => a + b
+
+	t(emptySingle(), 'snowman')
+	t(emptyMultiple('bright', 'rain', 'sky', 'bow'), 'rainbow')
+)
+
+m('comment syntaxes')
+(
+	`` t(wrong, wrong)
+	` t(wrong, more wrong) `
+	t(`hidden` '...thing', '...thing')
+	t(len('include `cmt` thing'), 19)
+)
+
+m('more complex pattern matching')
+(
+	t([_, [2, _], 6], [10, [2, 7], 6])
+	t({
+		hi: 'hello'
+		bye: {
+			good: 'goodbye'
+		}
+	}, {
+		hi: _
+		bye: {
+			good: _
+		}
+	})
+	t([_, [2, _], 6, _], [10, [2, 7], 6, 0])
+	t({6: 9, 7: _}, {6: _, 7: _})
+)
+
+m('order of operations')
+(
+	t(1 + 2 - 3 + 5 - 3, 2)
+	t(1 + 2 * 3 + 5 - 3, 9)
+	t(10 - 2 * 16/4 + 3, 5)
+	t(3 + (10 - 2) * 4, 35)
+	t(1 + 2 + (4 - 2) * 3 - (~1), 10)
+	t(1 - ~(10 - 3 * 3), 2)
+	t(10 - 2 * 24 % 20 / 8 - 1 + 5 + 10/10, 14)
+	t(1 & 5 | 4 ^ 1, (1 & 5) | (4 ^ 1))
+	t(1 + 1 & 5 % 3 * 10, (1 + 1) & ((5 % 3) * 10))
+)
+
+m('logic composition correctness')
+(
+	` and `
+	t(1 & 4, 0, 'num & num')
+	t(2 & 3, 2, 'num & num')
+	t(true & true, true, 't & t')
+	t(true & false, false, 't & f')
+	t(false & true, false, 'f & t')
+	t(false & false, false, 'f & f')
+
+	` or `
+	t(1 | 4, 5, 'num | num')
+	t(2 | 3, 3, 'num | num')
+	t(true | true, true, 't | t')
+	t(true | false, true, 't | f')
+	t(false | true, true, 'f | t')
+	t(false | false, false, 'f | f')
+
+	` xor `
+	t(2 ^ 7, 5, 'num ^ num')
+	t(2 ^ 3, 1, 'num ^ num')
+	t(true ^ true, false, 't ^ t')
+	t(true ^ false, true, 't ^ f')
+	t(false ^ true, true, 'f ^ t')
+	t(false ^ false, false, 'f ^ f')
+)
+
+m('object keys / list, std.clone')
+(
+	clone := load('std').clone
 	obj := {
 		first: 1
 		second: 2
 		third: 3
 	}
 	list := ['red', 'green', 'blue']
-	log(obj)
-	log(list)
 
-	log('keys --')
-	log(keys(obj))
+	ks := {
+		first: false
+		second: false
+		third: false
+	}
+	ky := keys(obj)
+	` keys are allowed to be out of insertion order
+		-- composites are unordered maps`
+	ks.(ky.0) := true
+	ks.(ky.1) := true
+	ks.(ky.2) := true
+	t([ks.first, ks.second, ks.third], [true, true, true])
+	t(len(keys(obj)), 3)
 
 	cobj := clone(obj)
 	obj.fourth := 4
-	out('modified: ')
-	log(obj)
-	log(cobj)
-	log('')
+	clist := clone(list)
+	list.(len(list)) := 'alpha'
+
+	t(len(keys(obj)), 4)
+	t(len(keys(cobj)), 3)
+	t(len(list), 4)
+	t(len(clist), 3)
 )
 
-` pass by reference / mutation check ` section()
-log('checking pass by reference / mutation:')
+m('composite pass by refernece / mutation check')
 (
-	clone := std.clone
+	clone := load('std').clone
 
 	obj := [1, 2, 3]
-	twin := obj
-	clone := clone(obj)
+	twin := obj ` by reference `
+	clone := clone(obj) ` cloned (by value) `
 
 	obj.len(obj) := 4
 	obj.len(obj) := 5
 	obj.len(obj) := 6
 
-	[len(obj), len(twin), len(clone)] :: {
-		[6, 6, 3] -> log('all passed!')
-		_ -> log('ERROR: there is a problem with copying references to objects later modified')
-	}
-	log('')
+	t(len(obj), 6)
+	t(len(twin), 6)
+	t(len(clone), 3)
 )
 
-` number and string conversion tests ` section()
-log('checking number and string conversions')
+m('number & composite/list -> string conversions')
 (
-	stringList := std.stringList
+	stringList := load('std').stringList
 
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
+	t(string(3.14), '3.14000000')
+	t(string(42), '42')
+	t(string(true), 'true')
+	t(string(false), 'false')
+	t(string('hello'), 'hello')
+	t(string([0]), '{0: 0}')
 
-	test(string(3.14), '3.14000000')
-	test(string(42), '42')
-	test(string(true), 'true')
-	test(string(false), 'false')
-	test(string('hello'), 'hello')
-	test(string([0]), '{0: 0}')
+	t(number('3.14'), 3.14)
+	t(number('-42'), ~42)
+	t(number(true), 1)
+	t(number(false), 0)
 
-	test(number('3.14'), 3.14)
-	test(number('-42'), ~42)
-	test(number(true), 1)
-	test(number(false), 0)
-
-	test(stringList([5, 4, 3, 2, 1]), '[5, 4, 3, 2, 1]')
-	test(string({a: 3.14}), '{a: 3.14000000}')
-
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
+	t(string({a: 3.14}), '{a: 3.14000000}')
+	t(stringList([5, 4, 3, 2, 1]), '[5, 4, 3, 2, 1]')
 )
 
-section()
-log('checking function / composite equality checks correctness')
+m('function/composite equality checks')
 (
+	` function equality `
 	fn1 := () => (3 + 4, 'hello')
 	fn2 := () => (3 + 4, 'hello')
 
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
+	t(fn1 = fn1, true)
+	t(fn1 = fn2, false)
 
-	test(fn1 = fn2, false)
-	test(fn1 = fn1, true)
-
+	` composite equality `
 	comp1 := {1: 2, hi: '4'}
 	comp2 := {1: 2, hi: '4'}
-
 	list1 := [1, 2, 3, 4, 5]
 	list2 := [1, 2, 3, 4, 5]
 
-	test(comp1 = comp2, true)
-	test(list1 = list2, true)
-
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
+	t(comp1 = comp2, true)
+	t(list1 = list2, true)
 )
 
-section()
-log('type() builtin')
+m('type() builtin function')
 (
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
-
-	test(type('hi'), 'string')
-	test(type(3.14), 'number')
-	test(type([0, 1, 2]), 'composite')
-	test(type({hi: 'what'}), 'composite')
-	test(type(() => 'hi'), 'function')
-	test(type(()), '()')
-
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
+	t(type('hi'), 'string')
+	t(type(3.14), 'number')
+	t(type([0, 1, 2]), 'composite')
+	t(type({hi: 'what'}), 'composite')
+	t(type(() => 'hi'), 'function')
+	t(type(type), 'function')
+	t(type(out), 'function')
+	t(type(()), '()')
 )
 
-section()
-log('stdlib range/slice/join functions and stringList')
+m('stdlib range/slice/append/join functions and stringList')
 (
+	std := load('std')
 	stringList := std.stringList
 	sliceList := std.sliceList
 	range := std.range
@@ -302,62 +271,37 @@ log('stdlib range/slice/join functions and stringList')
 	slice := std.slice
 	join := std.join
 
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
-
 	sl := (l, s, e) => stringList(sliceList(l, s, e))
 	list := range(10, ~1, ~1)
 	str := 'abracadabra'
 
-	test(sl(list, 0, 5), '[10, 9, 8, 7, 6]')
-	test(sl(list, ~5, 2), '[10, 9]')
-	test(sl(list, 7, 20), '[3, 2, 1, 0]')
-	test(sl(list, 20, 1), '[]')
+	t(sl(list, 0, 5), '[10, 9, 8, 7, 6]')
+	t(sl(list, ~5, 2), '[10, 9]')
+	t(sl(list, 7, 20), '[3, 2, 1, 0]')
+	t(sl(list, 20, 1), '[]')
 
-	` redefine list using range and reverse, to test those `
+	` redefine list using range and reverse, to t those `
 	list := reverse(range(0, 11, 1))
 
-	test(stringList(join(
+	t(stringList(join(
 		sliceList(list, 0, 5), sliceList(list, 5, 200)
 	)), '[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]')
-	test(stringList(join(
+	t(stringList(join(
 		[1, 2, 3]
 		join([4, 5, 6], ['a', 'b', 'c'])
 	)), '[1, 2, 3, 4, 5, 6, a, b, c]')
 
-	test(slice(str, 0, 5), 'abrac')
-	test(slice(str, ~5, 2), 'ab')
-	test(slice(str, 7, 20), 'abra')
-	test(slice(str, 20, 1), '')
-
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
+	t(slice(str, 0, 5), 'abrac')
+	t(slice(str, ~5, 2), 'ab')
+	t(slice(str, 7, 20), 'abra')
+	t(slice(str, 20, 1), '')
 )
 
-section()
-log('ascii <> char point conversions and string encode/decode')
+m('ascii <-> char point conversions and string encode/decode')
 (
+	std := load('std')
 	encode := std.encode
 	decode := std.decode
-
-	` at this point, we only care about ascii, not full Unicode `
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
-
-	test(point('a'), 97)
-	test(char(65), 'A')
 
 	s1 := 'this is a long piece of string
 	with weird line
@@ -365,57 +309,73 @@ log('ascii <> char point conversions and string encode/decode')
 	'
 	s2 := ''
 	s3 := 'AaBbCcDdZzYyXx123456789!@#$%^&*()_+-='
-	test(decode(encode(decode(encode(s1)))), s1)
-	test(decode(encode(decode(encode(s2)))), s2)
-	test(decode(encode(decode(encode(s3)))), s3)
 
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
+	` note: at this point, we only care about ascii, not full Unicode `
+	t(point('a'), 97)
+	t(char(65), 'A')
+	t(decode(encode(decode(encode(s1)))), s1)
+	t(decode(encode(decode(encode(s2)))), s2)
+	t(decode(encode(decode(encode(s3)))), s3)
 )
 
-section()
-log('std::format -- the standard library formatter / templater')
+m('functional list reducers: map, filter, reduce, reverse, join/append')
 (
-	f := std.format
+	std := load('std')
 
-	allpassed := [true]
-	test := (result, expect) => result = expect :: {
-		false -> (
-			allpassed.0 := false
-			log('expected ' + string(result) + ' to be ' + string(expect))
-		)
-	}
+	map := std.map
+	filter := std.filter
+	reduce := std.reduce
+	reverse := std.reverse
+	append := std.append
+	join := std.join
+
+	list := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+	t(map(list, n => n * n), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
+	t(filter(list, n => n % 2 = 0), [2, 4, 6, 8, 10])
+	t(reduce(list, (acc, n) => acc * n, 1), 3628800)
+	t(reverse(list), [10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+	t(join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+	
+	` append mutates `
+	append(list, list)
+	t(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+)
+
+m('std.format -- the standard library formatter / templater')
+(
+	std := load('std')
+	f := std.format
+	stringList := std.stringList
 
 	values := {
 		first: 'ABC'
 		'la' + 'st': 'XYZ'
 		thingOne: 1
-		thingTwo: (std.stringList)([5, 4, 3, 2, 1])
+		thingTwo: stringList([5, 4, 3, 2, 1])
 		'magic+eye': 'add_sign'
 	}
 
-	test(f('', {}), '')
-	test(f('one two {{ first }} four', values), 'one two ABC four')
-	test(f('new
+	t(f('', {}), '')
+	t(f('one two {{ first }} four', values), 'one two ABC four')
+	t(f('new
 	{{ sup }} line', {sup: 42}), 'new
 	42 line')
-	test(f(
+	t(f(
 		' {{thingTwo}}+{{ magic+eye }}  '
 		values
 	), ' [5, 4, 3, 2, 1]+add_sign  ')
-	test(f(
+	t(f(
 		'{{last }} {{ first}} {{ thing One }} {{ thing Two }}'
 		values
 	), 'XYZ ABC 1 [5, 4, 3, 2, 1]')
-	test(
+	t(
 		f('{ {  this is not } {{ thingOne } wut } {{ nonexistent }}', values)
 		'{ {  this is not } 1 ()'
 	)
-
-	allpassed.0 :: {true -> (
-		log('all passed!')
-	)}
-	log('')
 )
+
+` end test suite, print result `
+(s.end)()

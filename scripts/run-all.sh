@@ -15,7 +15,6 @@ echo 'Linus' | go run -race . \
     samples/pi.ink \
     samples/prime.ink \
     samples/quicksort.ink \
-    samples/mapfilterreduce.ink \
     samples/pingpong.ink \
     samples/undefinedme.ink \
     samples/error.ink \

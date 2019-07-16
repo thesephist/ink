@@ -74,7 +74,7 @@ fizzbuzz := max => helper(1, max)
 fizzbuzz(100)
 ```
 
-If you're looking for more realistic and complex examples, check out [quicksort.ink](samples/quicksort.ink), [server.ink (a small static file server)](samples/fileserver.ink), [the standard library](samples/std.ink), and [this file I/O demo](samples/io.ink).
+If you're looking for more realistic and complex examples, check out [quicksort.ink](samples/quicksort.ink), [fileserver.ink (a small static file server)](samples/fileserver.ink), [the standard library](samples/std.ink), and [the test suite](samples/test.ink).
 
 Here's a snippet of the HTTP server program.
 

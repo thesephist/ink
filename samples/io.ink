@@ -14,7 +14,7 @@ wf := std.writeFile
 
 ` we're going to copy main.go to sub.go,
 	and we're going to buffer it `
-BUFSIZE := 512 ` bytes `
+BUFSIZE := 1024 ` bytes `
 
 ` main routine that reads/writes through buffer
 	and recursively copies data. This is also tail-recursive `
@@ -27,7 +27,7 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 			dataLength := len(evt.data)
 
 			` log progress `
-			log('copying --> ' + slice(decode(evt.data), 0, 20) + '...')
+			log('copying --> ' + slice(decode(evt.data), 0, 8) + '...')
 
 			` write the read bit, and recurse back to reading `
 			write(dest, offset, evt.data, evt => evt.type :: {

@@ -1,12 +1,9 @@
 #!/bin/sh
 
-# std.ink is tested through other samples that consume it
-#   so no need to specifically test it
-go run -race . \
-    samples/test.ink \
-    samples/orderofops.ink \
-    samples/logictest.ink
+# run the standard test suite
+go run -race . samples/mangled.ink samples/test.ink
 
+# test file IO sample
 go run -race .  samples/io.ink
 
 echo 'Should say hi 14:'
