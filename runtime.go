@@ -1195,6 +1195,8 @@ func inkString(ctx *Context, in []Value) (Value, error) {
 		return StringValue{"()"}, nil
 	case CompositeValue:
 		return StringValue{v.String()}, nil
+	case FunctionValue, NativeFunctionValue:
+		return StringValue{"(function)"}, nil
 	default:
 		return StringValue{""}, nil
 	}
