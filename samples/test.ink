@@ -248,7 +248,7 @@ m('object keys / list, std.clone')
 	cobj := clone(obj)
 	obj.fourth := 4
 	clist := clone(list)
-	list.(len(list)) := 'alpha'
+	list.len(list) := 'alpha'
 
 	t(len(keys(obj)), 4)
 	t(len(keys(cobj)), 3)

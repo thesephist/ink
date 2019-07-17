@@ -129,7 +129,7 @@ sliceList := (list, start, end) => (
 	(sl := i => i :: {
 		end -> result
 		_ -> (
-			result.(len(result)) := list.(i)
+			result.len(result) := list.(i)
 			sl(i + 1)
 		)
 	})(start)
@@ -188,7 +188,7 @@ reverse := list => (
 ` tail recursive map `
 map := (list, f) => (
 	reduce(list, (l, item) => (
-		l.(len(l)) := f(item)
+		l.len(l) := f(item)
 		l
 	), {})
 )
@@ -197,7 +197,7 @@ map := (list, f) => (
 filter := (list, f) => (
 	reduce(list, (l, item) => (
 		f(item) :: {
-			true -> l.(len(l)) := item
+			true -> l.len(l) := item
 		}
 		l
 	), {})

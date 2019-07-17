@@ -17,7 +17,7 @@ suite := label => (
 	}
 
 	` mark sections of a test suite with human labels `
-	mark := label => s.msgs.(len(s.msgs)) := '- ' + label
+	mark := label => s.msgs.len(s.msgs) := '- ' + label
 
 	` signal end of test suite, print out results `
 	end := () => (
@@ -38,7 +38,7 @@ suite := label => (
 	` log a failed test `
 	onFail := msg => (
 		s.all := s.all + 1
-		s.msgs.(len(s.msgs)) := msg
+		s.msgs.len(s.msgs) := msg
 	)
 
 	` perform a new test case `

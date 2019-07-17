@@ -67,7 +67,7 @@ buildList := (length, opts) => (
 		0 -> {}
 		_ -> (
 			smaller := buildList(length - 1, {max: max})
-			smaller.(len(smaller)) := floor(rand() * max) + 1
+			smaller.len(smaller) := floor(rand() * max) + 1
 			smaller
 		)
 	}
