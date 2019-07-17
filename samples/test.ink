@@ -9,6 +9,9 @@ s := (load('suite').suite)(
 m := s.mark
 t := s.test
 
+` load std once for all tests `
+std := load('std')
+
 m('composite value access')
 (
 	obj := {
@@ -220,7 +223,7 @@ m('logic composition correctness')
 
 m('object keys / list, std.clone')
 (
-	clone := load('std').clone
+	clone := std.clone
 	obj := {
 		first: 1
 		second: 2
@@ -255,7 +258,7 @@ m('object keys / list, std.clone')
 
 m('composite pass by refernece / mutation check')
 (
-	clone := load('std').clone
+	clone := std.clone
 
 	obj := [1, 2, 3]
 	twin := obj ` by reference `
@@ -272,7 +275,7 @@ m('composite pass by refernece / mutation check')
 
 m('number & composite/list -> string conversions')
 (
-	stringList := load('std').stringList
+	stringList := std.stringList
 
 	t(string(3.14), '3.14000000')
 	t(string(42), '42')
@@ -323,7 +326,6 @@ m('type() builtin function')
 
 m('stdlib range/slice/append/join functions and stringList')
 (
-	std := load('std')
 	stringList := std.stringList
 	sliceList := std.sliceList
 	range := std.range
@@ -357,9 +359,35 @@ m('stdlib range/slice/append/join functions and stringList')
 	t(slice(str, 20, 1), '')
 )
 
+m('hexadecimal conversions, hex & xeh')
+(
+	hex := std.hex
+	xeh := std.xeh
+
+	` base cases `
+	t(hex(0), '0')
+	t(hex(66), '42')
+	t(hex(256), '100')
+	t(hex(1998), '7ce')
+	t(hex(3141592), '2fefd8')
+	t(xeh('fff'), 4095)
+	t(xeh('a2'), 162)
+
+	` hex should floor non-integer inputs `
+	t(hex(16.8), '10')
+	t(hex(1998.123), '7ce')
+
+	` recoverability `
+	t(xeh(hex(390420)), 390420)
+	t(xeh(hex(9230423903)), 9230423903)
+	t(hex(xeh('fffab123')), 'fffab123')
+	t(hex(xeh('0000ab99ff33')), 'ab99ff33')
+	t(hex(xeh(hex(xeh('aabbef')))), 'aabbef')
+	t(xeh(hex(xeh(hex(201900123)))), 201900123)
+)
+
 m('ascii <-> char point conversions and string encode/decode')
 (
-	std := load('std')
 	encode := std.encode
 	decode := std.decode
 
@@ -380,8 +408,6 @@ m('ascii <-> char point conversions and string encode/decode')
 
 m('functional list reducers: map, filter, reduce, each, reverse, join/append')
 (
-	std := load('std')
-
 	map := std.map
 	filter := std.filter
 	reduce := std.reduce
@@ -415,7 +441,6 @@ m('functional list reducers: map, filter, reduce, each, reverse, join/append')
 
 m('std.format -- the standard library formatter / templater')
 (
-	std := load('std')
 	f := std.format
 	stringList := std.stringList
 

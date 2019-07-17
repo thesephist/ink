@@ -16,6 +16,45 @@ scan := callback => (
 	in(cb)
 )
 
+` hexadecimal conversion utility functions `
+hToN := {
+	'0': 0
+	'1': 1
+	'2': 2
+	'3': 3
+	'4': 4
+	'5': 5
+	'6': 6
+	'7': 7
+	'8': 8
+	'9': 9
+	'a': 10
+	'b': 11
+	'c': 12
+	'd': 13
+	'e': 14
+	'f': 15
+}
+nToH := ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+
+` take number, return hex string `
+hex := n => (
+	(sub := (p, acc) => p < 16 :: {
+		true -> nToH.(p) + acc
+		false -> sub(floor(p  / 16), nToH.(p % 16) + acc)
+	})(floor(n), '')
+)
+
+` take hex string, return number `
+xeh := s => (
+	` i is the num of places from the left, 0-indexed `
+	max := len(s)
+	(sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc * 16 + hToN.(s.(i)))
+	})(0, 0)
+)
+
 ` like Python's range(), but no optional arguments `
 range := (start, end, step) => (
 	span := end - start
