@@ -13,7 +13,9 @@ Ink has a few goals. In order, they are
 Design is always a game of tradeoffs. Ink's goals for minimalism and readability / expressivity means the language deliberately does not aim to be best in other ways:
 
 - Ink doesn't need to be highly efficient or fast, especially compared to compiled languages
+    - However, within the constraints of the interpreter design, I try not to leave performance on the table, both in execution speed and in memory footprint. Efficiently composed Ink programs are between 2-4x slower than equivalent Python programs, in my experience. Small programs can run on as little as 3MB of memory, while the interpreter can stably scale up to gigabytes of memory for data-heavy tasks.
 - Ink doesn't need to be particularly concise, though we try to avoid verbosity when we can
+- Ink doesn't value platform portability as much as some other languages in this realm, like Lua or JavaScript -- not running on every piece of hardware available is okay, as long as it runs on most of the popular platforms
 
 The rest of this README is a gentle introduction to the Ink language and documentation about the project and its Go interpreter implementation. For more information and formal documentation about the Ink language itself, please see [SPEC.md](SPEC.md).
 
