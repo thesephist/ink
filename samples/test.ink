@@ -68,6 +68,34 @@ m('function, expression, and lexical scope')
 	t(state.thing, 100)
 )
 
+m('tail call optimizations and thunk unwrap order')
+(
+	acc := ['']
+
+	appender := prefix => str => acc.0 := acc.0 + prefix + str
+	f1 := appender('f1_')
+	f2 := appender('f2_')
+
+	sub := () => (
+		f1('hi')
+		(
+			f2('what')
+		)
+		f3 := () => (
+			f2('hg')
+			f1('bb')
+		)
+		f1('sup')
+		f2('sample')
+		f3()
+		f2('xyz')
+	)
+
+	sub()
+
+	t(acc.0, 'f1_hif2_whatf1_supf2_samplef2_hgf1_bbf2_xyz')
+)
+
 m('match expressions')
 (
 	x := 'what ' + string(1 + 2 + 3 + 4) :: {

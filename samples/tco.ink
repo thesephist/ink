@@ -1,50 +1,46 @@
-` test for tail call optimization `
+` stress tests for tail call optimization `
 
-` simple test of whether thunks get resolved correctly `
-fig := str => out(str)
-fig2 := n => (
-	fig('hi ')
-	fig('hello ' + string(n) + '
-')
-)
-out('should print "hi hello <n>" 3 times:
-')
-(
-	fig2(9)
-	28
-	(
-		fig2(18)
-	)
-	fig2(27)
-)
+log := load('std').log
 
-out('
-')
+` recursion tests need some very large stack size goal.
+	Minimum stack size to cause Goroutine overflow:
+	Golang has max stack size of 1GB, which means
+	this leaves < 10 bytes per stack frame if not TCO `
+RECLIMIT := 100 * 1000 * 1000
 
-` we defina a fast function that can be TC optimized `
-out('testing by pushing stack size ... (test 1/2)
-')
+success := () => log('-> success! we are tail call optimized')
+
+` we defina a fast function that can be TC optimized.
+	this also uses a form of TCO in match expressions `
+log('testing simple recursion ... (test 1/3)')
 testTCO := n => n :: {
-	0 -> 'success! we are tail call optimized'
+	0 -> success()
 	_ -> testTCO(n - 1)
 }
+testTCO(RECLIMIT)
 
-` call it with some very large stack size goal `
-` minimum stack size to cause Goroutine overflow
-	Golang has max stack size of 1GB, which means
-	this leaves <10 bytes per stack if not TCO `
-out(testTCO(100000000) + '
-')
-
-` second form of TCO -- in ExpressionList `
-out('testing by pushing stack size ... (test 2/2)
-')
-testTCO := n => n :: {
-	0 -> 'success! we are tail call optimized'
+` second form of TCO -- in expression lists `
+log('testing expr list recursion ... (test 2/3)')
+testTCO2 := n => n :: {
+	0 -> success()
 	_ -> (
 		1
 		testTCO(n - 1)
 	)
 }
-out(testTCO(100000000) + '
-')
+testTCO2(RECLIMIT)
+
+` third form of TCO -- mutual recursion `
+log('testing mutual recursion ... (test 3/3)')
+testA := n => n :: {
+	0 -> success()
+	_ -> testB(n - 1)
+}
+testB := m => m :: {
+	0 -> success()
+	_ -> (
+		3
+		testA(m - 1)
+	)
+}
+testA(RECLIMIT)
