@@ -236,7 +236,10 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		})
 	}
 
+	ctx.Engine.Listeners.Add(1)
 	go func() {
+		defer ctx.Engine.Listeners.Done()
+
 		if !ctx.Engine.Permissions.Read {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
@@ -355,7 +358,10 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		})
 	}
 
+	ctx.Engine.Listeners.Add(1)
 	go func() {
+		defer ctx.Engine.Listeners.Done()
+
 		if !ctx.Engine.Permissions.Write {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
@@ -467,7 +473,10 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	ctx.ExecListener(func() {
+	ctx.Engine.Listeners.Add(1)
+	go func() {
+		defer ctx.Engine.Listeners.Done()
+
 		if !ctx.Engine.Permissions.Write {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
@@ -524,7 +533,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 				})
 			}
 		})
-	})
+	}()
 
 	return NullValue{}, nil
 }
