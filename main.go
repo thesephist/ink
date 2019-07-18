@@ -145,7 +145,17 @@ func main() {
 			// execution context is one-per-file
 			ctx := eng.CreateContext()
 
-			err := ctx.ExecFile(path.Join(ctx.Cwd, filePath))
+			// expand out ~ for $HOME, which is not done by shells
+			if strings.HasPrefix(filePath, "~/") {
+				filePath = os.Getenv("HOME") + "/" + filePath[2:]
+			}
+
+			// canonicalize relative paths, but not absolute ones
+			if !path.IsAbs(filePath) {
+				filePath = path.Join(ctx.Cwd, filePath)
+			}
+
+			err := ctx.ExecFile(filePath)
 			if err != nil {
 				logSafeErr(
 					ErrSystem,
