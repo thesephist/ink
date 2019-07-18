@@ -89,6 +89,7 @@ func (ctx *Context) LoadFunc(
 func inkLoad(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		if givenPath, ok := in[0].(StringValue); ok && givenPath.val != "" {
+			// imports via load() are assumed to be relative
 			importPath := path.Join(ctx.Cwd, givenPath.val+".ink")
 
 			// swap out fields

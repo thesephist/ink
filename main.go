@@ -146,8 +146,8 @@ func main() {
 			ctx := eng.CreateContext()
 
 			// expand out ~ for $HOME, which is not done by shells
-			if strings.HasPrefix(filePath, "~/") {
-				filePath = os.Getenv("HOME") + "/" + filePath[2:]
+			if strings.HasPrefix(filePath, "~"+string(os.PathSeparator)) {
+				filePath = os.Getenv("HOME") + string(os.PathSeparator) + filePath[2:]
 			}
 
 			// canonicalize relative paths, but not absolute ones
