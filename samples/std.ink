@@ -187,17 +187,23 @@ reverse := list => (
 
 ` tail recursive map `
 map := (list, f) => (
+	idx := [0]
 	reduce(list, (l, item) => (
-		l.len(l) := f(item)
+		l.(idx.0) := f(item)
+		idx.0 := idx.0 + 1
 		l
 	), {})
 )
 
 ` tail recursive filter `
 filter := (list, f) => (
+	idx := [0]
 	reduce(list, (l, item) => (
 		f(item) :: {
-			true -> l.len(l) := item
+			true -> (
+				l.(idx.0) := item
+				idx.0 := idx.0 + 1
+			)
 		}
 		l
 	), {})

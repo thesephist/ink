@@ -256,7 +256,7 @@ m('object keys / list, std.clone')
 	t(len(clist), 3)
 )
 
-m('composite pass by refernece / mutation check')
+m('composite pass by reference / mutation check')
 (
 	clone := std.clone
 

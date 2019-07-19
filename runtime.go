@@ -145,7 +145,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to in()\n\t-> %s",
 						err.Error()),
@@ -158,7 +158,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 					break
 				}
 			} else {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("callback to in() should return a boolean, but got %s",
 						rv.String()),
@@ -173,7 +173,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			},
 		})
 		if err != nil {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("error in callback to in()\n\t-> %s",
 					err.Error()),
@@ -228,7 +228,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to read(), %s",
 						err.Error()),
@@ -252,7 +252,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 					},
 				})
 				if err != nil {
-					ctx.Engine.LogErr(Err{
+					ctx.LogErr(Err{
 						ErrRuntime,
 						fmt.Sprintf("error in callback to read()\n\t-> %s",
 							err.Error()),
@@ -309,7 +309,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to read()\n\t-> %s",
 						err.Error()),
@@ -350,7 +350,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to write(), %s",
 						err.Error()),
@@ -371,7 +371,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 					},
 				})
 				if err != nil {
-					ctx.Engine.LogErr(Err{
+					ctx.LogErr(Err{
 						ErrRuntime,
 						fmt.Sprintf("error in callback to write()\n\t-> %s",
 							err.Error()),
@@ -444,7 +444,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to write()\n\t-> %s",
 						err.Error()),
@@ -486,7 +486,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 					},
 				})
 				if err != nil {
-					ctx.Engine.LogErr(Err{
+					ctx.LogErr(Err{
 						ErrRuntime,
 						fmt.Sprintf("error in callback to delete()\n\t-> %s",
 							err.Error()),
@@ -509,7 +509,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 					},
 				})
 				if err != nil {
-					ctx.Engine.LogErr(Err{
+					ctx.LogErr(Err{
 						ErrRuntime,
 						fmt.Sprintf("error in callback to delete()\n\t-> %s",
 							err.Error()),
@@ -527,7 +527,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to delete()\n\t-> %s",
 						err.Error()),
@@ -550,7 +550,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cb := h.inkCallback
 
 	callbackErr := func(err error) {
-		ctx.Engine.LogErr(Err{
+		ctx.LogErr(Err{
 			ErrRuntime,
 			fmt.Sprintf("error in callback to listen()\n\t-> %s",
 				err.Error()),
@@ -603,13 +603,13 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// this is what Ink's callback calls to send a response
 	endHandler := func(ctx *Context, in []Value) (Value, error) {
 		if len(in) != 1 {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				"end() callback to listen() must have one argument",
 			})
 		}
 		if responseEnded {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				"end() callback to listen() was called more than once",
 			})
@@ -648,7 +648,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp := <-responses
 	rsp, isComposite := resp.(CompositeValue)
 	if !isComposite {
-		ctx.Engine.LogErr(Err{
+		ctx.LogErr(Err{
 			ErrRuntime,
 			fmt.Sprintf("callback to listen() should return a response, got %s",
 				resp.String()),
@@ -666,7 +666,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resBody, okBody := bodyVal.(CompositeValue)
 
 	if !okStatus || !okHeaders || !okBody {
-		ctx.Engine.LogErr(Err{
+		ctx.LogErr(Err{
 			ErrRuntime,
 			fmt.Sprintf("callback to listen() returned malformed response\n\t-> %s",
 				rsp.String()),
@@ -678,7 +678,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for i, v := range resBody.entries {
 		idx, err := strconv.Atoi(i)
 		if err != nil {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("response body in listen() is malformed, %s", err.Error()),
 			})
@@ -687,7 +687,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if num, isNum := v.(NumberValue); isNum {
 			writeBuf[idx] = byte(num.val)
 		} else {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("response body in listen() is malformed, byte value %s is not a number",
 					v.String()),
@@ -701,7 +701,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if str, isStr := v.(StringValue); isStr {
 			w.Header().Set(k, str.val)
 		} else {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("could not set response header, value %s was not a string",
 					v.String()),
@@ -767,7 +767,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to listen(), %s",
 						err.Error()),
@@ -870,7 +870,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to req(), %s",
 						err.Error()),
@@ -895,7 +895,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		reqBody, okBody := bodyVal.(CompositeValue)
 
 		if !okMethod || !okURL || !okHeaders || !okBody {
-			ctx.Engine.LogErr(Err{
+			ctx.LogErr(Err{
 				ErrRuntime,
 				fmt.Sprintf("request in req() is malformed, %s", data.String()),
 			})
@@ -906,7 +906,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		for i, v := range reqBody.entries {
 			idx, err := strconv.Atoi(i)
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("request body in req() is malformed, %s", err.Error()),
 				})
@@ -915,7 +915,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			if num, isNum := v.(NumberValue); isNum {
 				reqBodyBuf[idx] = byte(num.val)
 			} else {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("request body in req() is malformed, byte value %s is not a number",
 						v.String()),
@@ -942,7 +942,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			if str, isStr := v.(StringValue); isStr {
 				req.Header.Set(k, str.val)
 			} else {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("could not set request header, value %s was not a string",
 						v.String()),
@@ -999,7 +999,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 				},
 			})
 			if err != nil {
-				ctx.Engine.LogErr(Err{
+				ctx.LogErr(Err{
 					ErrRuntime,
 					fmt.Sprintf("error in callback to req(), %s", err.Error()),
 				})
@@ -1055,7 +1055,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 			_, err := evalInkFunction(in[1], false)
 			if err != nil {
 				if e, isErr := err.(Err); isErr {
-					ctx.Engine.LogErr(e)
+					ctx.LogErr(e)
 				} else {
 					// should never happen
 				}
@@ -1310,10 +1310,11 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 func getLength(list CompositeValue) int64 {
 	// count up from 0 index until we find an index that doesn't
 	//	contain a value.
-	for idx := 0.0; ; idx++ {
-		_, prs := list.entries[nToS(idx)]
+	var idx int64
+	for idx = 0; ; idx++ {
+		_, prs := list.entries[strconv.FormatInt(idx, 10)]
 		if !prs {
-			return int64(idx)
+			return idx
 		}
 	}
 }

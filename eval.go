@@ -869,24 +869,31 @@ func (eng *Engine) CreateContext() *Context {
 	return ctx
 }
 
-// LogErr logs an Err (interpreter error) according to the configurations
-//	specified in the Engine.
-func (eng *Engine) LogErr(e Err) {
-	if eng.FatalError {
-		logErr(e.reason, e.message)
-	} else {
-		logSafeErr(e.reason, e.message)
-	}
-}
-
 // Context represents a single, isolated execution context with its global heap,
 //	imports, call stack, and cwd (working directory).
 type Context struct {
 	// Cwd is an always-absolute path to current working dir (of module system)
-	Cwd    string
+	Cwd string
+	// currently executing file's path, if any
+	File   string
 	Engine *Engine
 	// Frame represents the Context's global heap
 	Frame *StackFrame
+}
+
+// LogErr logs an Err (interpreter error) according to the configurations
+//	specified in the Context's Engine.
+func (ctx *Context) LogErr(e Err) {
+	msg := e.message
+	if ctx.File != "" {
+		msg = e.message + " in " + ctx.File
+	}
+
+	if ctx.Engine.FatalError {
+		logErr(e.reason, msg)
+	} else {
+		logSafeErr(e.reason, msg)
+	}
 }
 
 // PermissionsConfig defines Context's permissions to
@@ -931,7 +938,7 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 		val, err = node.Eval(ctx.Frame, false)
 		if err != nil {
 			if e, isErr := err.(Err); isErr {
-				ctx.Engine.LogErr(e)
+				ctx.LogErr(e)
 			}
 			return
 		}
@@ -997,6 +1004,7 @@ func (ctx *Context) ExecFile(filePath string) error {
 
 	// update Cwd for any potential load() calls this file will make
 	ctx.Cwd = path.Dir(filePath)
+	ctx.File = filePath
 
 	input := make(chan rune)
 	resolver := ctx.ExecStream(input)
