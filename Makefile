@@ -23,6 +23,11 @@ run:
 		samples/prompt.ink
 
 
+# run just the minimal test suite
+test-mini:
+	${RUN} samples/test.ink
+
+
 # run standard test suites
 test:
 	${RUN} \

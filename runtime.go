@@ -1413,23 +1413,22 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	rv := ""
 	switch in[0].(type) {
 	case StringValue:
-		rv = "string"
+		return StringValue("string"), nil
 	case NumberValue:
-		rv = "number"
+		return StringValue("number"), nil
 	case BooleanValue:
-		rv = "boolean"
+		return StringValue("boolean"), nil
 	case NullValue:
-		rv = "()"
+		return StringValue("()"), nil
 	case CompositeValue:
-		rv = "composite"
+		return StringValue("composite"), nil
 	case FunctionValue, NativeFunctionValue:
-		rv = "function"
+		return StringValue("function"), nil
+	default:
+		return StringValue(""), nil
 	}
-
-	return StringValue(rv), nil
 }
 
 func inkLen(ctx *Context, in []Value) (Value, error) {
