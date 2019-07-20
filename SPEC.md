@@ -16,8 +16,8 @@ ExpressionList: '(' Expression* ')'
 
 
 Atom: UnaryExpr | EmptyIdentifier
-        | Identifier | FunctionCall
-        | Literal | ExpressionList
+  | Identifier | FunctionCall
+  | Literal | ExpressionList
 
 UnaryExpr: UnaryOp Atom
 
@@ -27,15 +27,15 @@ Identifier: (A-Za-z@!?)[A-Za-z0-9@!?]*
 FunctionCall: Atom ExpressionList
 
 Literal: NumberLiteral | StringLiteral
-        | BooleanLiteral | FunctionLiteral
-        | ObjectLiteral | ListLiteral
+  | BooleanLiteral | FunctionLiteral
+  | ObjectLiteral | ListLiteral
 
 NumberLiteral: (0-9)+ ['.' (0-9)+]
 StringLiteral: '\'' (.*) '\''
 
 BooleanLiteral: 'true' | 'false'
 FunctionLiteral: (Identifier | '(' (Identifier ',')* ')')
-        '=>' ( Expression | ExpressionList )
+  '=>' ( Expression | ExpressionList )
 
 ObjectLiteral: '{' ObjectEntry* '}'
 ObjectEntry: Expression ':' Expression
@@ -50,16 +50,16 @@ MatchClause: Atom '->' Expression
 
 
 UnaryOp: (
-    '~' // negation
+  '~' // negation
 )
 BinaryOp: (
-    '+' | '-' | '*' | '/' | '%' // arithmetic
-    '&' | '|' | '^' // logical and bitwise
-    | '>' | '<' // arithmetic comparisons
-    | '=' // value comparison operator
-    | 'is' // reference comparison operator
-    | ':=' // assignment operator
-    | '.' // property accessor
+  '+' | '-' | '*' | '/' | '%' // arithmetic
+  '&' | '|' | '^' // logical and bitwise
+  | '>' | '<' // arithmetic comparisons
+  | '=' // value comparison operator
+  | 'is' // reference comparison operator
+  | ':=' // assignment operator
+  | '.' // property accessor
 )
 ```
 
@@ -150,13 +150,15 @@ These are the right primitives, but we can build much more sophisticated systems
 
 - `in(callback<string> => boolean)`: Read from stdin. The callback function returns a boolean that determines whether to continue reading from input.
 - `out(string)`: Print to stdout.
+- `dir(string, callback<list>)`: List the contents of a directory. The callback gets a list of values of the form `{name: string, len: number, dir: boolean}`.
+- `make(string, callback)`: Make a new directory at the given path.
 - `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
 - `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset, some given bytes.
-- `delete(string, callback)`: Delete some given file
+- `delete(string, callback)`: Delete some given file.
 - `listen(string, callback) => callback`: Bind to a local TCP port and start handling HTTP requests.
-- `req(composite, callback) => callback`: Send an HTTP client request
+- `req(composite, callback) => callback`: Send an HTTP client request.
 - `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
-- `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`
+- `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`.
 - `time() => number`: number of seconds in floating point in UNIX epoch.
 
 ### Math
@@ -173,7 +175,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `number(any) => number`: convert type to number
 - `point(string) => number`: take the first byte (i.e. ASCII value) of the string and return its numerical value
 - `char(number) => string`: reverse of `point()`. Note that behavior for values above 255 (full Unicode values) is undefined (so far).
-- `len(composite) => number`: length of a list, string, or list-like composite value
+- `len(composite) => number`: length of a list, string, or list-like composite value (equal to the number of keys on the composite or list value)
 - `keys(composite) => list<string>`: list of keys of the given composite
 
 ## Standard library

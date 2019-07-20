@@ -9,6 +9,9 @@ std := load('std')
 log := std.log
 slice := std.slice
 decode := std.decode
+map := std.map
+f := std.format
+stringList := std.stringList
 rf := std.readFile
 wf := std.writeFile
 
@@ -42,10 +45,9 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 
 ` copy main.go to sub.go`
 copy(SOURCE, TARGET)
-log('copy scheduled.')
+log('Copy scheduled at ' + string(time()))
 
 ` delete the file, since we don't need it `
-log('Delete scheduled at ' + string(time()))
 wait(4, () => (
 	log('Delete fired at ' + string(time()))
 	delete('sub.go', evt => evt.type :: {
@@ -53,13 +55,33 @@ wait(4, () => (
 		'end' -> log('Safely deleted the generated file')
 	}))
 )
+log('Delete scheduled at ' + string(time()))
 
-` as test, schedule a copy-back task in between copy and delete `
-log('Copy-back scheduled at ' + string(time()))
+` as concurrency test, schedule a copy-back task in between copy and delete `
 wait(2, () => (
 	log('Copy-back fired at ' + string(time()))
 	rf(TARGET, data => data :: {
-		() -> log('Error copying-back WRITEME.md')
+		() -> log('Error copying-back ' + TARGET)
 		_ -> wf(SOURCE, data, () => log('Copy-back done!'))
 	})
 ))
+log('Copy-back scheduled at ' + string(time()))
+
+` while scheduled tasks are running, create and delete a directory `
+testdir := 'ink_io_test_dir'
+make(testdir, evt => evt.type :: {
+	'error' -> log('dir() error: ' + evt.message)
+	'end' -> (
+		log('Created test directory...')
+		delete(testdir, evt => evt.type :: {
+			'error' -> log('delete() of dir error: ' + evt.message)
+			'end' -> log('Deleted test directory.')
+		})
+	)
+})
+
+` test dir(): list all samples and file sizes `
+dir('./samples', evt => evt.type :: {
+	'error' -> log('Error listing samples: ' + evt.message)
+	'data' -> log(stringList(map(evt.data, file => f('{{ name }} ({{ len}}B)', file))))
+})

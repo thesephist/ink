@@ -63,6 +63,8 @@ syntax keyword inkBuiltin load contained
 
 syntax keyword inkBuiltin in contained
 syntax keyword inkBuiltin out contained
+syntax keyword inkBuiltin dir contained
+syntax keyword inkBuiltin make contained
 syntax keyword inkBuiltin read contained
 syntax keyword inkBuiltin write contained
 syntax keyword inkBuiltin delete contained

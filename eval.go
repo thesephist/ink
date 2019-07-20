@@ -998,7 +998,7 @@ func (ctx *Context) ExecFile(filePath string) error {
 	if !path.IsAbs(filePath) {
 		logErrf(
 			ErrAssert,
-			"Context::ExecFile expected an absolute path, got something else",
+			"Context.ExecFile expected an absolute path, got something else",
 		)
 	}
 

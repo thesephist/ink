@@ -254,6 +254,27 @@ m('object keys / list, std.clone')
 	t(len(keys(cobj)), 3)
 	t(len(list), 4)
 	t(len(clist), 3)
+
+	` len() should count the number of keys on a composite,
+		not just integer indexes like ECMAScript `
+	t(len({
+		0: 1
+		1: 'order'
+		2: 'natural'
+	}), 3)
+	t(len({
+		hi: 'h'
+		hello: 'he'
+		thing: 'th'
+		what: 'w'
+	}), 4)
+	t(len({
+		0: 'hi'
+		'1': 100
+		3: 'x'
+		5: []
+		'word': 0
+	}), 5)
 )
 
 m('composite pass by reference / mutation check')
