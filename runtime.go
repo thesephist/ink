@@ -90,9 +90,9 @@ func (ctx *Context) LoadFunc(
 
 func inkLoad(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
-		if givenPath, ok := in[0].(StringValue); ok && givenPath.val != "" {
+		if givenPath, ok := in[0].(StringValue); ok && givenPath != "" {
 			// imports via load() are assumed to be relative
-			importPath := path.Join(ctx.Cwd, givenPath.val+".ink")
+			importPath := path.Join(ctx.Cwd, string(givenPath)+".ink")
 
 			// swap out fields
 			childCtx := ctx.Engine.CreateContext()
@@ -149,8 +149,8 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 
 			rv, err := evalInkFunction(in[0], false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"data"},
-					"data": StringValue{str},
+					"type": StringValue("data"),
+					"data": StringValue(str),
 				},
 			})
 			if err != nil {
@@ -159,7 +159,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			}
 
 			if boolValue, isBool := rv.(BooleanValue); isBool {
-				if !boolValue.val {
+				if !boolValue {
 					break
 				}
 			} else {
@@ -174,7 +174,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 
 		_, err := evalInkFunction(in[0], false, CompositeValue{
 			entries: ValueTable{
-				"type": StringValue{"end"},
+				"type": StringValue("end"),
 			},
 		})
 		if err != nil {
@@ -189,7 +189,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		if output, ok := in[0].(StringValue); ok {
-			os.Stdout.Write([]byte(output.val))
+			os.Stdout.Write([]byte(output))
 			return NullValue{}, nil
 		}
 	}
@@ -235,7 +235,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"data"},
+						"type": StringValue("data"),
 						"data": CompositeValue{
 							entries: ValueTable{},
 						},
@@ -246,15 +246,15 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		fileInfos, err := ioutil.ReadDir(dirPath.val)
+		fileInfos, err := ioutil.ReadDir(string(dirPath))
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{
+						"type": StringValue("error"),
+						"message": StringValue(
 							fmt.Sprintf("error listing directory contents in dir(), %s", err.Error()),
-						},
+						),
 					},
 				})
 				cbMaybeErr(err)
@@ -265,9 +265,9 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 		for i, fi := range fileInfos {
 			fileList[strconv.Itoa(i)] = CompositeValue{
 				entries: ValueTable{
-					"name": StringValue{fi.Name()},
+					"name": StringValue(fi.Name()),
 					"len":  NumberValue(fi.Size()),
-					"dir":  BooleanValue{fi.IsDir()},
+					"dir":  BooleanValue(fi.IsDir()),
 				},
 			}
 		}
@@ -275,7 +275,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"data"},
+					"type": StringValue("data"),
 					"data": CompositeValue{
 						entries: fileList,
 					},
@@ -323,7 +323,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"end"},
+						"type": StringValue("end"),
 					},
 				})
 				cbMaybeErr(err)
@@ -332,15 +332,15 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// mkdir
-		err := os.Mkdir(dirPath.val, 0755)
+		err := os.Mkdir(string(dirPath), 0755)
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{
+						"type": StringValue("error"),
+						"message": StringValue(
 							fmt.Sprintf("error making a new directory in make(), %s", err.Error()),
-						},
+						),
 					},
 				})
 				cbMaybeErr(err)
@@ -351,7 +351,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"end"},
+					"type": StringValue("end"),
 				},
 			})
 			cbMaybeErr(err)
@@ -394,8 +394,8 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type":    StringValue{"error"},
-					"message": StringValue{msg},
+					"type":    StringValue("error"),
+					"message": StringValue(msg),
 				},
 			})
 			cbMaybeErr(err)
@@ -410,7 +410,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"data"},
+						"type": StringValue("data"),
 						"data": CompositeValue{
 							entries: ValueTable{},
 						},
@@ -422,7 +422,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// open
-		file, err := os.OpenFile(filePath.val, os.O_RDONLY, 0644)
+		file, err := os.OpenFile(string(filePath), os.O_RDONLY, 0644)
 		defer file.Close()
 		if err != nil {
 			sendErr(fmt.Sprintf(
@@ -462,7 +462,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"data"},
+					"type": StringValue("data"),
 					"data": list,
 				},
 			})
@@ -506,8 +506,8 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type":    StringValue{"error"},
-					"message": StringValue{msg},
+					"type":    StringValue("error"),
+					"message": StringValue(msg),
 				},
 			})
 			cbMaybeErr(err)
@@ -522,7 +522,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"end"},
+						"type": StringValue("end"),
 					},
 				})
 				cbMaybeErr(err)
@@ -539,7 +539,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			// all other offsets are writing
 			flag = os.O_CREATE | os.O_WRONLY
 		}
-		file, err := os.OpenFile(filePath.val, flag, 0644)
+		file, err := os.OpenFile(string(filePath), flag, 0644)
 		if err != nil {
 			sendErr(fmt.Sprintf(
 				"error opening requested file in write(), %s", err.Error(),
@@ -588,7 +588,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"end"},
+					"type": StringValue("end"),
 				},
 			})
 			cbMaybeErr(err)
@@ -633,7 +633,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"end"},
+						"type": StringValue("end"),
 					},
 				})
 				cbMaybeErr(err)
@@ -642,15 +642,15 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// delete
-		err := os.Remove(filePath.val)
+		err := os.Remove(string(filePath))
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{
+						"type": StringValue("error"),
+						"message": StringValue(
 							fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
-						},
+						),
 					},
 				})
 				cbMaybeErr(err)
@@ -661,7 +661,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"end"},
+					"type": StringValue("end"),
 				},
 			})
 			cbMaybeErr(err)
@@ -696,7 +696,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := r.URL.String()
 	headers := ValueTable{}
 	for key, values := range r.Header {
-		headers[key] = StringValue{strings.Join(values, ",")}
+		headers[key] = StringValue(strings.Join(values, ","))
 	}
 	var body Value
 	if r.ContentLength == 0 {
@@ -707,10 +707,10 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
-						"type": StringValue{"error"},
-						"message": StringValue{fmt.Sprintf(
+						"type": StringValue("error"),
+						"message": StringValue(fmt.Sprintf(
 							"error reading request in listen(), %s", err.Error(),
-						)},
+						)),
 					},
 				})
 				cbMaybeErr(err)
@@ -754,11 +754,11 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.ExecListener(func() {
 		_, err := evalInkFunction(cb, false, CompositeValue{
 			entries: ValueTable{
-				"type": StringValue{"req"},
+				"type": StringValue("req"),
 				"data": CompositeValue{
 					entries: ValueTable{
-						"method":  StringValue{method},
-						"url":     StringValue{url},
+						"method":  StringValue(method),
+						"url":     StringValue(url),
 						"headers": CompositeValue{entries: headers},
 						"body":    body,
 					},
@@ -828,7 +828,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Content-Length is automatically set for us by Go
 	for k, v := range resHeaders.entries {
 		if str, isStr := v.(StringValue); isStr {
-			w.Header().Set(k, str.val)
+			w.Header().Set(k, string(str))
 		} else {
 			ctx.LogErr(Err{
 				ErrRuntime,
@@ -844,10 +844,10 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"error"},
-					"message": StringValue{fmt.Sprintf(
-						"error writing request body in listen(), %s", err.Error(),
-					)},
+					"type": StringValue("error"),
+					"message": StringValue(
+						fmt.Sprintf("error writing request body in listen(), %s", err.Error()),
+					),
 				},
 			})
 			cbMaybeErr(err)
@@ -889,8 +889,8 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type":    StringValue{"error"},
-					"message": StringValue{msg},
+					"type":    StringValue("error"),
+					"message": StringValue(msg),
 				},
 			})
 			if err != nil {
@@ -904,7 +904,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 	}
 
 	server := &http.Server{
-		Addr: host.val,
+		Addr: string(host),
 		Handler: inkHTTPHandler{
 			ctx:         ctx,
 			inkCallback: cb,
@@ -992,8 +992,8 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type":    StringValue{"error"},
-					"message": StringValue{msg},
+					"type":    StringValue("error"),
+					"message": StringValue(msg),
 				},
 			})
 			if err != nil {
@@ -1050,8 +1050,8 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		}
 
 		req, err := http.NewRequest(
-			reqMethod.val,
-			reqURL.val,
+			string(reqMethod),
+			string(reqURL),
 			bytes.NewReader(reqBodyBuf),
 		)
 		if err != nil {
@@ -1066,7 +1066,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		req.Header.Set("User-Agent", "") // remove Go's default user agent header
 		for k, v := range reqHeaders.entries {
 			if str, isStr := v.(StringValue); isStr {
-				req.Header.Set(k, str.val)
+				req.Header.Set(k, string(str))
 			} else {
 				ctx.LogErr(Err{
 					ErrRuntime,
@@ -1086,7 +1086,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		resStatus := NumberValue(resp.StatusCode)
 		resHeaders := ValueTable{}
 		for key, values := range resp.Header {
-			resHeaders[key] = StringValue{strings.Join(values, ",")}
+			resHeaders[key] = StringValue(strings.Join(values, ","))
 		}
 
 		var resBody Value
@@ -1112,7 +1112,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
-					"type": StringValue{"resp"},
+					"type": StringValue("resp"),
 					"data": CompositeValue{
 						entries: ValueTable{
 							"status": resStatus,
@@ -1319,21 +1319,21 @@ func inkString(ctx *Context, in []Value) (Value, error) {
 	case StringValue:
 		return v, nil
 	case NumberValue:
-		return StringValue{nvToS(v)}, nil
+		return StringValue(nvToS(v)), nil
 	case BooleanValue:
-		if v.val {
-			return StringValue{"true"}, nil
+		if v {
+			return StringValue("true"), nil
 		} else {
-			return StringValue{"false"}, nil
+			return StringValue("false"), nil
 		}
 	case NullValue:
-		return StringValue{"()"}, nil
+		return StringValue("()"), nil
 	case CompositeValue:
-		return StringValue{v.String()}, nil
+		return StringValue(v.String()), nil
 	case FunctionValue, NativeFunctionValue:
-		return StringValue{"(function)"}, nil
+		return StringValue("(function)"), nil
 	default:
-		return StringValue{""}, nil
+		return StringValue(""), nil
 	}
 }
 
@@ -1347,7 +1347,7 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 
 	switch v := in[0].(type) {
 	case StringValue:
-		f, err := strconv.ParseFloat(v.val, 64)
+		f, err := strconv.ParseFloat(string(v), 64)
 		if err != nil {
 			return NullValue{}, nil
 		} else {
@@ -1356,7 +1356,7 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	case NumberValue:
 		return v, nil
 	case BooleanValue:
-		if v.val {
+		if v {
 			return NumberValue(1), nil
 		} else {
 			return NumberValue(0), nil
@@ -1383,7 +1383,7 @@ func inkPoint(ctx *Context, in []Value) (Value, error) {
 
 	// Ink treats all characters as ASCII byte chars, and
 	// 	transparently ignores unicode and surrogate pairs.
-	return NumberValue(str.val[0]), nil
+	return NumberValue(str[0]), nil
 }
 
 func inkChar(ctx *Context, in []Value) (Value, error) {
@@ -1402,7 +1402,7 @@ func inkChar(ctx *Context, in []Value) (Value, error) {
 	}
 
 	// lol this type conversion disaster
-	return StringValue{string(rune(int64(cp)))}, nil
+	return StringValue(rune(int64(cp))), nil
 }
 
 func inkType(ctx *Context, in []Value) (Value, error) {
@@ -1429,7 +1429,7 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 		rv = "function"
 	}
 
-	return StringValue{rv}, nil
+	return StringValue(rv), nil
 }
 
 func inkLen(ctx *Context, in []Value) (Value, error) {
@@ -1443,7 +1443,7 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 	if list, isComposite := in[0].(CompositeValue); isComposite {
 		return NumberValue(len(list.entries)), nil
 	} else if str, isString := in[0].(StringValue); isString {
-		return NumberValue(len(str.val)), nil
+		return NumberValue(len(str)), nil
 	}
 
 	return nil, Err{
@@ -1474,7 +1474,7 @@ func inkKeys(ctx *Context, in []Value) (Value, error) {
 
 	i := 0
 	for k, _ := range obj.entries {
-		vt[strconv.Itoa(i)] = StringValue{k}
+		vt[strconv.Itoa(i)] = StringValue(k)
 		i++
 	}
 	return CompositeValue{vt}, nil

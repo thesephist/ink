@@ -75,12 +75,10 @@ func (v NumberValue) Equals(other Value) bool {
 }
 
 // StringValue represents all characters and strings in Ink
-type StringValue struct {
-	val string
-}
+type StringValue string
 
 func (v StringValue) String() string {
-	return fmt.Sprintf("'%s'", v.val)
+	return "'" + string(v) + "'"
 }
 
 func (v StringValue) Equals(other Value) bool {
@@ -89,19 +87,17 @@ func (v StringValue) Equals(other Value) bool {
 	}
 
 	if ov, ok := other.(StringValue); ok {
-		return v.val == ov.val
+		return v == ov
 	} else {
 		return false
 	}
 }
 
 // BooleanValue is either `true` or `false`
-type BooleanValue struct {
-	val bool
-}
+type BooleanValue bool
 
 func (v BooleanValue) String() string {
-	if v.val {
+	if v {
 		return "true"
 	} else {
 		return "false"
@@ -114,7 +110,7 @@ func (v BooleanValue) Equals(other Value) bool {
 	}
 
 	if ov, ok := other.(BooleanValue); ok {
-		return v.val == ov.val
+		return v == ov
 	} else {
 		return false
 	}
@@ -262,7 +258,7 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 		case NumberValue:
 			return -o, nil
 		case BooleanValue:
-			return BooleanValue{!o.val}, nil
+			return BooleanValue(!o), nil
 		default:
 			return nil, Err{
 				ErrRuntime,
@@ -295,7 +291,7 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 
 		switch rv := rightEvaluatedValue.(type) {
 		case StringValue:
-			return rv.val, nil
+			return string(rv), nil
 		case NumberValue:
 			return nvToS(rv), nil
 		default:
@@ -386,11 +382,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return nil, Err{
 					ErrRuntime,
 					fmt.Sprintf("while accessing string %s at an index, found non-integer index %s [%s]",
-						leftString.val, rightValueStr, poss(n.rightOperand)),
+						leftString, rightValueStr, poss(n.rightOperand)),
 				}
 			}
-			if int(rightNum) < len(leftString.val) {
-				return StringValue{string(leftString.val[rightNum])}, nil
+			if int(rightNum) < len(leftString) {
+				return StringValue(leftString[rightNum]), nil
 			} else {
 				return NullValue{}, nil
 			}
@@ -421,11 +417,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return StringValue{left.val + right.val}, nil
+				return StringValue(left + right), nil
 			}
 		case BooleanValue:
 			if right, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue{left.val || right.val}, nil
+				return BooleanValue(left || right), nil
 			}
 		}
 		return nil, Err{
@@ -453,7 +449,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case BooleanValue:
 			if right, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue{left.val && right.val}, nil
+				return BooleanValue(left && right), nil
 			}
 		}
 		return nil, Err{
@@ -520,7 +516,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
 			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue{leftBool.val && rightBool.val}, nil
+				return BooleanValue(leftBool && rightBool), nil
 			}
 		}
 		return nil, Err{
@@ -543,7 +539,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
 			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue{leftBool.val || rightBool.val}, nil
+				return BooleanValue(leftBool || rightBool), nil
 			}
 		}
 		return nil, Err{
@@ -566,7 +562,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
 			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue{leftBool.val != rightBool.val}, nil
+				return BooleanValue(leftBool != rightBool), nil
 			}
 		}
 		return nil, Err{
@@ -578,11 +574,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return BooleanValue{left > right}, nil
+				return BooleanValue(left > right), nil
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue{left.val > right.val}, nil
+				return BooleanValue(left > right), nil
 			}
 		}
 		return nil, Err{
@@ -594,11 +590,11 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return BooleanValue{left < right}, nil
+				return BooleanValue(left < right), nil
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue{left.val < right.val}, nil
+				return BooleanValue(left < right), nil
 			}
 		}
 		return nil, Err{
@@ -607,9 +603,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue, poss(n)),
 		}
 	case EqualOp:
-		return BooleanValue{leftValue.Equals(rightValue)}, nil
+		return BooleanValue(leftValue.Equals(rightValue)), nil
 	case EqRefOp:
-		return BooleanValue{&leftValue == &rightValue}, nil
+		return BooleanValue(&leftValue == &rightValue), nil
 	}
 
 	logErrf(ErrAssert, "unknown binary operator %s", n.String())
@@ -741,11 +737,11 @@ func (n NumberLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, erro
 }
 
 func (n StringLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	return StringValue{n.val}, nil
+	return StringValue(n.val), nil
 }
 
 func (n BooleanLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	return BooleanValue{n.val}, nil
+	return BooleanValue(n.val), nil
 }
 
 func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
