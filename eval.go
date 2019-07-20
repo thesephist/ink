@@ -20,11 +20,11 @@ type Value interface {
 	Equals(Value) bool
 }
 
-func isIntable(n float64) bool {
+func isIntable(n NumberValue) bool {
 	// XXX: not the most reliable check for int because of int64 range
 	//	limitations, but works for now until we nail down Ink's number
 	//	spec more rigorously
-	return n == float64(int64(n))
+	return n == NumberValue(int64(n))
 }
 
 // Utility func to get a consistent, language spec-compliant
@@ -35,6 +35,11 @@ func nToS(f float64) string {
 	} else {
 		return strconv.FormatFloat(f, 'f', 8, 64)
 	}
+}
+
+// nToS for NumberValue type
+func nvToS(v NumberValue) string {
+	return nToS(float64(v))
 }
 
 // EmptyValue is the value of the empty identifier.
@@ -51,12 +56,10 @@ func (v EmptyValue) Equals(other Value) bool {
 
 // NumberValue represents the number type (integer and floating point)
 //	in the Ink language.
-type NumberValue struct {
-	val float64
-}
+type NumberValue float64
 
 func (v NumberValue) String() string {
-	return nToS(v.val)
+	return nvToS(v)
 }
 
 func (v NumberValue) Equals(other Value) bool {
@@ -65,7 +68,7 @@ func (v NumberValue) Equals(other Value) bool {
 	}
 
 	if ov, ok := other.(NumberValue); ok {
-		return v.val == ov.val
+		return v == ov
 	} else {
 		return false
 	}
@@ -257,7 +260,7 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 
 		switch o := operand.(type) {
 		case NumberValue:
-			return NumberValue{-o.val}, nil
+			return -o, nil
 		case BooleanValue:
 			return BooleanValue{!o.val}, nil
 		default:
@@ -294,7 +297,7 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 		case StringValue:
 			return rv.val, nil
 		case NumberValue:
-			return nToS(rv.val), nil
+			return nvToS(rv), nil
 		default:
 			return "", Err{
 				ErrRuntime,
@@ -414,7 +417,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return NumberValue{left.val + right.val}, nil
+				return left + right, nil
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
@@ -434,7 +437,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return NumberValue{left.val - right.val}, nil
+				return left - right, nil
 			}
 		}
 		return nil, Err{
@@ -446,7 +449,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return NumberValue{left.val * right.val}, nil
+				return left * right, nil
 			}
 		case BooleanValue:
 			if right, ok := rightValue.(BooleanValue); ok {
@@ -461,13 +464,13 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case DivideOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
-				if right.val == 0 {
+				if right == 0 {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("division by zero error [%s]", poss(n.rightOperand)),
 					}
 				} else {
-					return NumberValue{leftNum.val / right.val}, nil
+					return leftNum / right, nil
 				}
 			}
 		}
@@ -479,22 +482,20 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case ModulusOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if right, ok := rightValue.(NumberValue); ok {
-				if right.val == 0 {
+				if right == 0 {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("division by zero error in modulus [%s]", poss(n.rightOperand)),
 					}
 				}
 
-				if isIntable(right.val) {
-					return NumberValue{float64(
-						int(leftNum.val) % int(right.val),
-					)}, nil
+				if isIntable(right) {
+					return NumberValue(int(leftNum) % int(right)), nil
 				} else {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("cannot take modulus of non-integer value %s [%s]",
-							nToS(right.val), poss(n.leftOperand)),
+							nvToS(right), poss(n.leftOperand)),
 					}
 				}
 			}
@@ -507,15 +508,13 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case LogicalAndOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum.val) && isIntable(rightNum.val) {
-					return NumberValue{float64(
-						int64(leftNum.val) & int64(rightNum.val),
-					)}, nil
+				if isIntable(leftNum) && isIntable(rightNum) {
+					return NumberValue(int64(leftNum) & int64(rightNum)), nil
 				} else {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s [%s]",
-							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
+							nvToS(rightNum), nvToS(leftNum), poss(n)),
 					}
 				}
 			}
@@ -532,15 +531,13 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case LogicalOrOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum.val) && isIntable(rightNum.val) {
-					return NumberValue{float64(
-						int64(leftNum.val) | int64(rightNum.val),
-					)}, nil
+				if isIntable(leftNum) && isIntable(rightNum) {
+					return NumberValue(int64(leftNum) | int64(rightNum)), nil
 				} else {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s [%s]",
-							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
+							nvToS(rightNum), nvToS(leftNum), poss(n)),
 					}
 				}
 			}
@@ -557,15 +554,13 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 	case LogicalXorOp:
 		if leftNum, isNum := leftValue.(NumberValue); isNum {
 			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum.val) && isIntable(rightNum.val) {
-					return NumberValue{float64(
-						int64(leftNum.val) ^ int64(rightNum.val),
-					)}, nil
+				if isIntable(leftNum) && isIntable(rightNum) {
+					return NumberValue(int64(leftNum) ^ int64(rightNum)), nil
 				} else {
 					return nil, Err{
 						ErrRuntime,
 						fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
-							nToS(rightNum.val), nToS(leftNum.val), poss(n)),
+							nvToS(rightNum), nvToS(leftNum), poss(n)),
 					}
 				}
 			}
@@ -583,7 +578,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return BooleanValue{left.val > right.val}, nil
+				return BooleanValue{left > right}, nil
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
@@ -599,7 +594,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		switch left := leftValue.(type) {
 		case NumberValue:
 			if right, ok := rightValue.(NumberValue); ok {
-				return BooleanValue{left.val < right.val}, nil
+				return BooleanValue{left < right}, nil
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
@@ -742,7 +737,7 @@ func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 }
 
 func (n NumberLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	return NumberValue{n.val}, nil
+	return NumberValue(n.val), nil
 }
 
 func (n StringLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -783,7 +778,7 @@ func (n ListLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error)
 
 	for i, n := range n.vals {
 		var err error
-		listVal.entries[nToS(float64(i))], err = n.Eval(frame, false)
+		listVal.entries[strconv.Itoa(i)], err = n.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}

@@ -266,7 +266,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 			fileList[strconv.Itoa(i)] = CompositeValue{
 				entries: ValueTable{
 					"name": StringValue{fi.Name()},
-					"len":  NumberValue{float64(fi.Size())},
+					"len":  NumberValue(fi.Size()),
 					"dir":  BooleanValue{fi.IsDir()},
 				},
 			}
@@ -432,7 +432,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// seek
-		ofs := int64(offset.val)
+		ofs := int64(offset)
 		if ofs != 0 {
 			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
 			if err != nil {
@@ -444,7 +444,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// read
-		buf := make([]byte, int64(length.val))
+		buf := make([]byte, int64(length))
 		count, err := file.Read(buf)
 		if err != nil {
 			sendErr(fmt.Sprintf(
@@ -455,7 +455,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		// marshal
 		vt := ValueTable{}
 		for i, b := range buf[:count] {
-			vt[strconv.Itoa(i)] = NumberValue{float64(b)}
+			vt[strconv.Itoa(i)] = NumberValue(b)
 		}
 		list := CompositeValue{entries: vt}
 
@@ -532,7 +532,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 
 		// open
 		var flag int
-		if offset.val == -1 {
+		if offset == -1 {
 			// -1 offset is append
 			flag = os.O_APPEND | os.O_CREATE | os.O_WRONLY
 		} else {
@@ -549,8 +549,8 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		defer file.Close()
 
 		// seek
-		if offset.val != -1 {
-			ofs := int64(offset.val)
+		if offset != -1 {
+			ofs := int64(offset)
 			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
 			if err != nil {
 				sendErr(fmt.Sprintf(
@@ -571,7 +571,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			}
 
 			if num, isNum := v.(NumberValue); isNum {
-				buf[idx] = byte(num.val)
+				buf[idx] = byte(num)
 			} else {
 				sendErr("error unmarshaling data in write(), byte value is not number")
 			}
@@ -720,7 +720,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		bodyEncoded := ValueTable{}
 		for i, b := range bodyBuf {
-			bodyEncoded[strconv.Itoa(i)] = NumberValue{float64(b)}
+			bodyEncoded[strconv.Itoa(i)] = NumberValue(b)
 		}
 
 		body = CompositeValue{
@@ -814,7 +814,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if num, isNum := v.(NumberValue); isNum {
-			writeBuf[idx] = byte(num.val)
+			writeBuf[idx] = byte(num)
 		} else {
 			ctx.LogErr(Err{
 				ErrRuntime,
@@ -838,7 +838,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// must follow all other header writes
-	w.WriteHeader(int(resStatus.val))
+	w.WriteHeader(int(resStatus))
 	_, err := w.Write(writeBuf)
 	if err != nil {
 		ctx.ExecListener(func() {
@@ -1039,7 +1039,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			}
 
 			if num, isNum := v.(NumberValue); isNum {
-				reqBodyBuf[idx] = byte(num.val)
+				reqBodyBuf[idx] = byte(num)
 			} else {
 				ctx.LogErr(Err{
 					ErrRuntime,
@@ -1083,7 +1083,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		resStatus := NumberValue{float64(resp.StatusCode)}
+		resStatus := NumberValue(resp.StatusCode)
 		resHeaders := ValueTable{}
 		for key, values := range resp.Header {
 			resHeaders[key] = StringValue{strings.Join(values, ",")}
@@ -1101,7 +1101,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 			bodyEncoded := ValueTable{}
 			for i, b := range bodyBuf {
-				bodyEncoded[strconv.Itoa(i)] = NumberValue{float64(b)}
+				bodyEncoded[strconv.Itoa(i)] = NumberValue(b)
 			}
 
 			resBody = CompositeValue{
@@ -1141,12 +1141,12 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 }
 
 func inkRand(ctx *Context, in []Value) (Value, error) {
-	return NumberValue{rand.Float64()}, nil
+	return NumberValue(rand.Float64()), nil
 }
 
 func inkTime(ctx *Context, in []Value) (Value, error) {
 	unixSeconds := float64(time.Now().UnixNano()) / 1e9
-	return NumberValue{unixSeconds}, nil
+	return NumberValue(unixSeconds), nil
 }
 
 func inkWait(ctx *Context, in []Value) (Value, error) {
@@ -1174,7 +1174,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 		defer ctx.Engine.Listeners.Done()
 
 		time.Sleep(time.Duration(
-			int64(secs.val * float64(time.Second)),
+			int64(float64(secs) * float64(time.Second)),
 		))
 
 		ctx.ExecListener(func() {
@@ -1207,7 +1207,7 @@ func inkSin(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	return NumberValue{math.Sin(inNum.val)}, nil
+	return NumberValue(math.Sin(float64(inNum))), nil
 }
 
 func inkCos(ctx *Context, in []Value) (Value, error) {
@@ -1225,7 +1225,7 @@ func inkCos(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	return NumberValue{math.Cos(inNum.val)}, nil
+	return NumberValue(math.Cos(float64(inNum))), nil
 }
 
 func inkPow(ctx *Context, in []Value) (Value, error) {
@@ -1239,18 +1239,18 @@ func inkPow(ctx *Context, in []Value) (Value, error) {
 	base, baseIsNum := in[0].(NumberValue)
 	exp, expIsNum := in[1].(NumberValue)
 	if baseIsNum && expIsNum {
-		if base.val == 0 && exp.val == 0 {
+		if base == 0 && exp == 0 {
 			return nil, Err{
 				ErrRuntime,
 				"math error, pow(0, 0) is not defined",
 			}
-		} else if base.val < 0 && !isIntable(exp.val) {
+		} else if base < 0 && !isIntable(exp) {
 			return nil, Err{
 				ErrRuntime,
 				"math error, fractional power of negative number",
 			}
 		}
-		return NumberValue{math.Pow(base.val, exp.val)}, nil
+		return NumberValue(math.Pow(float64(base), float64(exp))), nil
 	} else {
 		return nil, Err{
 			ErrRuntime,
@@ -1277,15 +1277,14 @@ func inkLn(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	if n.val <= 0 {
+	if n <= 0 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("cannot take natural logarithm of non-positive number %s",
-				nToS(n.val)),
+			fmt.Sprintf("cannot take natural logarithm of non-positive number %s", nvToS(n)),
 		}
 	}
 
-	return NumberValue{math.Log(n.val)}, nil
+	return NumberValue(math.Log(float64(n))), nil
 }
 
 func inkFloor(ctx *Context, in []Value) (Value, error) {
@@ -1305,7 +1304,7 @@ func inkFloor(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	return NumberValue{math.Trunc(n.val)}, nil
+	return NumberValue(math.Trunc(float64(n))), nil
 }
 
 func inkString(ctx *Context, in []Value) (Value, error) {
@@ -1320,7 +1319,7 @@ func inkString(ctx *Context, in []Value) (Value, error) {
 	case StringValue:
 		return v, nil
 	case NumberValue:
-		return StringValue{nToS(v.val)}, nil
+		return StringValue{nvToS(v)}, nil
 	case BooleanValue:
 		if v.val {
 			return StringValue{"true"}, nil
@@ -1352,18 +1351,18 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 		if err != nil {
 			return NullValue{}, nil
 		} else {
-			return NumberValue{f}, nil
+			return NumberValue(f), nil
 		}
 	case NumberValue:
 		return v, nil
 	case BooleanValue:
 		if v.val {
-			return NumberValue{1.0}, nil
+			return NumberValue(1), nil
 		} else {
-			return NumberValue{0.0}, nil
+			return NumberValue(0), nil
 		}
 	default:
-		return NumberValue{0.0}, nil
+		return NumberValue(0), nil
 	}
 }
 
@@ -1384,7 +1383,7 @@ func inkPoint(ctx *Context, in []Value) (Value, error) {
 
 	// Ink treats all characters as ASCII byte chars, and
 	// 	transparently ignores unicode and surrogate pairs.
-	return NumberValue{float64(str.val[0])}, nil
+	return NumberValue(str.val[0]), nil
 }
 
 func inkChar(ctx *Context, in []Value) (Value, error) {
@@ -1403,7 +1402,7 @@ func inkChar(ctx *Context, in []Value) (Value, error) {
 	}
 
 	// lol this type conversion disaster
-	return StringValue{string(rune(int64(cp.val)))}, nil
+	return StringValue{string(rune(int64(cp)))}, nil
 }
 
 func inkType(ctx *Context, in []Value) (Value, error) {
@@ -1442,9 +1441,9 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 	}
 
 	if list, isComposite := in[0].(CompositeValue); isComposite {
-		return NumberValue{float64(len(list.entries))}, nil
+		return NumberValue(len(list.entries)), nil
 	} else if str, isString := in[0].(StringValue); isString {
-		return NumberValue{float64(len(str.val))}, nil
+		return NumberValue(len(str.val)), nil
 	}
 
 	return nil, Err{
