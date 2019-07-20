@@ -26,6 +26,7 @@ m('composite value access')
 	obj.fz := f => (f() + f())
 
 	t((obj.fn)(), 'xyz')
+	t((obj.('fn'))(), 'xyz')
 	t((obj.fz)(obj.fn), 'xyzxyz')
 	t(obj.nonexistent, ())
 	t(obj.39, 'clues')
@@ -331,6 +332,10 @@ m('function/composite equality checks')
 
 	t(comp1 = comp2, true)
 	t(list1 = list2, true)
+	t(comp1 = list1, false)
+	t(comp1 = {1: '4', 2: 2}, false)
+	t(comp1 = {}, false)
+	t(list1 = [1, 2, 3], false)
 )
 
 m('type() builtin function')
