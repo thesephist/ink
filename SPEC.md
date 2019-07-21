@@ -57,7 +57,6 @@ BinaryOp: (
   '&' | '|' | '^' // logical and bitwise
   | '>' | '<' // arithmetic comparisons
   | '=' // value comparison operator
-  | 'is' // reference comparison operator
   | ':=' // assignment operator
   | '.' // property accessor
 )

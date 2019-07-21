@@ -604,8 +604,6 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 	case EqualOp:
 		return BooleanValue(leftValue.Equals(rightValue)), nil
-	case EqRefOp:
-		return BooleanValue(&leftValue == &rightValue), nil
 	}
 
 	logErrf(ErrAssert, "unknown binary operator %s", n.String())

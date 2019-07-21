@@ -53,6 +53,12 @@ install:
 	ls -l `which ink`
 
 
+# pre-commit hook
+precommit:
+	go vet .
+	go fmt .
+
+
 # clean any generated files
 clean:
 	rm -rvf *.bmp ink-*

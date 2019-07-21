@@ -3,7 +3,7 @@
 ## Interpreter
 
 - [ ] Implement the concurrency system (`send()`, `receive()`, `create()` builtins) as described in the language spec.
-- [ ] As we get time also make a ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
+- [ ] Ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
     1. correctness checking against Go implementation
     2. writing web code
     3. having a second independent implementation of the language
@@ -11,12 +11,7 @@
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
 - [ ] Set up travis ci for Ink, and for now make it run run-all and then the test-all script. If zero exit value, it worked.
-- [ ] Implement various data structures and algorithms in Ink/samples
-    - Binary Search Tree
-    - Computing and rendering the Mendelbrot set.
-    - Project Euler solutions?
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
-- [ ] There are parts in the parser where I just move `idx++` through the tokens stream without checking that the token I passed through is the one I assumed it was (usually closing delimiters). Fix these and check all cases.
 
 
 ## Language
@@ -46,7 +41,6 @@
 
 ## Considerations
 
-- [ ] `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
-- [ ] Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte ararys are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first things to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array; and to optimize the standard library I/O functions more.
-- [ ] `EqRefOp` (comparison with `is`) is buggy, and I think we won't really use it in idiomatic Ink. We may remove it in the future.
-- [ ] Think about making an ANSI C implementation? It'll be much more portable and potentially meaningfully faster.
+- `encode()` and `decode()` do not currently support the full Unicode plane -- we might revisit this in the future.
+- Ink does not have types that represent native contiguous byte buffers in memory. Instead, all byte arrays are represented as composite lists, which are heavy and stringly typed data structures. I made this conscious decision because all other data types in Ink are conceptually pure and transparent (map, string, number), and a byte array would need to be accessed through a semi-immutable interface that resembles a composite but doesn't fully imitate one -- this felt inelegant. If I start using Ink for projects where the lack of a native byte array API is a blocker, I may reconsider this decision. However, the first things to try would probably be to apply V8-style optimizations to how composites represent integer-indexed values, with a hidden backing array; and to optimize the standard library I/O functions more.
+- Think about making an ANSI C implementation? It'll be much more portable and potentially meaningfully faster.

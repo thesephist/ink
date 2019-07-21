@@ -34,8 +34,6 @@ const (
 	// ambiguous operators and symbols
 	AccessorOp
 
-	EqRefOp
-
 	// =
 	EqualOp
 	FunctionArrow
@@ -93,12 +91,12 @@ type Tok struct {
 func (tok Tok) String() string {
 	switch tok.kind {
 	case Identifier, StringLiteral:
-		return fmt.Sprintf("%s %s [%s]",
+		return fmt.Sprintf("%s '%s' [%s]",
 			tok.kind.String(),
 			tok.str,
 			tok.position.String())
 	case NumberLiteral:
-		return fmt.Sprintf("%s %s [%s]",
+		return fmt.Sprintf("%s '%s' [%s]",
 			tok.kind.String(),
 			nToS(tok.num),
 			tok.position.String())
@@ -122,8 +120,7 @@ func Tokenize(
 	var strbufStartLine, strbufStartCol int
 
 	lastKind := Separator
-	lineNo := 1
-	colNo := 1
+	lineNo, colNo := 1, 1
 
 	simpleCommit := func(tok Tok) {
 		lastKind = tok.kind
@@ -149,8 +146,6 @@ func Tokenize(
 			cbuf := buf
 			buf = ""
 			switch cbuf {
-			case "is":
-				simpleCommitChar(EqRefOp)
 			case "true":
 				simpleCommitChar(TrueLiteral)
 			case "false":
@@ -161,7 +156,8 @@ func Tokenize(
 					if err != nil {
 						e := Err{
 							ErrSyntax,
-							fmt.Sprintf("parsing error in number at %d:%d, %s", lineNo, colNo, err.Error()),
+							fmt.Sprintf("parsing error in number at %d:%d, %s",
+								lineNo, colNo, err.Error()),
 						}
 						if fatalError {
 							logErr(e.reason, e.message)
@@ -199,7 +195,7 @@ func Tokenize(
 		switch lastKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace,
 			AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp, NegationOp,
-			GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp,
+			GreaterThanOp, LessThanOp, EqualOp, DefineOp, AccessorOp,
 			KeyValueSeparator, FunctionArrow, MatchColon, CaseArrow:
 			// do nothing
 		default:
@@ -213,6 +209,7 @@ func Tokenize(
 	//	from lastChar if not zero, from input channel otherwise.
 	var char, lastChar rune
 	inStringLiteral := false
+
 lexLoop:
 	for {
 		if lastChar != 0 {
@@ -263,9 +260,9 @@ lexLoop:
 					}
 				}
 
+				ensureSeparator()
 				lineNo++
 				colNo = 0
-				ensureSeparator()
 			} else {
 				// multi-line block comment, keep taking until end of block
 				for nextChar != '`' {
@@ -282,9 +279,9 @@ lexLoop:
 				}
 			}
 		case char == '\n':
+			ensureSeparator()
 			lineNo++
 			colNo = 0
-			ensureSeparator()
 		case unicode.IsSpace(char):
 			commitClear()
 		case char == '_':
@@ -410,94 +407,98 @@ func isValidIdentifierChar(char rune) bool {
 func (kind Kind) String() string {
 	switch kind {
 	case Block:
-		return "Block"
+		return "expression block"
 	case UnaryExpr:
-		return "UnaryExpr"
+		return "unary expression"
 	case BinaryExpr:
-		return "BinaryExpr"
+		return "binary expression"
 	case MatchExpr:
-		return "MatchExpr"
+		return "match expression"
 	case MatchClause:
-		return "MatchClause"
+		return "match clause"
 
 	case Identifier:
-		return "Identifier"
+		return "identifier"
 	case EmptyIdentifier:
-		return "EmptyIdentifier"
+		return "'_'"
 
 	case FunctionCall:
-		return "FunctionCall"
+		return "function call"
 
 	case NumberLiteral:
-		return "NumberLiteral"
+		return "number literal"
 	case StringLiteral:
-		return "StringLiteral"
+		return "string literal"
 	case ObjectLiteral:
-		return "ObjectLiteral"
+		return "composite literal"
 	case ListLiteral:
-		return "ListLiteral"
+		return "list composite literal"
 	case FunctionLiteral:
-		return "FunctionLiteral"
+		return "function literal"
 
 	case TrueLiteral:
-		return "TrueLiteral"
+		return "'true'"
 	case FalseLiteral:
-		return "FalseLiteral"
+		return "'false'"
 
 	case AccessorOp:
-		return "AccessorOp"
-
-	case EqRefOp:
-		return "EqRefOp"
+		return "'.'"
 
 	case EqualOp:
-		return "EqualOp"
+		return "'='"
 	case FunctionArrow:
-		return "FunctionArrow"
+		return "'=>'"
 
 	case KeyValueSeparator:
-		return "KeyValueSeparator"
+		return "':'"
 	case DefineOp:
-		return "DefineOp"
+		return "':='"
 	case MatchColon:
-		return "MatchColon"
+		return "'::'"
 
 	case CaseArrow:
-		return "CaseArrow"
+		return "'->'"
 	case SubtractOp:
-		return "SubtractOp"
+		return "'-'"
 
 	case NegationOp:
-		return "NegationOp"
+		return "'~'"
 	case AddOp:
-		return "AddOp"
+		return "'+'"
 	case MultiplyOp:
-		return "MultiplyOp"
+		return "'*'"
 	case DivideOp:
-		return "DivideOp"
+		return "'/'"
 	case ModulusOp:
-		return "ModulusOp"
+		return "'%'"
 	case GreaterThanOp:
-		return "GreaterThanOp"
+		return "'>'"
 	case LessThanOp:
-		return "LessThanOp"
+		return "'<'"
+
+	case LogicalAndOp:
+		return "'&'"
+	case LogicalOrOp:
+		return "'|'"
+	case LogicalXorOp:
+		return "'^'"
 
 	case Separator:
-		return "Separator"
+		return "','"
 	case LeftParen:
-		return "LeftParen"
+		return "'('"
 	case RightParen:
-		return "RightParen"
+		return "')'"
 	case LeftBracket:
-		return "LeftBracket"
+		return "'['"
 	case RightBracket:
-		return "RightBracket"
+		return "']'"
 	case LeftBrace:
-		return "LeftBrace"
+		return "'{'"
 	case RightBrace:
-		return "RightBrace"
+		return "'}'"
 
 	default:
-		return "UnknownToken"
+		return "unknown token"
 	}
 }

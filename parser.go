@@ -24,12 +24,8 @@ type UnaryExprNode struct {
 	position
 }
 
-func (n UnaryExprNode) opChar() string {
-	return "~"
-}
-
 func (n UnaryExprNode) String() string {
-	return fmt.Sprintf("Unary %s (%s)", n.opChar(), n.operand.String())
+	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
 }
 
 func (n UnaryExprNode) Position() position {
@@ -43,46 +39,10 @@ type BinaryExprNode struct {
 	position
 }
 
-func (n BinaryExprNode) opChar() string {
-	switch n.operator {
-	case AddOp:
-		return "+"
-	case SubtractOp:
-		return "-"
-	case MultiplyOp:
-		return "*"
-	case DivideOp:
-		return "/"
-	case ModulusOp:
-		return "%"
-	case GreaterThanOp:
-		return ">"
-	case LessThanOp:
-		return "<"
-	case EqualOp:
-		return "="
-	case EqRefOp:
-		return "is"
-	case LogicalAndOp:
-		return "&"
-	case LogicalOrOp:
-		return "|"
-	case LogicalXorOp:
-		return "^"
-	case DefineOp:
-		return ":="
-	case AccessorOp:
-		return "."
-	default:
-		logErr(ErrAssert, "unknown operator in binary expression")
-		return "?"
-	}
-}
-
 func (n BinaryExprNode) String() string {
 	return fmt.Sprintf("Binary (%s) %s (%s)",
 		n.leftOperand.String(),
-		n.opChar(),
+		n.operator.String(),
 		n.rightOperand.String())
 }
 
@@ -370,7 +330,7 @@ func getOpPriority(t Tok) int {
 	case AddOp, SubtractOp:
 		return 40
 
-	case GreaterThanOp, LessThanOp, EqualOp, EqRefOp:
+	case GreaterThanOp, LessThanOp, EqualOp:
 		return 30
 
 	case LogicalAndOp:
@@ -391,7 +351,7 @@ func isBinaryOp(t Tok) bool {
 	switch t.kind {
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		LogicalAndOp, LogicalOrOp, LogicalXorOp,
-		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+		GreaterThanOp, LessThanOp, EqualOp, DefineOp, AccessorOp:
 		return true
 	default:
 		return false
@@ -515,7 +475,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
 		LogicalAndOp, LogicalOrOp, LogicalXorOp,
-		GreaterThanOp, LessThanOp, EqualOp, EqRefOp, DefineOp, AccessorOp:
+		GreaterThanOp, LessThanOp, EqualOp, DefineOp, AccessorOp:
 		binExpr, incr, err := parseBinaryExpression(atom, nextTok, tokens[idx:], -1)
 		if err != nil {
 			return nil, 0, err
@@ -685,7 +645,15 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 
 			idx += keyIncr
-			idx++ // KeyValueSeparator
+			if tokens[idx].kind == KeyValueSeparator {
+				idx++
+			} else {
+				return nil, 0, Err{
+					ErrSyntax,
+					fmt.Sprintf("expected %s after composite key, found %s",
+						KeyValueSeparator.String(), tokens[idx]),
+				}
+			}
 
 			err = guardUnexpectedInputEnd(tokens, idx)
 			if err != nil {
@@ -711,6 +679,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		idx++ // RightBrace
+
 		return ObjectLiteralNode{
 			entries:  entries,
 			position: tok.position,
@@ -732,6 +701,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		idx++ // RightBracket
+
 		return ListLiteralNode{
 			vals:     vals,
 			position: tok.position,
@@ -807,10 +777,11 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {
 	if tokens[idx].kind != CaseArrow {
 		return MatchClauseNode{}, 0, Err{
 			ErrSyntax,
-			fmt.Sprintf("expected token '->', but got %s", tokens[idx].String()),
+			fmt.Sprintf("expected %s, but got %s",
+				CaseArrow.String(), tokens[idx].String()),
 		}
 	}
-	idx++
+	idx++ // CaseArrow
 
 	err = guardUnexpectedInputEnd(tokens, idx)
 	if err != nil {
@@ -862,8 +833,8 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 			if tokens[idx].kind != Separator {
 				return FunctionLiteralNode{}, 0, Err{
 					ErrSyntax,
-					fmt.Sprintf("expected a comma separated arguments list, found %s",
-						tokens[idx].String()),
+					fmt.Sprintf("expected arguments in a list separated by %s, found %s",
+						Separator.String(), tokens[idx].String()),
 				}
 			}
 			idx++ // Separator
@@ -876,8 +847,8 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 		if tokens[idx].kind != RightParen {
 			return FunctionLiteralNode{}, 0, Err{
 				ErrSyntax,
-				fmt.Sprintf("expected arguments list to terminate with a RightParen, found %s",
-					tokens[idx].String()),
+				fmt.Sprintf("expected arguments list to terminate with %s, found %s",
+					RightParen.String(), tokens[idx].String()),
 			}
 		}
 		idx++ // RightParen
@@ -902,10 +873,11 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	if tokens[idx].kind != FunctionArrow {
 		return FunctionLiteralNode{}, 0, Err{
 			ErrSyntax,
-			fmt.Sprintf("expected FunctionArrow but found %s", tokens[idx].String()),
+			fmt.Sprintf("expected %s but found %s",
+				FunctionArrow.String(), tokens[idx].String()),
 		}
 	}
-	idx++
+	idx++ // FunctionArrow
 
 	body, incr, err := parseExpression(tokens[idx:])
 	if err != nil {
