@@ -49,6 +49,7 @@ build: build-linux build-darwin build-windows build-openbsd
 
 # install on host system
 install:
+	cp utils/ink.vim ~/.vim/syntax/ink.vim
 	go install ${LDFLAGS}
 	ls -l `which ink`
 
