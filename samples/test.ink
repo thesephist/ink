@@ -558,10 +558,16 @@ me')
 	t(de('1.2.3'), ())
 	t(de('[50, -100]'), [50, ~100])
 
-	` strange whitespace and commas `
+	` strange whitespace, commas, broken input `
 	t(de('	" string"	 '), ' string')
-	t(de('   6.7'), 6.7)
+	t(de('   6.'), 6)
+	t(de(' .90'), 0.9)
 	t(de('   ["first", 2, true, ]	'), ['first', 2, true])
+	t(de('"start '), ())
+	t(de('{"a": b, "12": 3.41}'), ())
+	t(de('{"a": b  "12": 3.41 '), ())
+	t(de('[1, 2  3.24.253, fals}'), ())
+	t(de('[1, 2, 3.24.253, false'), ())
 
 	` serialize light object `
 	s := ser({a: 'b', c: ~4.251})

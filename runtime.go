@@ -1374,10 +1374,10 @@ func inkPoint(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 	str, isString := in[0].(StringValue)
-	if !isString {
+	if !isString || len(str) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("point() takes a string argument, got %s", in[0].String()),
+			fmt.Sprintf("point() takes a string argument of length at least 1, got %s", in[0].String()),
 		}
 	}
 

@@ -41,7 +41,7 @@ nToH := ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', '
 hex := n => (
 	(sub := (p, acc) => p < 16 :: {
 		true -> nToH.(p) + acc
-		false -> sub(floor(p  / 16), nToH.(p % 16) + acc)
+		false -> sub(floor(p / 16), nToH.(p % 16) + acc)
 	})(floor(n), '')
 )
 

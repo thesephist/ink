@@ -34,12 +34,14 @@ ser := c => type(c) :: {
 
 ` is this character a numeral digit or .? `
 num? := c => c :: {
+	'' -> false
 	'.' -> true
 	_ -> 47 < point(c) & point(c) < 58
 }
+
 ` is the char a whitespace? `
 ws? := c => c :: {
-	() -> false
+	'' -> false
 	_ -> point(c) :: {
 		` hard tab `
 		9 -> true
@@ -61,20 +63,24 @@ reader := s => (
 		err?: false
 	}
 
-	{
-		next: () => (
-			state.idx := state.idx + 1
-			c := s.(state.idx - 1) :: {
-				() -> ' '
-				_ -> c
-			}
-		)
-		peek: () => c := s.(state.idx) :: {
-			() -> ' '
+	next := () => (
+		state.idx := state.idx + 1
+		c := s.(state.idx - 1) :: {
+			() -> ''
 			_ -> c
 		}
+	)
+
+	peek := () => c := s.(state.idx) :: {
+		() -> ''
+		_ -> c
+	}
+
+	{
+		next: next
+		peek: peek
 		` fast-forward through whitespace `
-		ff: () => (sub := () => ws?(s.(state.idx)) :: {
+		ff: () => (sub := () => ws?(peek()) :: {
 			true -> (
 				state.idx := state.idx + 1
 				sub()
@@ -104,7 +110,10 @@ deString := r => (
 	n()
 
 	(sub := acc => p() :: {
-		() -> (r.err)()
+		'' -> (
+			(r.err)()
+			()
+		)
 		'\\' -> (
 			` eat backslash `
 			n()
@@ -193,6 +202,10 @@ deList := r => (
 	(sub := acc => (r.err?)() :: {
 		true -> ()
 		false -> p() :: {
+			'' -> (
+				(r.err)()
+				()
+			)
 			']' -> (
 				n()
 				acc
@@ -226,6 +239,7 @@ deComp := r => (
 	(sub := acc => (r.err?)() :: {
 		true -> ()
 		false -> p() :: {
+			'' -> (r.err)()
 			'}' -> (
 				n()
 				acc
@@ -233,22 +247,30 @@ deComp := r => (
 			_ -> (
 				key := deString(r)
 
-				ff()
-				p() :: {
-					':' -> n()
+				(r.err?)() :: {
+					false -> (
+						ff()
+						p() :: {
+							':' -> n()
+						}
+
+						ff()
+						val := der(r)
+
+						(r.err?)() :: {
+							false -> (
+								ff()
+								p() :: {
+									',' -> n()
+								}
+
+								ff()
+								acc.(key) := val
+								sub(acc)
+							)
+						}
+					)
 				}
-
-				ff()
-				val := der(r)
-
-				ff()
-				p() :: {
-					',' -> n()
-				}
-
-				ff()
-				acc.(key) := val
-				sub(acc)
 			)
 		}
 	})({})
