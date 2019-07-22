@@ -101,38 +101,31 @@ clamp := (start, end, min, max) => (
 
 ` get a substring of a given string `
 slice := (str, start, end) => (
-	result := ['']
-
 	` bounds checks `
 	x := clamp(start, end, 0, len(str))
 	start := x.start
 	end := x.end
 
-	(sl := i => i :: {
-		end -> result.0
-		_ -> (
-			result.0 := result.0 + str.(i)
-			sl(i + 1)
-		)
-	})(start)
+	(sl := (i, acc) => i :: {
+		end -> acc
+		_ -> sl(i + 1, acc + str.(i))
+	})(start, '')
 )
 
 ` get a sub-list of a given list `
 sliceList := (list, start, end) => (
-	result := []
-
 	` bounds checks `
 	x := clamp(start, end, 0, len(list))
 	start := x.start
 	end := x.end
 
-	(sl := i => i :: {
-		end -> result
+	(sl := (i, acc) => i :: {
+		end -> acc
 		_ -> (
-			result.len(result) := list.(i)
-			sl(i + 1)
+			acc.len(acc) := list.(i)
+			sl(i + 1, acc)
 		)
-	})(start)
+	})(start, [])
 )
 
 ` join one list to the end of another, return the original first list `
@@ -213,12 +206,23 @@ filter := (list, f) => (
 reduce := (list, f, acc) => (
 	length := len(list)
 	(sub := (i, acc) => i :: {
-			length -> acc
-			_ -> sub(
-				i + 1
-				f(acc, list.(i))
-			)
+		length -> acc
+		_ -> sub(
+			i + 1
+			f(acc, list.(i))
+		)
 	})(0, acc)
+)
+
+` concatenate (join) a list of strings into a string `
+cat := (list, joiner) => (
+	length := len(list) :: {
+		0 -> ''
+		_ -> (sub := (i, acc) => i :: {
+			length -> acc
+			_ -> sub(i + 1, acc + joiner + list.(i))
+		})(1, list.0)
+	}
 )
 
 ` for-each loop over a list `
@@ -334,8 +338,7 @@ format := (raw, values) => (
 			0 -> normal
 			1 -> seen one {
 			2 -> seen two {
-			3 -> seen a valid }
-		`
+			3 -> seen a valid } `
 		which: 0
 		` buffer for currently reading key `
 		key: ''

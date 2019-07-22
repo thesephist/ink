@@ -29,8 +29,15 @@ m('composite value access')
 	t((obj.('fn'))(), 'xyz')
 	t((obj.fz)(obj.fn), 'xyzxyz')
 	t(obj.nonexistent, ())
+	t(obj.(~10), ())
 	t(obj.39, 'clues')
 	t(obj.expr, 'ession')
+
+	` string index access `
+	t(('hello').0, 'h')
+	t(('what').3, 't')
+	t(('hi').(~1), ())
+	t(('hello, world!').len('hello, world!'), ())
 
 	` nested composites `
 	comp := {list: ['hi', 'hello', {what: 'thing'}]}

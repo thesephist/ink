@@ -385,8 +385,10 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 						leftString, rightValueStr, poss(n.rightOperand)),
 				}
 			}
-			if int(rightNum) < len(leftString) {
-				return StringValue(leftString[rightNum]), nil
+
+			rn := int(rightNum)
+			if -1 < rn && rn < len(leftString) {
+				return StringValue(leftString[rn]), nil
 			} else {
 				return NullValue{}, nil
 			}
