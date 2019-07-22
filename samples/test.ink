@@ -520,6 +520,8 @@ m('std.format -- the standard library formatter / templater')
 
 m('json ser/de')
 (
+	clone := std.clone
+
 	json := load('json')
 	ser := json.ser
 	de := json.de
@@ -581,12 +583,16 @@ me')
 		32: 'thirty-two'
 		nothing: ()
 	}
+	objr := clone(obj)
+	objr.func := ()
 	list := ['a', true, {c: 'd', e: 32.14}, ['f', {}, (), ~42]]
-	t(de(ser(obj)), obj)
+	t(de(ser(obj)), objr)
 	t(de(ser(list)), list)
 
 	list.1 := obj
-	t(de(ser(de(ser(list)))), list)
+	listr := clone(list)
+	listr.1 := objr
+	t(de(ser(de(ser(list)))), listr)
 )
 
 ` end test suite, print result `
