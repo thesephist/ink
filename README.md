@@ -74,6 +74,7 @@ If you're looking for more realistic and complex examples, check out...
 - [quicksort](samples/quicksort.ink)
 - [the standard test suite](samples/test.ink)
 - [Newton's root finding algorithm](samples/newton.ink)
+- [JSON serializer/deserializer](samples/json.ink)
 - [a small static file server](samples/fileserver.ink)
 - [Mandelbrot set renderer](samples/mandelbrot.ink)
 
