@@ -78,7 +78,9 @@ func (v NumberValue) Equals(other Value) bool {
 type StringValue string
 
 func (v StringValue) String() string {
-	return "'" + string(v) + "'"
+	return "'" + strings.ReplaceAll(
+		strings.ReplaceAll(string(v), "\\", "\\\\"),
+		"'", "\\'") + "'"
 }
 
 func (v StringValue) Equals(other Value) bool {
