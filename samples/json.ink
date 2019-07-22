@@ -86,192 +86,176 @@ reader := s => (
 	}
 )
 
-` JSON string to composite `
-de := s => der(reader(s))
+` deserialize null `
+deNull := r => (
+	n := r.next
+	n() + n() + n() + n() :: {
+		'null' -> ()
+		_ -> (r.err)()
+	}
+)
 
-` JSON string in reader to composite `
-der := r => (
-	` deserialize null `
-	deNull := r => (
-		n := r.next
-		n() + n() + n() + n() :: {
-			'null' -> ()
-			_ -> (r.err)()
+` deserialize string `
+deString := r => (
+	n := r.next
+	p := r.peek
+
+	` known to be a '"' `
+	n()
+
+	(sub := acc => p() :: {
+		() -> (r.err)()
+		'\\' -> (
+			` eat backslash `
+			n()
+			sub(acc + (c := n() :: {
+				't' -> char(9)
+				'n' -> char(10)
+				'r' -> char(13)
+				'"' -> '"'
+				_ -> c
+			}))
+		)
+		'"' -> (
+			n()
+			acc
+		)
+		_ -> sub(acc + n())
+	})('')
+)
+
+` deserialize number `
+deNumber := r => (
+	n := r.next
+	p := r.peek
+	state := {
+		` have we seen a '.' yet? `
+		negate?: false
+		decimal?: false
+	}
+
+	p() :: {
+		'-' -> (
+			n()
+			state.negate? := true
+		)
+	}
+
+	result := (sub := acc => num?(p()) :: {
+		true -> p() :: {
+			'.' -> state.decimal? :: {
+				true -> (r.err)()
+				false -> (
+					state.decimal? := true
+					sub(acc + n())
+				)
+			}
+			_ -> sub(acc + n())
 		}
-	)
+		false -> acc
+	})('')
 
-	` deserialize string `
-	deString := r => (
-		n := r.next
-		p := r.peek
+	state.negate? :: {
+		false -> number(result)
+		true -> ~number(result)
+	}
+)
 
-		` known to be a '"' `
-		n()
+` deserialize boolean `
+deTrue := r => (
+	n := r.next
+	n() + n() + n() + n() :: {
+		'true' -> true
+		_ -> (r.err)()
+	}
+)
+deFalse := r => (
+	n := r.next
+	n() + n() + n() + n() + n() :: {
+		'false' -> false
+		_ -> (r.err)()
+	}
+)
 
-		(sub := acc => p() :: {
-			() -> (r.err)()
-			'\\' -> (
-				` eat backslash `
-				n()
-				sub(acc + (c := n() :: {
-					't' -> char(9)
-					'n' -> char(10)
-					'r' -> char(13)
-					'"' -> '"'
-					_ -> c
-				}))
-			)
-			'"' -> (
+` deserialize list `
+deList := r => (
+	n := r.next
+	p := r.peek
+	ff := r.ff
+	state := {
+		idx: 0
+	}
+
+	` known to be a '[' `
+	n()
+	ff()
+
+	(sub := acc => (r.err?)() :: {
+		true -> ()
+		false -> p() :: {
+			']' -> (
 				n()
 				acc
 			)
-			_ -> sub(acc + n())
-		})('')
-	)
+			_ -> (
+				acc.(state.idx) := der(r)
+				state.idx := state.idx + 1
 
-	` deserialize number `
-	deNumber := r => (
-		n := r.next
-		p := r.peek
-		state := {
-			` have we seen a '.' yet? `
-			negate?: false
-			decimal?: false
-		}
+				ff()
+				p() :: {
+					',' -> n()
+				}
 
-		p() :: {
-			'-' -> (
-				n()
-				state.negate? := true
+				ff()
+				sub(acc)
 			)
 		}
+	})([])
+)
 
-		result := (sub := acc => num?(p()) :: {
-			true -> p() :: {
-				'.' -> state.decimal? :: {
-					true -> (r.err)()
-					false -> (
-						state.decimal? := true
-						sub(acc + n())
-					)
+` deserialize composite `
+deComp := r => (
+	n := r.next
+	p := r.peek
+	ff := r.ff
+
+	` known to be a '{' `
+	n()
+	ff()
+
+	(sub := acc => (r.err?)() :: {
+		true -> ()
+		false -> p() :: {
+			'}' -> (
+				n()
+				acc
+			)
+			_ -> (
+				key := deString(r)
+
+				ff()
+				p() :: {
+					':' -> n()
 				}
-				_ -> sub(acc + n())
-			}
-			false -> acc
-		})('')
 
-		state.negate? :: {
-			false -> number(result)
-			true -> ~number(result)
+				ff()
+				val := der(r)
+
+				ff()
+				p() :: {
+					',' -> n()
+				}
+
+				ff()
+				acc.(key) := val
+				sub(acc)
+			)
 		}
-	)
+	})({})
+)
 
-	` deserialize boolean `
-	deTrue := r => (
-		n := r.next
-		n() + n() + n() + n() :: {
-			'true' -> true
-			_ -> (r.err)()
-		}
-	)
-	deFalse := r => (
-		n := r.next
-		n() + n() + n() + n() + n() :: {
-			'false' -> false
-			_ -> (r.err)()
-		}
-	)
-
-	` deserialize list `
-	deList := r => (
-		n := r.next
-		p := r.peek
-		ff := r.ff
-		state := {
-			idx: 0
-		}
-
-		` known to be a '[' `
-		n()
-		ff()
-
-		(sub := acc => (r.err?)() :: {
-			true -> ()
-			false -> p() :: {
-				']' -> (
-					n()
-					acc
-				)
-				_ -> (
-					acc.(state.idx) := der(r)
-					state.idx := state.idx + 1
-
-					ff()
-					p() :: {
-						',' -> n()
-					}
-
-					ff()
-					sub(acc)
-				)
-			}
-		})([])
-	)
-
-	` deserialize composite `
-	deComp := r => (
-		n := r.next
-		p := r.peek
-		ff := r.ff
-
-		` known to be a '{' `
-		n()
-		ff()
-
-		(sub := acc => (r.err?)() :: {
-			true -> ()
-			false -> p() :: {
-				'}' -> (
-					n()
-					acc
-				)
-				_ -> (
-					key := deString(r)
-
-					ff()
-					p() :: {
-						':' -> n()
-					}
-
-					ff()
-					val := der(r)
-
-					ff()
-					p() :: {
-						',' -> n()
-					}
-
-					ff()
-					acc.(key) := val
-					sub(acc)
-				)
-			}
-		})({})
-	)
-
-	` process next char, not ignoring whitespace `
-	next := c => c :: {
-		'{' -> (
-			state.which := 1
-			state.idx := state.idx + 1
-			raw.(state.idx) :: {
-				'"' -> ()
-				_ -> brk()
-			}
-		)
-		_ -> brk()
-	}
-
+` JSON string in reader to composite `
+der := r => (
 	` trim preceding whitespace `
 	(r.ff)()
 
@@ -285,9 +269,12 @@ der := r => (
 		_ -> deNumber(r)
 	})
 
-	` if there was a parse error, just return null `
+	` if there was a parse error, just return null result `
 	(r.err?)() :: {
 		true -> ()
 		false -> result
 	}
 )
+
+` JSON string to composite `
+de := s => der(reader(s))
