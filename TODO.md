@@ -25,7 +25,6 @@
 
 ## Standard library / utilities
 
-- [ ] JSON serde system
 - [ ] Impl streams / channels / reactive-across-time primitives for programming in the standard library, building on events / input primitives.
 - [ ] Promises / futures should be in the standard library in Ink, composed of callback primitives.
 - [ ] We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.

@@ -518,5 +518,76 @@ m('std.format -- the standard library formatter / templater')
 	)
 )
 
+m('json ser/de')
+(
+	json := load('json')
+	ser := json.ser
+	de := json.de
+
+	` primitives `
+	t(ser(()), 'null')
+	t(ser(''), '""')
+	t(ser('world'), '"world"')
+	t(ser('es"c a"pe
+me'), '"es\\"c a\\"pe\\nme"')
+	t(ser(true), 'true')
+	t(ser(false), 'false')
+	t(ser(12), '12')
+	t(ser(3.14), string(3.14))
+	t(ser(~2.4142), string(~2.4142))
+	t(ser(x => x), 'null')
+	t(ser({}), '{}')
+	t(ser([]), '{}')
+
+	t(de('null'), ())
+	t(de('neh'), ())
+	t(de('true'), true)
+	t(de('trxx'), ())
+	t(de('false'), false)
+	t(de('fah'), ())
+	t(de('true_32'), true)
+	t(de('"thing"'), 'thing')
+	t(de('"es\\"c a\\"pe\\nme"'), 'es"c a"pe
+me')
+	t(de('""'), '')
+	t(de('"my"what"'), 'my')
+	t(de('-59.413'), ~59.413)
+	t(de('10-14.2'), 10)
+	t(de('1.2.3'), ())
+	t(de('[50, -100]'), [50, ~100])
+
+	` strange whitespace and commas `
+	t(de('	" string"	 '), ' string')
+	t(de('   6.7'), 6.7)
+	t(de('   ["first", 2, true, ]	'), ['first', 2, true])
+
+	` serialize light object `
+	s := ser({a: 'b', c: ~4.251})
+	first := '{"a":"b","c":-4.25100000}'
+	second := '{"c":-4.25100000,"a":"b"}'
+	t(s = first | s = second, true)
+
+	s := ser([2, false])
+	first := '{"0":2,"1":false}'
+	second := '{"1":false,"0":2}'
+	t(s = first | s = second, true)
+
+	` complex serde `
+	obj := {
+		ser: 'de'
+		apple: 'dessert'
+		func: () => ()
+		x: ['train', false, 'car', true, {x: ['y', 'z']}]
+		32: 'thirty-two'
+		nothing: ()
+	}
+	list := ['a', true, {c: 'd', e: 32.14}, ['f', {}, (), ~42]]
+	t(de(ser(obj)), obj)
+	t(de(ser(list)), list)
+
+	list.1 := obj
+	t(de(ser(de(ser(list)))), list)
+)
+
 ` end test suite, print result `
 (s.end)()

@@ -5,216 +5,289 @@ std := load('std')
 map := std.map
 cat := std.cat
 
+` string escape '"' `
+esc := c => point(c) :: {
+	9 -> '\\t'
+	10 -> '\\n'
+	13 -> '\\r'
+	34 -> '\\"'
+	_ -> c
+}
+escape := s => (
+	max := len(s)
+	(sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc + esc(s.(i)))
+	})(0, '')
+)
+
 ` composite to JSON string `
 ser := c => type(c) :: {
-    '()' -> 'null'
-    'string' -> '"' + c + '"'
-    'number' -> string(c)
-    'boolean' -> string(boolean)
-    ` do not serialize functions `
-    'function' -> 'null'
-    'composite' -> '{' + cat(map(keys(c), k => '"' + k + '":' + ser(c.(k))), ',') + '}'
+	'()' -> 'null'
+	'string' -> '"' + escape(c) + '"'
+	'number' -> string(c)
+	'boolean' -> string(c)
+	` do not serialize functions `
+	'function' -> 'null'
+	'composite' -> '{' + cat(map(keys(c), k => '"' + k + '":' + ser(c.(k))), ',') + '}'
 }
 
 ` is this character a numeral digit or .? `
 num? := c => c :: {
-    '.' -> true
-    _ -> 47 < point(c) & point(c) < 58
+	'.' -> true
+	_ -> 47 < point(c) & point(c) < 58
 }
 ` is the char a whitespace? `
-ws? := c => point(c) :: {
-    ` hard tab `
-    9 -> true
-    ` newline `
-    10 -> true
-    ` carriage return `
-    13 -> true
-    ` space `
-    32 -> true
-    _ -> false
+ws? := c => c :: {
+	() -> false
+	_ -> point(c) :: {
+		` hard tab `
+		9 -> true
+		` newline `
+		10 -> true
+		` carriage return `
+		13 -> true
+		` space `
+		32 -> true
+		_ -> false
+	}
 }
 
 ` reader implementation with internal state for deserialization `
 reader := s => (
-    state := {
-        idx: 0
-        ` has there been a parse error? `
-        err?: false
-    }
+	state := {
+		idx: 0
+		` has there been a parse error? `
+		err?: false
+	}
 
-    {
-        next: () => (
-            state.idx := state.idx + 1
-            s.(state.idx - 1)
-        )
-        peek: () => s.(state.idx)
-        done?: () => ~(state.idx < len(s))
-        err: () => state.err? := true
-    }
+	{
+		next: () => (
+			state.idx := state.idx + 1
+			c := s.(state.idx - 1) :: {
+				() -> ' '
+				_ -> c
+			}
+		)
+		peek: () => c := s.(state.idx) :: {
+			() -> ' '
+			_ -> c
+		}
+		` fast-forward through whitespace `
+		ff: () => (sub := () => ws?(s.(state.idx)) :: {
+			true -> (
+				state.idx := state.idx + 1
+				sub()
+			)
+		})()
+		done?: () => ~(state.idx < len(s))
+		err: () => state.err? := true
+		err?: () => state.err?
+	}
 )
 
 ` JSON string to composite `
-de := s => (
-    ` deserialize null `
-    deNull := r => (
-        n := r.next
-        n() + n() + n() + n() :: {
-            'null' -> ()
-            _ -> (r.err)()
-        }
-    )
+de := s => der(reader(s))
 
-    ` deserialize string `
-    deString := r => (
-        n := r.next
-        p := r.peek
+` JSON string in reader to composite `
+der := r => (
+	` deserialize null `
+	deNull := r => (
+		n := r.next
+		n() + n() + n() + n() :: {
+			'null' -> ()
+			_ -> (r.err)()
+		}
+	)
 
-        ` known to be a '"' `
-        n()
+	` deserialize string `
+	deString := r => (
+		n := r.next
+		p := r.peek
 
-        (sub := acc => p() :: {
-            () -> (r.err)()
-            '\\' -> sub(acc + n())
-            '"' -> (
-                n()
-                acc
-            )
-            _ -> sub(acc + n())
-        })('')
-    )
+		` known to be a '"' `
+		n()
 
-    ` deserialize number `
-    deNumber := r => (
-        n := r.next
-        p := r.peek
-        state := {
-            ` have we seen a '.' yet? `
-            decimal?: false
-        }
+		(sub := acc => p() :: {
+			() -> (r.err)()
+			'\\' -> (
+				` eat backslash `
+				n()
+				sub(acc + (c := n() :: {
+					't' -> char(9)
+					'n' -> char(10)
+					'r' -> char(13)
+					'"' -> '"'
+					_ -> c
+				}))
+			)
+			'"' -> (
+				n()
+				acc
+			)
+			_ -> sub(acc + n())
+		})('')
+	)
 
-        result := (sub := acc => num?(p()) :: {
-            true -> p() :: {
-                '.' -> state.decimal? :: {
-                    true -> (r.err)()
-                    false -> (
-                        state.decimal? := true
-                        sub(acc + n())
-                    )
-                }
-                _ -> sub(acc + n())
-            }
-            false -> (r.err)()
-        })('')
+	` deserialize number `
+	deNumber := r => (
+		n := r.next
+		p := r.peek
+		state := {
+			` have we seen a '.' yet? `
+			negate?: false
+			decimal?: false
+		}
 
-        number(result)
-    )
+		p() :: {
+			'-' -> (
+				n()
+				state.negate? := true
+			)
+		}
 
-    ` deserialize boolean `
-    deTrue := r => (
-        n := r.next
-        n() + n() + n() + n() :: {
-            'true' -> true
-            _ -> (r.err)()
-        }
-    )
-    deFalse := r => (
-        n := r.next
-        n() + n() + n() + n() + n() :: {
-            'false' -> false
-            _ -> (r.err)()
-        }
-    )
+		result := (sub := acc => num?(p()) :: {
+			true -> p() :: {
+				'.' -> state.decimal? :: {
+					true -> (r.err)()
+					false -> (
+						state.decimal? := true
+						sub(acc + n())
+					)
+				}
+				_ -> sub(acc + n())
+			}
+			false -> acc
+		})('')
 
-    ` deserialize list `
-    deList := r => (
-        n := r.next
-        p := r.peek
+		state.negate? :: {
+			false -> number(result)
+			true -> ~number(result)
+		}
+	)
 
-        ` known to be a '[' `
-        n()
+	` deserialize boolean `
+	deTrue := r => (
+		n := r.next
+		n() + n() + n() + n() :: {
+			'true' -> true
+			_ -> (r.err)()
+		}
+	)
+	deFalse := r => (
+		n := r.next
+		n() + n() + n() + n() + n() :: {
+			'false' -> false
+			_ -> (r.err)()
+		}
+	)
 
-        ` TODO: check for errors in child parse `
-        result := (sub := acc => ws?(p()) :: {
-            true -> (
-                r.next()
-                sub(acc)
-            )
-            false -> p() :: {
-                ']' -> (
-                    n()
-                    acc
-                )
-                _ -> (
-                    acc.len(acc) := de(r)
-                    sub(acc)
-                )
-            }
-        })([])
-    )
+	` deserialize list `
+	deList := r => (
+		n := r.next
+		p := r.peek
+		ff := r.ff
+		state := {
+			idx: 0
+		}
 
-    ` TODO: deserialize composite `
-    deComp := r => (
-        n := r.next
-        p := r.peek
-    )
+		` known to be a '[' `
+		n()
+		ff()
 
-    ` process next char, not ignoring whitespace `
-    next := c => c :: {
-        '{' -> (
-            state.which := 1
-            state.idx := state.idx + 1
-            raw.(state.idx) :: {
-                '"' -> ()
-                _ -> brk()
-            }
-        )
-        _ -> brk()
-    }
+		(sub := acc => (r.err?)() :: {
+			true -> ()
+			false -> p() :: {
+				']' -> (
+					n()
+					acc
+				)
+				_ -> (
+					acc.(state.idx) := der(r)
+					state.idx := state.idx + 1
 
-    ` process next char, ignoring whitespace `
-    nextWithWS := () => (
-        c := raw.(state.idx)
+					ff()
+					p() :: {
+						',' -> n()
+					}
 
-        ws?(c) :: {
-            true -> (
-                state.idx := state.idx + 1
-                nextWithWs()
-            )
-            false -> next(c)
-        }
-    )
+					ff()
+					sub(acc)
+				)
+			}
+		})([])
+	)
 
-    ` trim preceding whitespace `
-    s := (sub := s => ws?(s.0) :: {
-        true -> sub(slice(s, 1, len(s) - 1))
-        false -> s
-    })(s)
+	` deserialize composite `
+	deComp := r => (
+		n := r.next
+		p := r.peek
+		ff := r.ff
 
-    ` create a reader and hand off parsing to recursive descent `
-    r := reader(s)
-    (r.peek)() :: {
-        'n' -> deNull(r)
-        '"' -> deString(r)
-        't' -> deTrue(r)
-        'f' -> deFalse(r)
-        '[' -> deList(r)
-        '{' -> deComp(r)
-        _ -> deNumber(r)
-    }
+		` known to be a '{' `
+		n()
+		ff()
+
+		(sub := acc => (r.err?)() :: {
+			true -> ()
+			false -> p() :: {
+				'}' -> (
+					n()
+					acc
+				)
+				_ -> (
+					key := deString(r)
+
+					ff()
+					p() :: {
+						':' -> n()
+					}
+
+					ff()
+					val := der(r)
+
+					ff()
+					p() :: {
+						',' -> n()
+					}
+
+					ff()
+					acc.(key) := val
+					sub(acc)
+				)
+			}
+		})({})
+	)
+
+	` process next char, not ignoring whitespace `
+	next := c => c :: {
+		'{' -> (
+			state.which := 1
+			state.idx := state.idx + 1
+			raw.(state.idx) :: {
+				'"' -> ()
+				_ -> brk()
+			}
+		)
+		_ -> brk()
+	}
+
+	` trim preceding whitespace `
+	(r.ff)()
+
+	result := ((r.peek)() :: {
+		'n' -> deNull(r)
+		'"' -> deString(r)
+		't' -> deTrue(r)
+		'f' -> deFalse(r)
+		'[' -> deList(r)
+		'{' -> deComp(r)
+		_ -> deNumber(r)
+	})
+
+	` if there was a parse error, just return null `
+	(r.err?)() :: {
+		true -> ()
+		false -> result
+	}
 )
-
-` tests - TODO: move to test.ink `
-obj := {
-    a: 'hi'
-    b: {c: 'what'}
-    d: ['hello', 5, 36.3]
-    e: () ` null `
-    23: 25.3
-}
-log := load('std').log
-result := ser(obj)
-log('serialized ->')
-log(result)
-log('deserialized ->')
-log(de(result))
-
