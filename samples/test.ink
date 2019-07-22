@@ -336,6 +336,7 @@ m('function/composite equality checks')
 	comp2 := {1: 2, hi: '4'}
 	list1 := [1, 2, 3, 4, 5]
 	list2 := [1, 2, 3, 4, 5]
+	complist := {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
 
 	t(comp1 = comp2, true)
 	t(list1 = list2, true)
@@ -343,6 +344,7 @@ m('function/composite equality checks')
 	t(comp1 = {1: '4', 2: 2}, false)
 	t(comp1 = {}, false)
 	t(list1 = [1, 2, 3], false)
+	t(list1 = complist, true)
 )
 
 m('type() builtin function')
@@ -357,7 +359,7 @@ m('type() builtin function')
 	t(type(()), '()')
 )
 
-m('stdlib range/slice/append/join functions and stringList')
+m('stdlib range/slice/append/join/cat functions and stringList')
 (
 	stringList := std.stringList
 	sliceList := std.sliceList
@@ -365,6 +367,7 @@ m('stdlib range/slice/append/join functions and stringList')
 	reverse := std.reverse
 	slice := std.slice
 	join := std.join
+	cat := std.cat
 
 	sl := (l, s, e) => stringList(sliceList(l, s, e))
 	list := range(10, ~1, ~1)
@@ -390,6 +393,17 @@ m('stdlib range/slice/append/join functions and stringList')
 	t(slice(str, ~5, 2), 'ab')
 	t(slice(str, 7, 20), 'abra')
 	t(slice(str, 20, 1), '')
+
+	t(cat([], '--'), '')
+	t(cat(['hello'], '--'), 'hello')
+	t(cat(['hello', 'world'], '--'), 'hello--world')
+	t(cat(['hello', 'world,hi'], ','), 'hello,world,hi')
+	t(cat(['good', 'bye', 'friend'], ''), 'goodbyefriend')
+	t(cat(['good', 'bye', 'friend'], ', '), 'good, bye, friend')
+	t(cat({
+		0: 'first'
+		1: 'last'
+	}, ' and '), 'first and last')
 )
 
 m('hexadecimal conversions, hex & xeh')
