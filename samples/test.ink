@@ -129,6 +129,8 @@ m('accessing properties strangely, accessing nonexistent properties')
 	` also: composite parts can be empty `
 	t([_, _, 'hix'].('2'), 'hix')
 	t(string({test: 4200.00}.('te' + 'st')), '4200')
+	t(string({test: 4200.00}.('te' + 'st')).1, '2')
+	t(string({test: 4200.00}.('te' + 'st')).10, ())
 	` types should be accounted for in equality `
 	t(string({test: 4200.00}.('te' + 'st')) = 4200, false)
 
@@ -285,7 +287,7 @@ m('object keys / list, std.clone')
 	}), 5)
 )
 
-m('composite pass by reference / mutation check')
+m('string/composite pass by reference / mutation check')
 (
 	clone := std.clone
 
@@ -300,6 +302,34 @@ m('composite pass by reference / mutation check')
 	t(len(obj), 6)
 	t(len(twin), 6)
 	t(len(clone), 3)
+
+	t(clone.hi := 'x', {
+		0: 1
+		1: 2
+		2: 3
+		hi: 'x'
+	})
+
+	str := 'hello, world'
+	str.5 := '!'
+	str.8 := 'lx'
+	str.2 := ''
+	str.3 := ''
+	str.len(str) := 'x?'
+
+	t(str, 'hello! wlxldx?')
+
+	str := 'hi'
+	t(str.1 := 'what', 'hwhat')
+	t(str, 'hwhat')
+
+	str := '00000000'
+	mut := (i, s) => (
+		str.(i) := s
+	)
+	mut(4, 'AAA')
+	mut(8, 'YYY')
+	t(str, '0000AAA0YYY')
 )
 
 m('number & composite/list -> string conversions')
@@ -314,6 +344,7 @@ m('number & composite/list -> string conversions')
 	t(string([0]), '{0: 0}')
 
 	t(number('3.14'), 3.14)
+	t(number('03.140000'), 3.14)
 	t(number('-42'), ~42)
 	t(number(true), 1)
 	t(number(false), 0)
@@ -448,6 +479,8 @@ m('ascii <-> char point conversions and string encode/decode')
 	` note: at this point, we only care about ascii, not full Unicode `
 	t(point('a'), 97)
 	t(char(65), 'A')
+	t(encode('ab'), [97, 98])
+	t(decode([65, 67, 66]), 'ACB')
 	t(decode(encode(decode(encode(s1)))), s1)
 	t(decode(encode(decode(encode(s2)))), s2)
 	t(decode(encode(decode(encode(s3)))), s3)

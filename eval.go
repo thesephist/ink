@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -75,7 +76,7 @@ func (v NumberValue) Equals(other Value) bool {
 }
 
 // StringValue represents all characters and strings in Ink
-type StringValue string
+type StringValue []byte
 
 func (v StringValue) String() string {
 	return "'" + strings.ReplaceAll(
@@ -89,7 +90,7 @@ func (v StringValue) Equals(other Value) bool {
 	}
 
 	if ov, ok := other.(StringValue); ok {
-		return v == ov
+		return bytes.Equal(v, ov)
 	} else {
 		return false
 	}
@@ -210,7 +211,7 @@ type FunctionCallThunkValue struct {
 }
 
 func (v FunctionCallThunkValue) String() string {
-	return fmt.Sprintf("Tail Call Thunk of (%s)", v.function.String())
+	return fmt.Sprintf("Tail Call Thunk of (%s)", v.function)
 }
 
 func (v FunctionCallThunkValue) Equals(other Value) bool {
@@ -265,7 +266,7 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 			return nil, Err{
 				ErrRuntime,
 				fmt.Sprintf("cannot negate non-boolean and non-number value %s [%s]",
-					o.String(), poss(n.operand)),
+					o, poss(n.operand)),
 			}
 		}
 	}
@@ -300,7 +301,7 @@ func operandToStringKey(rightOperand Node, frame *StackFrame) (string, error) {
 			return "", Err{
 				ErrRuntime,
 				fmt.Sprintf("cannot access invalid property name %s of a composite value [%s]",
-					rightEvaluatedValue.String(), poss(rightOperand)),
+					rightEvaluatedValue, poss(rightOperand)),
 			}
 		}
 	}
@@ -313,7 +314,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return nil, Err{
 					ErrRuntime,
 					fmt.Sprintf("cannot assign an empty identifier value to %s [%s]",
-						leftIdent.String(), poss(n.leftOperand)),
+						leftIdent, poss(n.leftOperand)),
 				}
 			}
 
@@ -322,12 +323,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return nil, err
 			}
 
-			frame.setValue(leftIdent.val, rightValue)
+			frame.Set(leftIdent.val, rightValue)
 			return rightValue, nil
 		} else if leftAccess, okAccess := n.leftOperand.(BinaryExprNode); okAccess &&
 			leftAccess.operator == AccessorOp {
 
-			leftObject, err := leftAccess.leftOperand.Eval(frame, false)
+			leftValue, err := leftAccess.leftOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
 			}
@@ -337,19 +338,73 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return nil, err
 			}
 
-			if leftObjectComposite, isComposite := leftObject.(CompositeValue); isComposite {
+			if leftValueComposite, isComposite := leftValue.(CompositeValue); isComposite {
 				rightValue, err := n.rightOperand.Eval(frame, false)
 				if err != nil {
 					return nil, err
 				}
 
-				leftObjectComposite.entries[leftKey] = rightValue
-				return rightValue, nil
+				leftValueComposite.entries[leftKey] = rightValue
+				return leftValueComposite, nil
+			} else if leftString, isString := leftValue.(StringValue); isString {
+				leftIdent, isLeftIdent := leftAccess.leftOperand.(IdentifierNode)
+				if !isLeftIdent {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot set string %s at index because string is not an identifier",
+							leftString),
+					}
+				}
+
+				rightValue, err := n.rightOperand.Eval(frame, false)
+				if err != nil {
+					return nil, err
+				}
+
+				rightString, isString := rightValue.(StringValue)
+				if !isString {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("cannot set part of string to a non-character %s", rightValue),
+					}
+				}
+
+				rightNum, err := strconv.ParseInt(leftKey, 10, 64)
+				if err != nil {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("while accessing string %s at an index, found non-integer index %s [%s]",
+							leftString, leftKey, poss(leftAccess.rightOperand)),
+					}
+				}
+
+				rn := int(rightNum)
+				if -1 < rn && rn < len(leftString) {
+					for i, r := range rightString {
+						if rn+i < len(leftString) {
+							leftString[rn+i] = r
+						} else {
+							leftString = append(leftString, r)
+						}
+					}
+					frame.Up(leftIdent.val, leftString)
+					return leftString, nil
+				} else if rn == len(leftString) {
+					leftString = append(leftString, rightString...)
+					frame.Up(leftIdent.val, leftString)
+					return leftString, nil
+				} else {
+					return nil, Err{
+						ErrRuntime,
+						fmt.Sprintf("tried to modify string %s at out of bounds index %s [%s]",
+							leftString, leftKey, poss(leftAccess.rightOperand)),
+					}
+				}
 			} else {
 				return nil, Err{
 					ErrRuntime,
 					fmt.Sprintf("cannot set property of a non-composite value %s [%s]",
-						leftObject.String(), poss(leftAccess.leftOperand)),
+						leftValue, poss(leftAccess.leftOperand)),
 				}
 			}
 		} else {
@@ -357,7 +412,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			return nil, Err{
 				ErrRuntime,
 				fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
-					left.String(), poss(n.leftOperand)),
+					left, poss(n.leftOperand)),
 			}
 		}
 	} else if n.operator == AccessorOp {
@@ -390,7 +445,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 
 			rn := int(rightNum)
 			if -1 < rn && rn < len(leftString) {
-				return StringValue(leftString[rn]), nil
+				return StringValue([]byte{leftString[rn]}), nil
 			} else {
 				return NullValue{}, nil
 			}
@@ -421,7 +476,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return StringValue(left + right), nil
+				return StringValue(append(left, right...)), nil
 			}
 		case BooleanValue:
 			if right, ok := rightValue.(BooleanValue); ok {
@@ -582,7 +637,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue(left > right), nil
+				return BooleanValue(bytes.Compare(left, right) == 1), nil
 			}
 		}
 		return nil, Err{
@@ -598,7 +653,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue(left < right), nil
+				return BooleanValue(bytes.Compare(left, right) == -1), nil
 			}
 		}
 		return nil, Err{
@@ -659,7 +714,7 @@ func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 	} else {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("attempted to call a non-function value %s", fn.String()),
+			fmt.Sprintf("attempted to call a non-function value %s", fn),
 		}
 	}
 }
@@ -724,7 +779,7 @@ func (n EmptyIdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, er
 }
 
 func (n IdentifierNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	val, prs := frame.getValue(n.val)
+	val, prs := frame.Get(n.val)
 	if !prs {
 		return nil, Err{
 			ErrRuntime,
@@ -803,19 +858,37 @@ type StackFrame struct {
 	vt     ValueTable
 }
 
-func (sh *StackFrame) getValue(name string) (Value, bool) {
+// Get a value from the stack frame chain
+func (sh *StackFrame) Get(name string) (Value, bool) {
 	val, ok := sh.vt[name]
 	if ok {
 		return val, true
 	} else if sh.parent != nil {
-		return sh.parent.getValue(name)
+		return sh.parent.Get(name)
 	} else {
 		return NullValue{}, false
 	}
 }
 
-func (sh *StackFrame) setValue(name string, val Value) {
+// Set a value to the most recent call stack frame
+func (sh *StackFrame) Set(name string, val Value) {
 	sh.vt[name] = val
+}
+
+// Update a value in the stack frame chain
+func (sh *StackFrame) Up(name string, val Value) {
+	_, ok := sh.vt[name]
+	if ok {
+		sh.vt[name] = val
+	} else if sh.parent != nil {
+		sh.parent.Up(name, val)
+	} else {
+		logErrf(
+			ErrAssert,
+			fmt.Sprintf("StackFrame.Up expected to find variable '%s' in frame but did not",
+				name),
+		)
+	}
 }
 
 func (sh *StackFrame) String() string {

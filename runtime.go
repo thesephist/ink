@@ -81,7 +81,7 @@ func (ctx *Context) LoadFunc(
 	name string,
 	exec func(*Context, []Value) (Value, error),
 ) {
-	ctx.Frame.setValue(name, NativeFunctionValue{
+	ctx.Frame.Set(name, NativeFunctionValue{
 		name,
 		exec,
 		ctx,
@@ -90,7 +90,7 @@ func (ctx *Context) LoadFunc(
 
 func inkLoad(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
-		if givenPath, ok := in[0].(StringValue); ok && givenPath != "" {
+		if givenPath, ok := in[0].(StringValue); ok && len(givenPath) > 0 {
 			// imports via load() are assumed to be relative
 			importPath := path.Join(ctx.Cwd, string(givenPath)+".ink")
 
@@ -165,8 +165,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			} else {
 				ctx.LogErr(Err{
 					ErrRuntime,
-					fmt.Sprintf("callback to in() should return a boolean, but got %s",
-						rv.String()),
+					fmt.Sprintf("callback to in() should return a boolean, but got %s", rv),
 				})
 				return
 			}
@@ -204,8 +203,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 	if (len(in)) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("dir() expects two arguments: path and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("dir() expects two arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -292,8 +290,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 	if (len(in)) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("make() expects two arguments: path and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("make() expects two arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -365,8 +362,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d", len(in)),
 		}
 	}
 
@@ -425,9 +421,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		file, err := os.OpenFile(string(filePath), os.O_RDONLY, 0644)
 		defer file.Close()
 		if err != nil {
-			sendErr(fmt.Sprintf(
-				"error opening requested file in read(), %s", err.Error(),
-			))
+			sendErr(fmt.Sprintf("error opening requested file in read(), %s", err.Error()))
 			return
 		}
 
@@ -436,9 +430,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		if ofs != 0 {
 			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
 			if err != nil {
-				sendErr(fmt.Sprintf(
-					"error seeking requested file in read(), %s", err.Error(),
-				))
+				sendErr(fmt.Sprintf("error seeking requested file in read(), %s", err.Error()))
 				return
 			}
 		}
@@ -447,23 +439,14 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		buf := make([]byte, int64(length))
 		count, err := file.Read(buf)
 		if err != nil {
-			sendErr(fmt.Sprintf(
-				"error reading requested file in read(), %s", err.Error(),
-			))
+			sendErr(fmt.Sprintf("error reading requested file in read(), %s", err.Error()))
 		}
-
-		// marshal
-		vt := ValueTable{}
-		for i, b := range buf[:count] {
-			vt[strconv.Itoa(i)] = NumberValue(b)
-		}
-		list := CompositeValue{entries: vt}
 
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue("data"),
-					"data": list,
+					"data": StringValue(buf[:count]),
 				},
 			})
 			cbMaybeErr(err)
@@ -477,16 +460,15 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("write() expects four arguments: path, offset, length, and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("write() expects four arguments: path, offset, length, and callback, but got %d", len(in)),
 		}
 	}
 
 	filePath, isFilePathString := in[0].(StringValue)
 	offset, isOffsetNumber := in[1].(NumberValue)
-	encoded, isComposite := in[2].(CompositeValue)
+	buf, isString := in[2].(StringValue)
 	cb, isCbFunction := in[3].(FunctionValue)
-	if !isFilePathString || !isOffsetNumber || !isComposite || !isCbFunction {
+	if !isFilePathString || !isOffsetNumber || !isString || !isCbFunction {
 		return nil, Err{
 			ErrRuntime,
 			"unsupported combination of argument types in write()",
@@ -541,9 +523,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		}
 		file, err := os.OpenFile(string(filePath), flag, 0644)
 		if err != nil {
-			sendErr(fmt.Sprintf(
-				"error opening requested file in write(), %s", err.Error(),
-			))
+			sendErr(fmt.Sprintf("error opening requested file in write(), %s", err.Error()))
 			return
 		}
 		defer file.Close()
@@ -553,36 +533,15 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			ofs := int64(offset)
 			_, err := file.Seek(ofs, 0) // 0 means relative to start of file
 			if err != nil {
-				sendErr(fmt.Sprintf(
-					"error seeking requested file in write(), %s", err.Error(),
-				))
+				sendErr(fmt.Sprintf("error seeking requested file in write(), %s", err.Error()))
 				return
-			}
-		}
-
-		// unmarshal
-		buf := make([]byte, len(encoded.entries))
-		for i, v := range encoded.entries {
-			idx, err := strconv.Atoi(i)
-			if err != nil {
-				sendErr(fmt.Sprintf(
-					"error unmarshaling data in write(), %s", err.Error(),
-				))
-			}
-
-			if num, isNum := v.(NumberValue); isNum {
-				buf[idx] = byte(num)
-			} else {
-				sendErr("error unmarshaling data in write(), byte value is not number")
 			}
 		}
 
 		// write
 		_, err = file.Write(buf)
 		if err != nil {
-			sendErr(fmt.Sprintf(
-				"error writing to requested file in write(), %s", err.Error(),
-			))
+			sendErr(fmt.Sprintf("error writing to requested file in write(), %s", err.Error()))
 		}
 
 		ctx.ExecListener(func() {
@@ -602,8 +561,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("delete() expects two arguments: path and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("delete() expects two arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -685,8 +643,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			ctx.LogErr(Err{
 				ErrRuntime,
-				fmt.Sprintf("error in callback to listen(), %s",
-					err.Error()),
+				fmt.Sprintf("error in callback to listen(), %s", err.Error()),
 			})
 		}
 	}
@@ -717,15 +674,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-
-		bodyEncoded := ValueTable{}
-		for i, b := range bodyBuf {
-			bodyEncoded[strconv.Itoa(i)] = NumberValue(b)
-		}
-
-		body = CompositeValue{
-			entries: bodyEncoded,
-		}
+		body = StringValue(bodyBuf)
 	}
 
 	// construct request object to pass to Ink, and call handler
@@ -779,8 +728,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !isComposite {
 		ctx.LogErr(Err{
 			ErrRuntime,
-			fmt.Sprintf("callback to listen() should return a response, got %s",
-				resp.String()),
+			fmt.Sprintf("callback to listen() should return a response, got %s", resp),
 		})
 	}
 
@@ -792,36 +740,13 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resStatus, okStatus := statusVal.(NumberValue)
 	resHeaders, okHeaders := headersVal.(CompositeValue)
-	resBody, okBody := bodyVal.(CompositeValue)
+	resBody, okBody := bodyVal.(StringValue)
 
 	if !okStatus || !okHeaders || !okBody {
 		ctx.LogErr(Err{
 			ErrRuntime,
-			fmt.Sprintf("callback to listen() returned malformed response, %s",
-				rsp.String()),
+			fmt.Sprintf("callback to listen() returned malformed response, %s", rsp),
 		})
-	}
-
-	// marshal response object
-	writeBuf := make([]byte, len(resBody.entries))
-	for i, v := range resBody.entries {
-		idx, err := strconv.Atoi(i)
-		if err != nil {
-			ctx.LogErr(Err{
-				ErrRuntime,
-				fmt.Sprintf("response body in listen() is malformed, %s", err.Error()),
-			})
-		}
-
-		if num, isNum := v.(NumberValue); isNum {
-			writeBuf[idx] = byte(num)
-		} else {
-			ctx.LogErr(Err{
-				ErrRuntime,
-				fmt.Sprintf("response body in listen() is malformed, byte value %s is not a number",
-					v.String()),
-			})
-		}
 	}
 
 	// write values to response
@@ -832,14 +757,13 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ctx.LogErr(Err{
 				ErrRuntime,
-				fmt.Sprintf("could not set response header, value %s was not a string",
-					v.String()),
+				fmt.Sprintf("could not set response header, value %s was not a string", v),
 			})
 		}
 	}
 	// must follow all other header writes
 	w.WriteHeader(int(resStatus))
-	_, err := w.Write(writeBuf)
+	_, err := w.Write(resBody)
 	if err != nil {
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
@@ -859,8 +783,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("listen() expects two arguments: host and handler, but got %d",
-				len(in)),
+			fmt.Sprintf("listen() expects two arguments: host and handler, but got %d", len(in)),
 		}
 	}
 
@@ -896,8 +819,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,
-					fmt.Sprintf("error in callback to listen(), %s",
-						err.Error()),
+					fmt.Sprintf("error in callback to listen(), %s", err.Error()),
 				})
 			}
 		})
@@ -916,8 +838,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 		defer ctx.Engine.Listeners.Done()
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			sendErr(fmt.Sprintf("error starting http server in listen(), %s",
-				err.Error()))
+			sendErr(fmt.Sprintf("error starting http server in listen(), %s", err.Error()))
 		}
 	}()
 
@@ -930,8 +851,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 
 			err := server.Shutdown(context.Background())
 			if err != nil {
-				sendErr(fmt.Sprintf("error closing server in listen(), %s",
-					err.Error()))
+				sendErr(fmt.Sprintf("error closing server in listen(), %s", err.Error()))
 			}
 		}()
 
@@ -949,8 +869,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("req() expects two arguments: data and callback, but got %d",
-				len(in)),
+			fmt.Sprintf("req() expects two arguments: data and callback, but got %d", len(in)),
 		}
 	}
 
@@ -1018,41 +937,19 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		reqMethod, okMethod := methodVal.(StringValue)
 		reqURL, okURL := urlVal.(StringValue)
 		reqHeaders, okHeaders := headersVal.(CompositeValue)
-		reqBody, okBody := bodyVal.(CompositeValue)
+		reqBody, okBody := bodyVal.(StringValue)
 
 		if !okMethod || !okURL || !okHeaders || !okBody {
 			ctx.LogErr(Err{
 				ErrRuntime,
-				fmt.Sprintf("request in req() is malformed, %s", data.String()),
+				fmt.Sprintf("request in req() is malformed, %s", data),
 			})
-		}
-
-		// construct body
-		reqBodyBuf := make([]byte, len(reqBody.entries))
-		for i, v := range reqBody.entries {
-			idx, err := strconv.Atoi(i)
-			if err != nil {
-				ctx.LogErr(Err{
-					ErrRuntime,
-					fmt.Sprintf("request body in req() is malformed, %s", err.Error()),
-				})
-			}
-
-			if num, isNum := v.(NumberValue); isNum {
-				reqBodyBuf[idx] = byte(num)
-			} else {
-				ctx.LogErr(Err{
-					ErrRuntime,
-					fmt.Sprintf("request body in req() is malformed, byte value %s is not a number",
-						v.String()),
-				})
-			}
 		}
 
 		req, err := http.NewRequest(
 			string(reqMethod),
 			string(reqURL),
-			bytes.NewReader(reqBodyBuf),
+			bytes.NewReader(reqBody),
 		)
 		if err != nil {
 			sendErr(fmt.Sprintf("error creating request in req(), %s", err.Error()))
@@ -1070,8 +967,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			} else {
 				ctx.LogErr(Err{
 					ErrRuntime,
-					fmt.Sprintf("could not set request header, value %s was not a string",
-						v.String()),
+					fmt.Sprintf("could not set request header, value %s was not a string", v),
 				})
 			}
 		}
@@ -1098,15 +994,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 				sendErr(fmt.Sprintf("error reading response in req(), %s", err.Error()))
 				return
 			}
-
-			bodyEncoded := ValueTable{}
-			for i, b := range bodyBuf {
-				bodyEncoded[strconv.Itoa(i)] = NumberValue(b)
-			}
-
-			resBody = CompositeValue{
-				entries: bodyEncoded,
-			}
+			resBody = StringValue(bodyBuf)
 		}
 
 		ctx.ExecListener(func() {
@@ -1161,8 +1049,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 	if !isNum {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("first argument to wait() should be a number, but got %s",
-				in[0].String()),
+			fmt.Sprintf("first argument to wait() should be a number, but got %s", in[0]),
 		}
 	}
 
@@ -1203,7 +1090,7 @@ func inkSin(ctx *Context, in []Value) (Value, error) {
 	if !isNum {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("sin() takes a number argument, got %s", in[0].String()),
+			fmt.Sprintf("sin() takes a number argument, got %s", in[0]),
 		}
 	}
 
@@ -1221,7 +1108,7 @@ func inkCos(ctx *Context, in []Value) (Value, error) {
 	if !isNum {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("cos() takes a number argument, got %s", in[0].String()),
+			fmt.Sprintf("cos() takes a number argument, got %s", in[0]),
 		}
 	}
 
@@ -1254,8 +1141,7 @@ func inkPow(ctx *Context, in []Value) (Value, error) {
 	} else {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("pow() takes exactly 2 number arguments, but got %s, %s",
-				in[0].String(), in[1].String()),
+			fmt.Sprintf("pow() takes exactly 2 number arguments, but got %s, %s", in[0], in[1]),
 		}
 	}
 }
@@ -1272,8 +1158,7 @@ func inkLn(ctx *Context, in []Value) (Value, error) {
 	if !isNumber {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("ln() takes exactly one number argument, but got %s",
-				in[0].String()),
+			fmt.Sprintf("ln() takes exactly one number argument, but got %s", in[0]),
 		}
 	}
 
@@ -1299,8 +1184,7 @@ func inkFloor(ctx *Context, in []Value) (Value, error) {
 	if !isNumber {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("floor() takes exactly one number argument, but got %s",
-				in[0].String()),
+			fmt.Sprintf("floor() takes exactly one number argument, but got %s", in[0]),
 		}
 	}
 
@@ -1377,12 +1261,10 @@ func inkPoint(ctx *Context, in []Value) (Value, error) {
 	if !isString || len(str) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("point() takes a string argument of length at least 1, got %s", in[0].String()),
+			fmt.Sprintf("point() takes a string argument of length at least 1, got %s", in[0]),
 		}
 	}
 
-	// Ink treats all characters as ASCII byte chars, and
-	// 	transparently ignores unicode and surrogate pairs.
 	return NumberValue(str[0]), nil
 }
 
@@ -1397,12 +1279,11 @@ func inkChar(ctx *Context, in []Value) (Value, error) {
 	if !isNumber {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("char() takes a number argument, got %s", in[0].String()),
+			fmt.Sprintf("char() takes a number argument, got %s", in[0]),
 		}
 	}
 
-	// lol this type conversion disaster
-	return StringValue(rune(int64(cp))), nil
+	return StringValue([]byte{byte(cp)}), nil
 }
 
 func inkType(ctx *Context, in []Value) (Value, error) {
@@ -1447,8 +1328,7 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 
 	return nil, Err{
 		ErrRuntime,
-		fmt.Sprintf("len() takes a string or composite value, but got %s",
-			in[0].String()),
+		fmt.Sprintf("len() takes a string or composite value, but got %s", in[0]),
 	}
 }
 
@@ -1464,8 +1344,7 @@ func inkKeys(ctx *Context, in []Value) (Value, error) {
 	if !isObj {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("keys() takes a composite value, but got %s",
-				in[0].String()),
+			fmt.Sprintf("keys() takes a composite value, but got %s", in[0]),
 		}
 	}
 

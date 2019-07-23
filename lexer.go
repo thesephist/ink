@@ -92,18 +92,18 @@ func (tok Tok) String() string {
 	switch tok.kind {
 	case Identifier, StringLiteral:
 		return fmt.Sprintf("%s '%s' [%s]",
-			tok.kind.String(),
+			tok.kind,
 			tok.str,
-			tok.position.String())
+			tok.position)
 	case NumberLiteral:
 		return fmt.Sprintf("%s '%s' [%s]",
-			tok.kind.String(),
+			tok.kind,
 			nToS(tok.num),
-			tok.position.String())
+			tok.position)
 	default:
 		return fmt.Sprintf("%s [%s]",
-			tok.kind.String(),
-			tok.position.String())
+			tok.kind,
+			tok.position)
 	}
 }
 

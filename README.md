@@ -51,7 +51,6 @@ Here's a simple Hello World HTTP server program.
 std := load('std')
 
 log := std.log
-encode := std.encode
 
 close := listen('0.0.0.0:8080', evt => (
 	evt.type :: {
@@ -59,7 +58,7 @@ close := listen('0.0.0.0:8080', evt => (
 		'req' -> (evt.end)({
 			status: 200
 			headers: {'Content-Type': 'text/plain'}
-			body: encode('Hello, World!')
+			body: 'Hello, World!'
 		})
 	}
 ))

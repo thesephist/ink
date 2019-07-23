@@ -30,7 +30,7 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 			dataLength := len(evt.data)
 
 			` log progress `
-			log('copying --> ' + slice(decode(evt.data), 0, 8) + '...')
+			log('copying --> ' + slice(evt.data, 0, 8) + '...')
 
 			` write the read bit, and recurse back to reading `
 			write(dest, offset, evt.data, evt => evt.type :: {
@@ -48,7 +48,7 @@ copy(SOURCE, TARGET)
 log('Copy scheduled at ' + string(time()))
 
 ` delete the file, since we don't need it `
-wait(4, () => (
+wait(2, () => (
 	log('Delete fired at ' + string(time()))
 	delete('sub.go', evt => evt.type :: {
 		'error' -> log('Encountered an error deleting: ' + evt.message)
@@ -58,7 +58,7 @@ wait(4, () => (
 log('Delete scheduled at ' + string(time()))
 
 ` as concurrency test, schedule a copy-back task in between copy and delete `
-wait(2, () => (
+wait(1, () => (
 	log('Copy-back fired at ' + string(time()))
 	rf(TARGET, data => data :: {
 		() -> log('Error copying-back ' + TARGET)

@@ -53,7 +53,7 @@ mk('generated pixel array')
 file := bmp(W, H, pixels)
 mk('generated bmp file')
 
-(std.writeRawFile)('img.bmp', file, result => result :: {
+(std.writeFile)('img.bmp', file, result => result :: {
 	() -> log(f('file write error: {{ message }}', evt))
 })
 mk('saved file')

@@ -3,8 +3,6 @@
 std := load('std')
 
 log := std.log
-encode := std.encode
-decode := std.decode
 f := std.format
 
 ` helper for logging errors `
@@ -19,20 +17,20 @@ closeServer := listen('0.0.0.0:9600', evt => evt.type :: {
 		dt := evt.data
 		end := evt.end
 		[dt.method, dt.url, dt.body] :: {
-			['POST', '/test', encode('ping')] -> end({
+			['POST', '/test', 'ping'] -> end({
 				status: 302 ` test that it doesn't auto-follow redirects `
 				headers: {
 					'Content-Type': 'text/plain'
 					'Location': 'https://dotink.co'
 				}
-				body: encode('pong')
+				body: 'pong'
 			})
 			_ -> end({
 				status: 400
 				headers: {
 					'Content-Type': 'text/plain'
 				}
-				body: encode('invalid request!')
+				body: 'invalid request!'
 			})
 		}
 	)
@@ -46,7 +44,7 @@ send := () => (
 		headers: {
 			'Accept': 'text/html'
 		}
-		body: encode('ping')
+		body: 'ping'
 	}, evt => evt.type :: {
 		'error' -> logErr(evt.message)
 		'resp' -> (
@@ -54,7 +52,7 @@ send := () => (
 
 			dt := evt.data
 			[dt.status, dt.body] :: {
-				[302, encode('pong')] -> (
+				[302, 'pong'] -> (
 					log('---> ping-pong, success!')
 					closeServer()
 				)

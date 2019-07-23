@@ -8,7 +8,7 @@ f := std.format
 map := std.map
 reduce := std.reduce
 range := std.range
-wrf := std.writeRawFile
+wf := std.writeFile
 
 ` graph position `
 CENTERX := ~0.540015
@@ -126,7 +126,7 @@ file := bmp(WIDTH, HEIGHT, map(range(0, WIDTH * HEIGHT, 1), x => (
 )
 
 ` save file `
-wrf('mandelbrot.bmp', file, result => result :: {
+wf('mandelbrot.bmp', file, result => result :: {
 	true -> log('done!')
 	() -> log('error writing file!')
 })

@@ -94,9 +94,11 @@ Ink is strongly but dynamically typed, and has seven non-extendable types.
 - Composite (including both Objects (dictionaries) and Lists, like Lua tables)
 - Function
 
-Composite and Function types are reference-typed, which means assigning a composite to a variable just assigns a reference to the same composite or function value. All other types are value-typed, which means assigning these values to variables or calling a function with these values as arguments will create new copies of those values. i.e.
+String, Composite, and Function types are reference-typed, which means assigning a composite to a variable just assigns a reference to the same composite or function value. All other types are value-typed, which means assigning these values to variables or calling a function with these values as arguments will create new copies of those values. i.e.
 
-In Ink, the Null value `()` is globally unique and often also used to represent an empty or error value. For example, accessing a nonexistent index of a string or key of a composite value will return not an error, but the null value. Likewise, attempting to read from a nonexistent file will return a null value in the standard library. This borrows and furthers the idea of zero values from Go, and is an experiment I'm taking in Ink towards an exception-free interpreted language.
+The String type is capable of and designed for holding arbitrary sequential binary data, and is also conventionally used as a byte buffer in file and network I/O operations.
+
+The Null type and value `()` is globally unique and often also used to represent an empty or error value. For example, accessing a nonexistent index of a string or key of a composite value will return not an error, but the null value. Likewise, attempting to read from a nonexistent file will return a null value in the standard library. This borrows and furthers the idea of zero values from Go, and is an experiment I'm taking in Ink towards an exception-free interpreted language.
 
 ```
 ` for simple values `
@@ -151,8 +153,8 @@ These are the right primitives, but we can build much more sophisticated systems
 - `out(string)`: Print to stdout.
 - `dir(string, callback<list>)`: List the contents of a directory. The callback gets a list of values of the form `{name: string, len: number, dir: boolean}`.
 - `make(string, callback)`: Make a new directory at the given path.
-- `read(string, number, number, callback<list<number>>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
-- `write(string, number, list<number>, callback)`: Write to given file descriptor at some offset, some given bytes.
+- `read(string, number, number, callback<string>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
+- `write(string, number, string, callback)`: Write to given file descriptor at some offset, some given bytes.
 - `delete(string, callback)`: Delete some given file.
 - `listen(string, callback) => callback`: Bind to a local TCP port and start handling HTTP requests.
 - `req(composite, callback) => callback`: Send an HTTP client request.

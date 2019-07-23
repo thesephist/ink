@@ -121,10 +121,7 @@ sliceList := (list, start, end) => (
 
 	(sl := (i, acc) => i :: {
 		end -> acc
-		_ -> (
-			acc.len(acc) := list.(i)
-			sl(i + 1, acc)
-		)
+		_ -> sl(i + 1, acc.len(acc) := list.(i))
 	})(start, [])
 )
 
@@ -148,7 +145,6 @@ join := (base, child) => append(clone(base), child)
 clone := comp => (
 	reduce(keys(comp), (acc, k) => (
 		acc.(k) := comp.(k)
-		acc
 	), {})
 )
 
@@ -237,27 +233,19 @@ each := (list, f) => (
 	})(0)
 )
 
-` encode ascii string into a number list
-	we don't use reduce here, because this has to be fast,
-	and we implement an optimized loop instead with minimal copying `
+` encode string buffer into a number list `
 encode := str => (
-	acc := [{}]
-	strln := len(str)
-	(sub := i => i :: {
-		strln -> acc.0
-		_ -> (
-			(acc.0).(i) := point(str.(i))
-			sub(i + 1)
-		)
-	})(0)
+	max := len(str)
+	(sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc.(i) := point(str.(i)))
+	})(0, [])
 )
 
 ` decode number list into an ascii string `
 decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
 
-` utility for reading an entire file
-	readFile does not lean on readRawFile because a string-based
-	implementation can be more efficient here `
+` utility for reading an entire file `
 readFile := (path, callback) => (
 	BUFSIZE := 4096 ` bytes `
 	sent := [false]
@@ -271,10 +259,10 @@ readFile := (path, callback) => (
 				'data' -> (
 					dataLen := len(evt.data)
 					dataLen = BUFSIZE :: {
-						true -> accumulate(offset + dataLen, acc + decode(evt.data))
+						true -> accumulate(offset + dataLen, acc + evt.data)
 						false -> (
 							sent.0 := true
-							callback(acc + decode(evt.data))
+							callback(acc + evt.data)
 						)
 					}
 				)
@@ -283,39 +271,10 @@ readFile := (path, callback) => (
 	)))(0, '')
 )
 
-` utility for reading an entire file without string conversion `
-readRawFile := (path, callback) => (
-	BUFSIZE := 4096 ` bytes `
-	sent := [false]
-	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
-		sent.0 :: {false -> (
-			evt.type :: {
-				'error' -> (
-					sent.0 := true
-					callback(())
-				)
-				'data' -> (
-					dataLen := len(evt.data)
-					dataLen = BUFSIZE :: {
-						true -> accumulate(offset + dataLen, append(acc, evt.data))
-						false -> (
-							sent.0 := true
-							callback(append(acc, evt.data))
-						)
-					}
-				)
-			}
-		)}
-	)))(0, [])
-)
-
 ` utility for writing an entire file
-	is not buffered, because it's simpler, but may cause jank later
+	it's not buffered, because it's simpler, but may cause jank later
 	we'll address that if/when it becomes a performance issue `
-writeFile := (path, data, callback) => writeRawFile(path, encode(data), callback)
-
-` analogue of readRawFile for writeFile `
-writeRawFile := (path, data, callback) => (
+writeFile := (path, data, callback) => (
 	sent := [false]
 	write(path, 0, data, evt => (
 		sent.0 :: {false -> (

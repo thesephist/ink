@@ -25,7 +25,7 @@ type UnaryExprNode struct {
 }
 
 func (n UnaryExprNode) String() string {
-	return fmt.Sprintf("Unary %s (%s)", n.operator.String(), n.operand.String())
+	return fmt.Sprintf("Unary %s (%s)", n.operator, n.operand)
 }
 
 func (n UnaryExprNode) Position() position {
@@ -40,10 +40,7 @@ type BinaryExprNode struct {
 }
 
 func (n BinaryExprNode) String() string {
-	return fmt.Sprintf("Binary (%s) %s (%s)",
-		n.leftOperand.String(),
-		n.operator.String(),
-		n.rightOperand.String())
+	return fmt.Sprintf("Binary (%s) %s (%s)", n.leftOperand, n.operator, n.rightOperand)
 }
 
 func (n BinaryExprNode) Position() position {
@@ -75,9 +72,7 @@ type MatchClauseNode struct {
 }
 
 func (n MatchClauseNode) String() string {
-	return fmt.Sprintf("Clause (%s) -> (%s)",
-		n.target.String(),
-		n.expression.String())
+	return fmt.Sprintf("Clause (%s) -> (%s)", n.target, n.expression)
 }
 
 func (n MatchClauseNode) Position() position {
@@ -95,9 +90,7 @@ func (n MatchExprNode) String() string {
 	for i, c := range n.clauses {
 		clauses[i] = c.String()
 	}
-	return fmt.Sprintf("Match on (%s) to {%s}",
-		n.condition.String(),
-		clauses)
+	return fmt.Sprintf("Match on (%s) to {%s}", n.condition, clauses)
 }
 
 func (n MatchExprNode) Position() position {
@@ -210,7 +203,7 @@ type ObjectEntryNode struct {
 }
 
 func (n ObjectEntryNode) String() string {
-	return fmt.Sprintf("Object Entry (%s): (%s)", n.key.String(), n.val.String())
+	return fmt.Sprintf("Object Entry (%s): (%s)", n.key, n.val)
 }
 
 type ListLiteralNode struct {
@@ -241,10 +234,7 @@ func (n FunctionLiteralNode) String() string {
 	for i, a := range n.arguments {
 		args[i] = a.String()
 	}
-	return fmt.Sprintf("Function (%s) => (%s)",
-		strings.Join(args, ", "),
-		n.body.String(),
-	)
+	return fmt.Sprintf("Function (%s) => (%s)", strings.Join(args, ", "), n.body)
 }
 
 func (n FunctionLiteralNode) Position() position {
@@ -256,7 +246,7 @@ func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 		if len(tokens) > 0 {
 			return Err{
 				ErrSyntax,
-				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1].String()),
+				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1]),
 			}
 		} else {
 			return Err{
@@ -777,8 +767,7 @@ func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {
 	if tokens[idx].kind != CaseArrow {
 		return MatchClauseNode{}, 0, Err{
 			ErrSyntax,
-			fmt.Sprintf("expected %s, but got %s",
-				CaseArrow.String(), tokens[idx].String()),
+			fmt.Sprintf("expected %s, but got %s", CaseArrow, tokens[idx]),
 		}
 	}
 	idx++ // CaseArrow
@@ -834,7 +823,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 				return FunctionLiteralNode{}, 0, Err{
 					ErrSyntax,
 					fmt.Sprintf("expected arguments in a list separated by %s, found %s",
-						Separator.String(), tokens[idx].String()),
+						Separator, tokens[idx]),
 				}
 			}
 			idx++ // Separator
@@ -848,7 +837,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 			return FunctionLiteralNode{}, 0, Err{
 				ErrSyntax,
 				fmt.Sprintf("expected arguments list to terminate with %s, found %s",
-					RightParen.String(), tokens[idx].String()),
+					RightParen, tokens[idx]),
 			}
 		}
 		idx++ // RightParen
@@ -861,7 +850,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	default:
 		return FunctionLiteralNode{}, 0, Err{
 			ErrSyntax,
-			fmt.Sprintf("malformed arguments list in function at %s", tok.String()),
+			fmt.Sprintf("malformed arguments list in function at %s", tok),
 		}
 	}
 
@@ -873,8 +862,7 @@ func parseFunctionLiteral(tokens []Tok) (FunctionLiteralNode, int, error) {
 	if tokens[idx].kind != FunctionArrow {
 		return FunctionLiteralNode{}, 0, Err{
 			ErrSyntax,
-			fmt.Sprintf("expected %s but found %s",
-				FunctionArrow.String(), tokens[idx].String()),
+			fmt.Sprintf("expected %s but found %s", FunctionArrow, tokens[idx]),
 		}
 	}
 	idx++ // FunctionArrow

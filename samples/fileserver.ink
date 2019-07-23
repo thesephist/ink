@@ -2,6 +2,11 @@
 
 ` a primitive HTTP static file server `
 
+std := load('std')
+
+log := std.log
+readFile := std.readFile
+
 DIR := '.'
 PORT := 7800
 
@@ -28,12 +33,6 @@ TYPES := {
 	zip: 'application/zip'
 }
 
-std := load('std')
-
-log := std.log
-encode := std.encode
-readRawFile := std.readRawFile
-
 close := listen('0.0.0.0:' + string(PORT), evt => (
 	evt.type :: {
 		'error' -> log('Server error: ' + evt.message)
@@ -47,7 +46,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 
 			log(evt.data.method + ': ' + evt.data.url + ', type: ' + getType(path))
 		
-			` pre-define callback to readRawFile `
+			` pre-define callback to readFile `
 			readHandler := fileBody => fileBody :: {
 				() -> (
 					log('-> ' + path + ' not found')
@@ -57,7 +56,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 							'Content-Type': 'text/plain'
 							'X-Served-By': 'ink-serve'
 						}
-						body: encode('not found')
+						body: 'not found'
 					})
 				)
 				_ -> (
@@ -74,7 +73,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 			}
 
 			evt.data.method :: {
-				'GET' -> readRawFile(path, readHandler)
+				'GET' -> readFile(path, readHandler)
 				_ -> (
 					` if other methods, just drop the request `
 					log('-> ' + evt.data.url + ' dropped')
@@ -84,7 +83,7 @@ close := listen('0.0.0.0:' + string(PORT), evt => (
 							'Content-Type': 'text/plain'
 							'X-Served-By': 'ink-serve'
 						}
-						body: encode('method not allowed')
+						body: 'method not allowed'
 					})
 				)
 			}

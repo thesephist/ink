@@ -35,4 +35,4 @@ drawRec := max => max :: {
 }
 
 ` actually draw `
-drawRec(30)
+drawRec(20)
