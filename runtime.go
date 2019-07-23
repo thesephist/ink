@@ -89,6 +89,16 @@ func (ctx *Context) LoadFunc(
 	})
 }
 
+// Create and return a standard error callback response with the given message
+func errMsg(message string) CompositeValue {
+	return CompositeValue{
+		entries: ValueTable{
+			"type":    StringValue("error"),
+			"message": StringValue(message),
+		},
+	}
+}
+
 func inkLoad(ctx *Context, in []Value) (Value, error) {
 	if len(in) == 1 {
 		if givenPath, ok := in[0].(StringValue); ok && len(givenPath) > 0 {
@@ -248,14 +258,9 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 		fileInfos, err := ioutil.ReadDir(string(dirPath))
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(
-							fmt.Sprintf("error listing directory contents in dir(), %s", err.Error()),
-						),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error listing directory contents in dir(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -334,14 +339,9 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 		err := os.Mkdir(string(dirPath), 0755)
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(
-							fmt.Sprintf("error making a new directory in make(), %s", err.Error()),
-						),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error making a new directory in make(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -412,14 +412,9 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 		f, err := os.Open(string(statPath))
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(
-							fmt.Sprintf("error opening file in stat(), %s", err.Error()),
-						),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error opening file in stat(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -428,14 +423,9 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 		fi, err := f.Stat()
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(
-							fmt.Sprintf("error getting file data in stat(), %s", err.Error()),
-						),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error getting file data in stat(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -491,12 +481,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type":    StringValue("error"),
-					"message": StringValue(msg),
-				},
-			})
+			_, err := evalInkFunction(cb, false, errMsg(msg))
 			cbMaybeErr(err)
 		})
 	}
@@ -589,12 +574,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type":    StringValue("error"),
-					"message": StringValue(msg),
-				},
-			})
+			_, err := evalInkFunction(cb, false, errMsg(msg))
 			cbMaybeErr(err)
 		})
 	}
@@ -706,14 +686,9 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		err := os.Remove(string(filePath))
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(
-							fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
-						),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error removing requested file in delete(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -765,14 +740,9 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		bodyBuf, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("error"),
-						"message": StringValue(fmt.Sprintf(
-							"error reading request in listen(), %s", err.Error(),
-						)),
-					},
-				})
+				_, err := evalInkFunction(cb, false, errMsg(
+					fmt.Sprintf("error reading request in listen(), %s", err.Error()),
+				))
 				cbMaybeErr(err)
 			})
 			return
@@ -869,14 +839,9 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(resBody)
 	if err != nil {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("error"),
-					"message": StringValue(
-						fmt.Sprintf("error writing request body in listen(), %s", err.Error()),
-					),
-				},
-			})
+			_, err := evalInkFunction(cb, false, errMsg(
+				fmt.Sprintf("error writing request body in listen(), %s", err.Error()),
+			))
 			cbMaybeErr(err)
 		})
 	}
@@ -913,12 +878,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type":    StringValue("error"),
-					"message": StringValue(msg),
-				},
-			})
+			_, err := evalInkFunction(cb, false, errMsg(msg))
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,
@@ -1012,12 +972,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type":    StringValue("error"),
-					"message": StringValue(msg),
-				},
-			})
+			_, err := evalInkFunction(cb, false, errMsg(msg))
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,
