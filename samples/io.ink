@@ -10,6 +10,7 @@ log := std.log
 slice := std.slice
 decode := std.decode
 map := std.map
+each := std.each
 f := std.format
 stringList := std.stringList
 rf := std.readFile
@@ -79,6 +80,19 @@ make(testdir, evt => evt.type :: {
 		})
 	)
 })
+
+` test stat: show file data for README.md, samples/, and current dir `
+each(['.', 'samples', 'README.md'], path => stat(path, evt => evt.type :: {
+	'error' -> log('Error stat ' + path + ': ' + evt.message)
+	'data' -> log(f('{{ name }}{{ sep }}: {{ len }}B', {
+		name: evt.data.name
+		len: evt.data.len
+		sep: evt.data.dir :: {
+			true -> '/'
+			false -> ''
+		}
+	}))
+}))
 
 ` test dir(): list all samples and file sizes `
 dir('./samples', evt => evt.type :: {
