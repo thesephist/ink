@@ -151,8 +151,9 @@ These are the right primitives, but we can build much more sophisticated systems
 
 - `in(callback<string> => boolean)`: Read from stdin. The callback function returns a boolean that determines whether to continue reading from input.
 - `out(string)`: Print to stdout.
-- `dir(string, callback<list>)`: List the contents of a directory. The callback gets a list of values of the form `{name: string, len: number, dir: boolean}`.
+- `dir(string, callback<list>)`: List the contents of a directory. The callback gets a list of values of the form `{name: string, len: number, dir: boolean}`. Effectively `stat()` for all files in the directory.
 - `make(string, callback)`: Make a new directory at the given path.
+- `stat(string, callback)`: `stat` a file at a path, returning its canonicalized filename, size, and whether it's a directory or a file.
 - `read(string, number, number, callback<string>)`: Read from given file descriptor from some offset for some bytes, returned as a list of bytes (numbers).
 - `write(string, number, string, callback)`: Write to given file descriptor at some offset, some given bytes.
 - `delete(string, callback)`: Delete some given file.

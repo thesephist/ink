@@ -45,6 +45,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("out", inkOut)
 	ctx.LoadFunc("dir", inkDir)
 	ctx.LoadFunc("make", inkMake)
+	ctx.LoadFunc("stat", inkStat)
 	ctx.LoadFunc("read", inkRead)
 	ctx.LoadFunc("write", inkWrite)
 	ctx.LoadFunc("delete", inkDelete)
@@ -257,6 +258,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 				})
 				cbMaybeErr(err)
 			})
+			return
 		}
 
 		fileList := ValueTable{}
@@ -349,6 +351,107 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 			_, err = evalInkFunction(cb, false, CompositeValue{
 				entries: ValueTable{
 					"type": StringValue("end"),
+				},
+			})
+			cbMaybeErr(err)
+		})
+	}()
+
+	return NullValue{}, nil
+}
+
+func inkStat(ctx *Context, in []Value) (Value, error) {
+	if (len(in)) != 2 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("stat() expects two arguments: path and callback, but got %d", len(in)),
+		}
+	}
+
+	statPath, isStatPathString := in[0].(StringValue)
+	cb, isCbFunction := in[1].(FunctionValue)
+	if !isStatPathString || !isCbFunction {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in stat()",
+		}
+	}
+
+	cbMaybeErr := func(err error) {
+		if err != nil {
+			ctx.LogErr(Err{
+				ErrRuntime,
+				fmt.Sprintf("error in callback to stat(), %s", err.Error()),
+			})
+		}
+	}
+
+	ctx.Engine.Listeners.Add(1)
+	go func() {
+		defer ctx.Engine.Listeners.Done()
+
+		if !ctx.Engine.Permissions.Read {
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue("data"),
+						"data": CompositeValue{
+							entries: ValueTable{
+								"name": statPath,
+								"len":  NumberValue(0),
+								"dir":  BooleanValue(false),
+							},
+						},
+					},
+				})
+				cbMaybeErr(err)
+			})
+			return
+		}
+
+		f, err := os.Open(string(statPath))
+		if err != nil {
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue("error"),
+						"message": StringValue(
+							fmt.Sprintf("error opening file in stat(), %s", err.Error()),
+						),
+					},
+				})
+				cbMaybeErr(err)
+			})
+			return
+		}
+
+		fi, err := f.Stat()
+		if err != nil {
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(cb, false, CompositeValue{
+					entries: ValueTable{
+						"type": StringValue("error"),
+						"message": StringValue(
+							fmt.Sprintf("error getting file data in stat(), %s", err.Error()),
+						),
+					},
+				})
+				cbMaybeErr(err)
+			})
+			return
+		}
+
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(cb, false, CompositeValue{
+				entries: ValueTable{
+					"type": StringValue("data"),
+					"data": CompositeValue{
+						entries: ValueTable{
+							"name": StringValue(fi.Name()),
+							"len":  NumberValue(fi.Size()),
+							"dir":  BooleanValue(fi.IsDir()),
+						},
+					},
 				},
 			})
 			cbMaybeErr(err)
