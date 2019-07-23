@@ -142,11 +142,11 @@ append := (base, child) => (
 join := (base, child) => append(clone(base), child)
 
 ` clone a composite value `
-clone := comp => (
-	reduce(keys(comp), (acc, k) => (
-		acc.(k) := comp.(k)
-	), {})
-)
+clone := x => type(x) :: {
+	'string' -> '' + x
+	'composite' -> reduce(keys(x), (acc, k) => acc.(k) := x.(k), {})
+	_ -> x
+}
 
 ` tail recursive numeric list -> string converter `
 stringList := list => (

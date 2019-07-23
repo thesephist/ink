@@ -23,7 +23,7 @@ m('composite value access')
 		we need to remember that AccessorOp is just a binary op
 		and the function call precedes it in priority `
 	obj.fn := () => 'xyz'
-	obj.fz := f => (f() + f())
+	obj.fz := f => f() + f()
 
 	t((obj.fn)(), 'xyz')
 	t((obj.('fn'))(), 'xyz')
@@ -231,7 +231,7 @@ m('logic composition correctness')
 	t(false ^ false, false, 'f ^ f')
 )
 
-m('object keys / list, std.clone')
+m('object keys / list, mutable strings, std.clone')
 (
 	clone := std.clone
 	obj := {
@@ -285,6 +285,20 @@ m('object keys / list, std.clone')
 		5: []
 		'word': 0
 	}), 5)
+
+	str := 'hello'
+	twin := str
+	ccpy := str + '' ` should yield a new copy `
+	tcpy := '' + twin
+	copy := clone(str)
+	str.2 := 'xx'
+	copy.2 := 'yy'
+
+	t(str, 'hexxo')
+	t(twin, 'hexxo')
+	t(ccpy, 'hello')
+	t(tcpy, 'hello')
+	t(copy, 'heyyo')
 )
 
 m('string/composite pass by reference / mutation check')
@@ -311,6 +325,7 @@ m('string/composite pass by reference / mutation check')
 	})
 
 	str := 'hello, world'
+	str2 := '' + str
 	str.5 := '!'
 	str.8 := 'lx'
 	str.2 := ''
@@ -318,6 +333,7 @@ m('string/composite pass by reference / mutation check')
 	str.len(str) := 'x?'
 
 	t(str, 'hello! wlxldx?')
+	t(str2, 'hello, world')
 
 	str := 'hi'
 	t(str.1 := 'what', 'hwhat')

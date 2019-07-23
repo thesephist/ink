@@ -476,7 +476,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return StringValue(append(left, right...)), nil
+				// In this context, strings are immutable. i.e. concatenating
+				//	strings should produce a completely new string whose modifications
+				//	won't be observable by the original strings.
+				base := make([]byte, 0, len(left)+len(right))
+				base = append(base, left...)
+				return StringValue(append(base, right...)), nil
 			}
 		case BooleanValue:
 			if right, ok := rightValue.(BooleanValue); ok {
