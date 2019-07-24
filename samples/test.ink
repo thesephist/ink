@@ -53,10 +53,10 @@ m('composite value access')
 
 	` modifying composite in chained accesses `
 	comp.list.4 := 'oom'
-	comp.list.2.what := 'arg'
+	comp.list.(2).what := 'arg'
 
 	t(comp.list.4, 'oom')
-	t(comp.list.2.what, 'arg')
+	t(comp.list.(2).what, 'arg')
 )
 
 m('function, expression, and lexical scope')
