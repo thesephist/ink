@@ -208,22 +208,14 @@ handleExistingDir := (url, path, end, getElapsed) => ALLOWINDEX :: {
 	)
 }
 
+` helpers for rendering the directory index page `
+makeIndex := (path, items) => '<title>' + path +
+	'</title><style>body{font-family: system-ui,sans-serif}</style><h1>index of <code>' +
+	path + '</code></h1><ul>' + items + '</ul>'
+makeIndexLi := (fileStat, separator) => '<li><a href="' + fileStat.name + '" title="' + fileStat.name + '">' +
+	fileStat.name + separator + ' (' + string(fileStat.len) + ' B)</a></li>'
+
 ` handles requests to dir() without /index.html `
-indexTpl := '
-<title>{{ path }}</title>
-<style>
-body {
-font-family: system-ui,sans-serif;
-}
-</style>
-<h1>index of <code>{{ path }}</code></h1>
-<ul>
-{{ items }}
-</ul>
-'
-indexItemTpl := '<li><a href="{{ name }}" title="{{ name }}">
-{{ name }}{{ separator }} ({{ len }} B)
-</a></li>'
 handleNoIndexDir := (url, path, end, getElapsed) => dir(path, evt => evt.type :: {
 	'error' -> (
 		log(f('  -> {{ url }} dir() led to error in {{ ms }}ms: {{ error }}', {
@@ -238,17 +230,6 @@ handleNoIndexDir := (url, path, end, getElapsed) => dir(path, evt => evt.type ::
 		})
 	)
 	'data' -> (
-		body := f(indexTpl, {
-			path: slice(path, 2, len(path))
-			items: cat(map(evt.data, fileStat => f(indexItemTpl, {
-				name: fileStat.name
-				len: fileStat.len
-				separator: fileStat.dir :: {
-					true -> '/'
-					false -> ''
-				}
-			})), '')
-		})
 		log(f('  -> {{ url }} (index) served in {{ ms }}ms', {
 			url: url
 			ms: getElapsed()
@@ -258,7 +239,16 @@ handleNoIndexDir := (url, path, end, getElapsed) => dir(path, evt => evt.type ::
 			headers: hdr({
 				'Content-Type': 'text/html'
 			})
-			body: body
+			body: makeIndex(
+				slice(path, 2, len(path))
+				cat(map(evt.data, fileStat => makeIndexLi(
+					fileStat
+					fileStat.dir :: {
+						true -> '/'
+						false -> ''
+					}
+				)), '')
+			)
 		})
 	)
 })
