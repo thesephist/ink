@@ -92,10 +92,8 @@ func (ctx *Context) LoadFunc(
 // Create and return a standard error callback response with the given message
 func errMsg(message string) CompositeValue {
 	return CompositeValue{
-		entries: ValueTable{
-			"type":    StringValue("error"),
-			"message": StringValue(message),
-		},
+		"type":    StringValue("error"),
+		"message": StringValue(message),
 	}
 }
 
@@ -120,9 +118,7 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 				}
 			}
 
-			return CompositeValue{
-				entries: childCtx.Frame.vt,
-			}, nil
+			return CompositeValue(childCtx.Frame.vt), nil
 		}
 	}
 
@@ -159,10 +155,8 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			}
 
 			rv, err := evalInkFunction(in[0], false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("data"),
-					"data": StringValue(str),
-				},
+				"type": StringValue("data"),
+				"data": StringValue(str),
 			})
 			if err != nil {
 				cbErr(err)
@@ -183,9 +177,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 		}
 
 		_, err := evalInkFunction(in[0], false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue("end"),
-			},
+			"type": StringValue("end"),
 		})
 		if err != nil {
 			cbErr(err)
@@ -243,12 +235,8 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 		if !ctx.Engine.Permissions.Read {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("data"),
-						"data": CompositeValue{
-							entries: ValueTable{},
-						},
-					},
+					"type": StringValue("data"),
+					"data": CompositeValue{},
 				})
 				cbMaybeErr(err)
 			})
@@ -266,25 +254,19 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		fileList := ValueTable{}
+		fileList := CompositeValue{}
 		for i, fi := range fileInfos {
 			fileList[strconv.Itoa(i)] = CompositeValue{
-				entries: ValueTable{
-					"name": StringValue(fi.Name()),
-					"len":  NumberValue(fi.Size()),
-					"dir":  BooleanValue(fi.IsDir()),
-				},
+				"name": StringValue(fi.Name()),
+				"len":  NumberValue(fi.Size()),
+				"dir":  BooleanValue(fi.IsDir()),
 			}
 		}
 
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("data"),
-					"data": CompositeValue{
-						entries: fileList,
-					},
-				},
+				"type": StringValue("data"),
+				"data": fileList,
 			})
 			cbMaybeErr(err)
 		})
@@ -326,9 +308,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 		if !ctx.Engine.Permissions.Write {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("end"),
-					},
+					"type": StringValue("end"),
 				})
 				cbMaybeErr(err)
 			})
@@ -349,9 +329,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("end"),
-				},
+				"type": StringValue("end"),
 			})
 			cbMaybeErr(err)
 		})
@@ -392,18 +370,14 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 
 		if !ctx.Engine.Permissions.Read {
 			statPathBase := make([]byte, 0, len(statPath))
-			statPathCopy := StringValue(statPathBase, statPath...)
+			statPathCopy := StringValue(append(statPathBase, statPath...))
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("data"),
-						"data": CompositeValue{
-							entries: ValueTable{
-								"name": statPathCopy,
-								"len":  NumberValue(0),
-								"dir":  BooleanValue(false),
-							},
-						},
+					"type": StringValue("data"),
+					"data": CompositeValue{
+						"name": statPathCopy,
+						"len":  NumberValue(0),
+						"dir":  BooleanValue(false),
 					},
 				})
 				cbMaybeErr(err)
@@ -412,6 +386,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 		}
 
 		f, err := os.Open(string(statPath))
+		defer f.Close()
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, errMsg(
@@ -435,15 +410,11 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("data"),
-					"data": CompositeValue{
-						entries: ValueTable{
-							"name": StringValue(fi.Name()),
-							"len":  NumberValue(fi.Size()),
-							"dir":  BooleanValue(fi.IsDir()),
-						},
-					},
+				"type": StringValue("data"),
+				"data": CompositeValue{
+					"name": StringValue(fi.Name()),
+					"len":  NumberValue(fi.Size()),
+					"dir":  BooleanValue(fi.IsDir()),
 				},
 			})
 			cbMaybeErr(err)
@@ -495,12 +466,8 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		if !ctx.Engine.Permissions.Read {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("data"),
-						"data": CompositeValue{
-							entries: ValueTable{},
-						},
-					},
+					"type": StringValue("data"),
+					"data": CompositeValue{},
 				})
 				cbMaybeErr(err)
 			})
@@ -534,10 +501,8 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("data"),
-					"data": StringValue(buf[:count]),
-				},
+				"type": StringValue("data"),
+				"data": StringValue(buf[:count]),
 			})
 			cbMaybeErr(err)
 		})
@@ -588,9 +553,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		if !ctx.Engine.Permissions.Write {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("end"),
-					},
+					"type": StringValue("end"),
 				})
 				cbMaybeErr(err)
 			})
@@ -607,11 +570,11 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			flag = os.O_CREATE | os.O_WRONLY
 		}
 		file, err := os.OpenFile(string(filePath), flag, 0644)
+		defer file.Close()
 		if err != nil {
 			sendErr(fmt.Sprintf("error opening requested file in write(), %s", err.Error()))
 			return
 		}
-		defer file.Close()
 
 		// seek
 		if offset != -1 {
@@ -631,9 +594,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("end"),
-				},
+				"type": StringValue("end"),
 			})
 			cbMaybeErr(err)
 		})
@@ -675,9 +636,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		if !ctx.Engine.Permissions.Write {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
-					entries: ValueTable{
-						"type": StringValue("end"),
-					},
+					"type": StringValue("end"),
 				})
 				cbMaybeErr(err)
 			})
@@ -698,9 +657,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err = evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("end"),
-				},
+				"type": StringValue("end"),
 			})
 			cbMaybeErr(err)
 		})
@@ -731,7 +688,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// unmarshal request
 	method := r.Method
 	url := r.URL.String()
-	headers := ValueTable{}
+	headers := CompositeValue{}
 	for key, values := range r.Header {
 		headers[key] = StringValue(strings.Join(values, ","))
 	}
@@ -777,21 +734,17 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx.ExecListener(func() {
 		_, err := evalInkFunction(cb, false, CompositeValue{
-			entries: ValueTable{
-				"type": StringValue("req"),
-				"data": CompositeValue{
-					entries: ValueTable{
-						"method":  StringValue(method),
-						"url":     StringValue(url),
-						"headers": CompositeValue{entries: headers},
-						"body":    body,
-					},
-				},
-				"end": NativeFunctionValue{
-					name: "end",
-					exec: endHandler,
-					ctx:  ctx,
-				},
+			"type": StringValue("req"),
+			"data": CompositeValue{
+				"method":  StringValue(method),
+				"url":     StringValue(url),
+				"headers": headers,
+				"body":    body,
+			},
+			"end": NativeFunctionValue{
+				name: "end",
+				exec: endHandler,
+				ctx:  ctx,
 			},
 		})
 		cbMaybeErr(err)
@@ -809,9 +762,9 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// unmarshal response from the return value
 	// response = {status, headers, body}
-	statusVal, okStatus := rsp.entries["status"]
-	headersVal, okHeaders := rsp.entries["headers"]
-	bodyVal, okBody := rsp.entries["body"]
+	statusVal, okStatus := rsp["status"]
+	headersVal, okHeaders := rsp["headers"]
+	bodyVal, okBody := rsp["body"]
 
 	resStatus, okStatus := statusVal.(NumberValue)
 	resHeaders, okHeaders := headersVal.(CompositeValue)
@@ -826,7 +779,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// write values to response
 	// Content-Length is automatically set for us by Go
-	for k, v := range resHeaders.entries {
+	for k, v := range resHeaders {
 		if str, isStr := v.(StringValue); isStr {
 			w.Header().Set(k, string(str))
 		} else {
@@ -989,10 +942,10 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		defer ctx.Engine.Listeners.Done()
 
 		// unmarshal request contents
-		methodVal, okMethod := data.entries["method"]
-		urlVal, okURL := data.entries["url"]
-		headersVal, okHeaders := data.entries["headers"]
-		bodyVal, okBody := data.entries["body"]
+		methodVal, okMethod := data["method"]
+		urlVal, okURL := data["url"]
+		headersVal, okHeaders := data["headers"]
+		bodyVal, okBody := data["body"]
 
 		reqMethod, okMethod := methodVal.(StringValue)
 		reqURL, okURL := urlVal.(StringValue)
@@ -1021,7 +974,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		// construct headers
 		// Content-Length is automatically set for us by Go
 		req.Header.Set("User-Agent", "") // remove Go's default user agent header
-		for k, v := range reqHeaders.entries {
+		for k, v := range reqHeaders {
 			if str, isStr := v.(StringValue); isStr {
 				req.Header.Set(k, string(str))
 			} else {
@@ -1040,7 +993,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		}
 
 		resStatus := NumberValue(resp.StatusCode)
-		resHeaders := ValueTable{}
+		resHeaders := CompositeValue{}
 		for key, values := range resp.Header {
 			resHeaders[key] = StringValue(strings.Join(values, ","))
 		}
@@ -1059,17 +1012,11 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 		ctx.ExecListener(func() {
 			_, err := evalInkFunction(cb, false, CompositeValue{
-				entries: ValueTable{
-					"type": StringValue("resp"),
-					"data": CompositeValue{
-						entries: ValueTable{
-							"status": resStatus,
-							"headers": CompositeValue{
-								entries: resHeaders,
-							},
-							"body": resBody,
-						},
-					},
+				"type": StringValue("resp"),
+				"data": CompositeValue{
+					"status":  resStatus,
+					"headers": resHeaders,
+					"body":    resBody,
 				},
 			})
 			if err != nil {
@@ -1381,7 +1328,7 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 	}
 
 	if list, isComposite := in[0].(CompositeValue); isComposite {
-		return NumberValue(len(list.entries)), nil
+		return NumberValue(len(list)), nil
 	} else if str, isString := in[0].(StringValue); isString {
 		return NumberValue(len(str)), nil
 	}
@@ -1408,12 +1355,13 @@ func inkKeys(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
-	vt := ValueTable{}
+	cv := CompositeValue{}
 
 	i := 0
-	for k, _ := range obj.entries {
-		vt[strconv.Itoa(i)] = StringValue(k)
+	for k, _ := range obj {
+		cv[strconv.Itoa(i)] = StringValue(k)
 		i++
 	}
-	return CompositeValue{vt}, nil
+
+	return cv, nil
 }

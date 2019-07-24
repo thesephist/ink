@@ -50,6 +50,13 @@ m('composite value access')
 	t((comp.list).(2).what, 'thing')
 	t(comp.('li' + 'st').0, 'hi')
 	t(comp.list.2, {what: 'thing'})
+
+	` modifying composite in chained accesses `
+	comp.list.4 := 'oom'
+	comp.list.2.what := 'arg'
+
+	t(comp.list.4, 'oom')
+	t(comp.list.2.what, 'arg')
 )
 
 m('function, expression, and lexical scope')

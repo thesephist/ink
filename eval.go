@@ -137,13 +137,11 @@ func (v NullValue) Equals(other Value) bool {
 }
 
 // CompositeValue includes all objects and list values
-type CompositeValue struct {
-	entries ValueTable
-}
+type CompositeValue ValueTable
 
 func (v CompositeValue) String() string {
-	entries := make([]string, 0)
-	for key, val := range v.entries {
+	entries := make([]string, 0, len(v))
+	for key, val := range v {
 		entries = append(entries, fmt.Sprintf("%s: %s", key, val.String()))
 	}
 	return "{" + strings.Join(entries, ", ") + "}"
@@ -155,12 +153,12 @@ func (v CompositeValue) Equals(other Value) bool {
 	}
 
 	if ov, ok := other.(CompositeValue); ok {
-		if len(v.entries) != len(ov.entries) {
+		if len(v) != len(ov) {
 			return false
 		}
 
-		for key, val := range v.entries {
-			otherVal, prs := ov.entries[key]
+		for key, val := range v {
+			otherVal, prs := ov[key]
 			if prs && !val.Equals(otherVal) {
 				return false
 			}
@@ -344,7 +342,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 					return nil, err
 				}
 
-				leftValueComposite.entries[leftKey] = rightValue
+				leftValueComposite[leftKey] = rightValue
 				return leftValueComposite, nil
 			} else if leftString, isString := leftValue.(StringValue); isString {
 				leftIdent, isLeftIdent := leftAccess.leftOperand.(IdentifierNode)
@@ -427,7 +425,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		}
 
 		if leftValueComposite, isComposite := leftValue.(CompositeValue); isComposite {
-			v, prs := leftValueComposite.entries[rightValueStr]
+			v, prs := leftValueComposite[rightValueStr]
 			if prs {
 				return v, nil
 			} else {
@@ -807,16 +805,14 @@ func (n BooleanLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, err
 }
 
 func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	obj := CompositeValue{
-		entries: ValueTable{},
-	}
+	obj := CompositeValue{}
 	for _, entry := range n.entries {
 		keyStr, err := operandToStringKey(entry.key, frame)
 		if err != nil {
 			return nil, err
 		}
 
-		obj.entries[keyStr], err = entry.val.Eval(frame, false)
+		obj[keyStr], err = entry.val.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
@@ -830,13 +826,10 @@ func (n ObjectEntryNode) Eval(frame *StackFrame, allowThunk bool) (Value, error)
 }
 
 func (n ListLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	listVal := CompositeValue{
-		entries: ValueTable{},
-	}
-
+	listVal := CompositeValue{}
 	for i, n := range n.vals {
 		var err error
-		listVal.entries[strconv.Itoa(i)], err = n.Eval(frame, false)
+		listVal[strconv.Itoa(i)], err = n.Eval(frame, false)
 		if err != nil {
 			return nil, err
 		}
@@ -1091,6 +1084,7 @@ func (ctx *Context) ExecFile(filePath string) error {
 	if err != nil {
 		return err
 	}
+
 	scanner := bufio.NewScanner(file)
 
 	// special case for first line, detect #!/...
