@@ -465,7 +465,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					"type": StringValue("data"),
-					"data": CompositeValue{},
+					"data": StringValue{},
 				})
 				cbMaybeErr(err)
 			})
