@@ -1,8 +1,5 @@
 ` filesystem i/o demo `
 
-SOURCE := 'eval.go'
-TARGET := 'sub.go'
-
 ` std imports `
 std := load('std')
 
@@ -16,9 +13,12 @@ stringList := std.stringList
 rf := std.readFile
 wf := std.writeFile
 
+SOURCE := 'eval.go'
+TARGET := 'sub.go'
+
 ` we're going to copy main.go to sub.go,
 	and we're going to buffer it `
-BUFSIZE := 1024 ` bytes `
+BUFSIZE := 4096 ` bytes `
 
 ` main routine that reads/writes through buffer
 	and recursively copies data. This is also tail-recursive `
@@ -82,16 +82,19 @@ make(testdir, evt => evt.type :: {
 })
 
 ` test stat: show file data for README.md, samples/, and current dir `
-each(['.', 'samples', 'README.md'], path => stat(path, evt => evt.type :: {
+each(['.', 'samples', 'README.md', 'fake.txt'], path => stat(path, evt => evt.type :: {
 	'error' -> log('Error stat ' + path + ': ' + evt.message)
-	'data' -> log(f('{{ name }}{{ sep }}: {{ len }}B', {
-		name: evt.data.name
-		len: evt.data.len
-		sep: evt.data.dir :: {
-			true -> '/'
-			false -> ''
-		}
-	}))
+	'data' -> evt.data :: {
+		() -> log(f('{{ path }} does not exist', {path: path}))
+		_ -> log(f('{{ name }}{{ sep }}: {{ len }}B', {
+			name: evt.data.name
+			len: evt.data.len
+			sep: evt.data.dir :: {
+				true -> '/'
+				false -> ''
+			}
+		}))
+	}
 }))
 
 ` test dir(): list all samples and file sizes `

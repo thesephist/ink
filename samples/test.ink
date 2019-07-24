@@ -373,7 +373,13 @@ m('number & composite/list -> string conversions')
 	t(number(false), 0)
 
 	t(string({a: 3.14}), '{a: 3.14000000}')
-	t(stringList([5, 4, 3, 2, 1]), '[5, 4, 3, 2, 1]')
+
+	result := string([3, 'two'])
+	p1 := '{0: 3, 1: \'two\'}'
+	p2 := '{1: \'two\', 0: 3}'
+	t(result = p1 | result = p2, true)
+
+	t(stringList(['fine', ['not']]), '[fine, {0: \'not\'}]')
 )
 
 m('function/composite equality checks')
@@ -444,6 +450,7 @@ m('stdlib range/slice/append/join/cat functions and stringList')
 	)), '[1, 2, 3, 4, 5, 6, a, b, c]')
 
 	t(slice(str, 0, 5), 'abrac')
+	t(slice(str, 2, 4), 'ra')
 	t(slice(str, ~5, 2), 'ab')
 	t(slice(str, 7, 20), 'abra')
 	t(slice(str, 20, 1), '')

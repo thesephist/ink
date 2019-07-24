@@ -450,8 +450,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		} else {
 			return nil, Err{
 				ErrRuntime,
-				fmt.Sprintf("cannot access property of a non-composite value %s [%s]",
-					leftValue, poss(n.rightOperand)),
+				fmt.Sprintf("cannot access property %s of a non-composite value %s [%s]",
+					n.rightOperand, leftValue, poss(n.rightOperand)),
 			}
 		}
 	}

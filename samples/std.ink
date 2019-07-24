@@ -89,10 +89,11 @@ slice := (str, start, end) => (
 	start := x.start
 	end := x.end
 
-	(sl := (i, acc) => i :: {
-		end -> acc
-		_ -> sl(i + 1, acc + str.(i))
-	})(start, '')
+	max := end - start
+	(sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc + str.(start + i))
+	})(0, '')
 )
 
 ` get a sub-list of a given list `
@@ -102,10 +103,11 @@ sliceList := (list, start, end) => (
 	start := x.start
 	end := x.end
 
-	(sl := (i, acc) => i :: {
-		end -> acc
-		_ -> sl(i + 1, acc.len(acc) := list.(i))
-	})(start, [])
+	max := end - start
+	(sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc.(i) := list.(start + i))
+	})(0, [])
 )
 
 ` join one list to the end of another, return the original first list `
@@ -132,20 +134,7 @@ clone := x => type(x) :: {
 }
 
 ` tail recursive numeric list -> string converter `
-stringList := list => (
-	length := len(list)
-	stringListRec := (start, acc) => start :: {
-		length -> acc
-		_ -> stringListRec(
-			start + 1
-			(acc :: {
-				'' -> ''
-				_ -> acc + ', '
-			}) + string(list.(start))
-		)
-	}
-	'[' + stringListRec(0, '') + ']'
-)
+stringList := list => '[' + cat(map(list, x => string(x)), ', ') + ']'
 
 ` tail recursive reversing a list `
 reverse := list => (

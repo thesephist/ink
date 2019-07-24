@@ -385,26 +385,24 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		f, err := os.Open(string(statPath))
-		defer f.Close()
+		fi, err := os.Stat(string(statPath))
 		if err != nil {
-			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, errMsg(
-					fmt.Sprintf("error opening file in stat(), %s", err.Error()),
-				))
-				cbMaybeErr(err)
-			})
-			return
-		}
-
-		fi, err := f.Stat()
-		if err != nil {
-			ctx.ExecListener(func() {
-				_, err := evalInkFunction(cb, false, errMsg(
-					fmt.Sprintf("error getting file data in stat(), %s", err.Error()),
-				))
-				cbMaybeErr(err)
-			})
+			if os.IsNotExist(err) {
+				ctx.ExecListener(func() {
+					_, err := evalInkFunction(cb, false, CompositeValue{
+						"type": StringValue("data"),
+						"data": NullValue{},
+					})
+					cbMaybeErr(err)
+				})
+			} else {
+				ctx.ExecListener(func() {
+					_, err := evalInkFunction(cb, false, errMsg(
+						fmt.Sprintf("error getting file data in stat(), %s", err.Error()),
+					))
+					cbMaybeErr(err)
+				})
+			}
 			return
 		}
 

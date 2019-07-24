@@ -13,7 +13,6 @@ run:
 		samples/kv.ink \
 		samples/fib.ink \
 		samples/newton.ink \
-		samples/callback.ink \
 		samples/pi.ink \
 		samples/prime.ink \
 		samples/quicksort.ink \
