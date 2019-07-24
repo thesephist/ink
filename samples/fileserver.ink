@@ -187,7 +187,7 @@ handleDir := (url, path, data, end, getElapsed) => (
 			() -> handleExistingDir(url, path, end, getElapsed)
 			` in the off chance that /index.html is a dir, just render index `
 			{dir: true, name: _, len: _} -> handleExistingDir(url, path, end, getElapsed)
-			{dir: false, name: _, len: _}-> handlePath(url, ipath, end, getElapsed)
+			{dir: false, name: _, len: _} -> handlePath(url, ipath, end, getElapsed)
 		}
 	})
 )
