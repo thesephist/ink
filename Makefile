@@ -34,7 +34,10 @@ test:
 		samples/test.ink \
 		samples/io.ink
 	# run I/O test under isolated mode -- all ops should still return valid responses
+	${RUN} -no-read samples/io.ink
+	${RUN} -no-write samples/io.ink
 	${RUN} -isolate samples/io.ink
+	${RUN} -isolate samples/pingpong.ink
 	# test -eval flag
 	${RUN} -eval "log:=load('samples/std').log,f:=x=>()=>log('Eval test: '+x),f('passed!')()"
 
