@@ -182,7 +182,15 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ## Standard library
 
-Ink's standard library is under active development, and contains utilities like `map`, `filter`, `reduce`, `clone`, and `slice`. Find the source code in the meantime under [samples/std.ink](samples/std.ink).
+Ink's standard library is under active development, and contains...
+
+- utilities for working with lists, like `range`, `map`, `filter`, `reduce`, `clone`, and `reverse`
+- utilities that wrap around builtins, like `scan`, `readFile`, and `writeFile`
+- data transformations like `hex` and `xeh` (reverse of `hex`)
+- tools for working with strings like `slice`, `cat`, and `encode`/`decode`
+- the default templating / format string tool, `format`
+
+Find the source code in the meantime under [samples/std.ink](samples/std.ink).
 
 ## Other implementation notes
 

@@ -5,8 +5,8 @@ Ink is a minimal programming language inspired by modern JavaScript and Go, with
 Ink has a few goals. In order, they are
 
 - Ink should have a simple, minimal syntax and feature set
-- Ink should be easy to learn regardless of skill level
 - Ink should be quickly readable yet expressive
+- Ink should be easy to learn regardless of skill level
 - Ink should have a great, fully featured, and modular standard library
 - Ink should have an ergonomic interpreter and runtime API
 
@@ -52,7 +52,7 @@ std := load('std')
 
 log := std.log
 
-close := listen('0.0.0.0:8080', evt => (
+listen('0.0.0.0:8080', evt => (
 	evt.type :: {
 		'error' -> log('Error: ' + evt.message)
 		'req' -> (evt.end)({
@@ -62,9 +62,6 @@ close := listen('0.0.0.0:8080', evt => (
 		})
 	}
 ))
-
-` shut down server after 5 seconds `
-wait(5, close)
 ```
 
 If you're looking for more realistic and complex examples, check out...
@@ -134,7 +131,7 @@ To run an Ink program completely untrusted, run `ink -isolate` (with the "isolat
 
 ## Development
 
-Ink is currently a single go package. Run `go run .` to run from source, and `go build -ldflags="-s -w"` to build the release binary.
+Ink is currently a single go package. Run `go run .` to run from source, and `go build` to build the release binary.
 
 The `ink` binary takes in scripts from standard input, unless at least one input file is provided, in which case it reads from the filesystem.
 
@@ -158,4 +155,4 @@ The APIs are still in development / in flux, but you can check out `main.go` and
 
 ### IDE support
 
-Ink currently has a vim syntax definition file, under `utils/ink.vim`. I'm also hoping to support Monaco / VSCode's language definition format soon.
+Ink currently has a vim syntax definition file, under `utils/ink.vim`. I'm also hoping to support Monaco / VSCode's language definition format soon with LSP support.
