@@ -391,13 +391,15 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 		defer ctx.Engine.Listeners.Done()
 
 		if !ctx.Engine.Permissions.Read {
+			statPathBase := make([]byte, 0, len(statPath))
+			statPathCopy := StringValue(statPathBase, statPath...)
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, CompositeValue{
 					entries: ValueTable{
 						"type": StringValue("data"),
 						"data": CompositeValue{
 							entries: ValueTable{
-								"name": statPath,
+								"name": statPathCopy,
 								"len":  NumberValue(0),
 								"dir":  BooleanValue(false),
 							},
