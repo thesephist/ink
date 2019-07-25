@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -494,7 +495,19 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		buf := make([]byte, int64(length))
 		count, err := file.Read(buf)
 		if err != nil {
-			sendErr(fmt.Sprintf("error reading requested file in read(), %s", err.Error()))
+			if err == io.EOF {
+				// if first read returns EOF, it's an empty file
+				ctx.ExecListener(func() {
+					_, err = evalInkFunction(cb, false, CompositeValue{
+						"type": StringValue("data"),
+						"data": StringValue{},
+					})
+					cbMaybeErr(err)
+				})
+			} else {
+				sendErr(fmt.Sprintf("error reading requested file in read(), %s", err.Error()))
+			}
+			return
 		}
 
 		ctx.ExecListener(func() {
@@ -588,6 +601,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		_, err = file.Write(buf)
 		if err != nil {
 			sendErr(fmt.Sprintf("error writing to requested file in write(), %s", err.Error()))
+			return
 		}
 
 		ctx.ExecListener(func() {
@@ -797,6 +811,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			))
 			cbMaybeErr(err)
 		})
+		return
 	}
 }
 
@@ -1075,7 +1090,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 				if e, isErr := err.(Err); isErr {
 					ctx.LogErr(e)
 				} else {
-					// should never happen
+					logErrf(ErrAssert, "Eval of an Ink node returned error not of type Err")
 				}
 			}
 		})
