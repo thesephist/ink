@@ -21,7 +21,7 @@ Run Ink programs from source files by passing it to the interpreter.
 	ink main.ink other.ink
 Start an interactive repl with -repl.
 	ink -repl
-	> ...
+	> ___
 Run from the command line with -eval.
 	ink -eval "f := () => out('hi'), f()"
 
@@ -52,6 +52,8 @@ func main() {
 	eval := flag.String("eval", "", "Evaluate argument as an Ink program")
 
 	flag.Parse()
+
+	// collect all other non-parsed arguments from the CLI as files to be run
 	files := flag.Args()
 
 	// if asked for version, disregard everything else
@@ -91,7 +93,7 @@ func main() {
 			text, err := reader.ReadString('\n')
 
 			if err != nil {
-				logErrf(ErrSystem, "unexpected stop to input:\n\t-> %s", err.Error())
+				logErrf(ErrSystem, "unexpected end to input:\n\t-> %s", err.Error())
 			}
 
 			switch {
@@ -105,20 +107,8 @@ func main() {
 				break replLoop
 
 			default:
-				input := make(chan rune)
-				resolver := ctx.ExecStream(input)
-
-				for _, char := range text {
-					input <- char
-				}
-				close(input)
-
-				// wait for main Context to finish executing before
-				//	yielding to the repl loop
-				val, err := (<-resolver)()
-				if err != nil {
-					// err handled by the error stream
-				} else if val != nil {
+				val, _ := ctx.Exec(strings.NewReader(text))
+				if val != nil {
 					logInteractive(val.String())
 				}
 			}
@@ -130,14 +120,7 @@ func main() {
 		ctx := eng.CreateContext()
 		eng.FatalError = true
 
-		input := make(chan rune)
-		ctx.ExecStream(input)
-
-		for _, char := range *eval {
-			input <- char
-		}
-		close(input)
-
+		ctx.Exec(strings.NewReader(*eval))
 		eng.Listeners.Wait()
 	} else if len(files) > 0 {
 		// read from file
@@ -155,35 +138,16 @@ func main() {
 				filePath = path.Join(ctx.Cwd, filePath)
 			}
 
-			err := ctx.ExecFile(filePath)
-			if err != nil {
-				logSafeErr(
-					ErrSystem,
-					fmt.Sprintf("could not open %s for execution:\n\t-> %s",
-						filePath, err),
-				)
-			}
+			ctx.ExecPath(filePath)
 
+			// Wait per-file -- finish all callbacks on one file before moving to the next
 			eng.Listeners.Wait()
 		}
 	} else {
 		ctx := eng.CreateContext()
 		eng.FatalError = true
 
-		// read from stdin
-		input := make(chan rune)
-		ctx.ExecStream(input)
-
-		inputReader := bufio.NewReader(os.Stdin)
-		for {
-			char, _, err := inputReader.ReadRune()
-			if err != nil {
-				break
-			}
-			input <- char
-		}
-		close(input)
-
+		ctx.Exec(os.Stdin)
 		eng.Listeners.Wait()
 	}
 }

@@ -104,20 +104,16 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 			// imports via load() are assumed to be relative
 			importPath := path.Join(ctx.Cwd, string(givenPath)+".ink")
 
-			// swap out fields
-			childCtx := ctx.Engine.CreateContext()
-
+			// evalLock blocks file eval; temporary unlock it for the load to run.
+			//	Calling load() from within a running program is not supported, so we
+			//	don't really care if catastrophic things happen because of unlocked evalLock.
 			ctx.Engine.evalLock.Unlock()
 			defer ctx.Engine.evalLock.Lock()
 
-			err := childCtx.ExecFile(importPath)
-			// Lock() blocks until file is eval'd
-			if err != nil {
-				return nil, Err{
-					ErrSystem,
-					fmt.Sprintf("error while executing file, %s", err.Error()),
-				}
-			}
+			// The loaded program runs in a "child context", a distinct context from
+			//	the importing program.
+			childCtx := ctx.Engine.CreateContext()
+			childCtx.ExecPath(importPath)
 
 			return CompositeValue(childCtx.Frame.vt), nil
 		}
@@ -494,19 +490,18 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		// read
 		buf := make([]byte, int64(length))
 		count, err := file.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				// if first read returns EOF, it's an empty file
-				ctx.ExecListener(func() {
-					_, err = evalInkFunction(cb, false, CompositeValue{
-						"type": StringValue("data"),
-						"data": StringValue{},
-					})
-					cbMaybeErr(err)
+		if err == io.EOF && count == 0 {
+			// if first read returns EOF, it may just be an empty file
+			ctx.ExecListener(func() {
+				_, err = evalInkFunction(cb, false, CompositeValue{
+					"type": StringValue("data"),
+					"data": StringValue{},
 				})
-			} else {
-				sendErr(fmt.Sprintf("error reading requested file in read(), %s", err.Error()))
-			}
+				cbMaybeErr(err)
+			})
+			return
+		} else if err != nil {
+			sendErr(fmt.Sprintf("error reading requested file in read(), %s", err.Error()))
 			return
 		}
 

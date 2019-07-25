@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"strconv"
 	"unicode"
 )
@@ -107,9 +109,9 @@ func (tok Tok) String() string {
 	}
 }
 
-// Tokenize takes a stream of characters and concurrently transforms it into a stream of Tok (tokens).
+// Tokenize takes an io.Reader and transforms it into a stream of Tok (tokens).
 func Tokenize(
-	input <-chan rune,
+	unbuffered io.Reader,
 	tokens chan<- Tok,
 	fatalError bool,
 	debugLexer bool,
@@ -135,13 +137,7 @@ func Tokenize(
 			position: position{lineNo, colNo},
 		})
 	}
-	forbidden := func() {
-		// no-op, re-bound below
-		logErrf(ErrAssert, "this function should never run")
-	}
-	ensureSeparator := forbidden
-	commitClear := forbidden
-	commitClear = func() {
+	commitClear := func() {
 		if buf != "" {
 			cbuf := buf
 			buf = ""
@@ -190,7 +186,7 @@ func Tokenize(
 			position: position{lineNo, colNo},
 		})
 	}
-	ensureSeparator = func() {
+	ensureSeparator := func() {
 		commitClear()
 		switch lastKind {
 		case Separator, LeftParen, LeftBracket, LeftBrace,
@@ -203,24 +199,29 @@ func Tokenize(
 		}
 	}
 
-	// Ink requires max 1 lookahead, so rather than allowing backtracking
-	//	from the lexer's reader, we implement a streaming lexer with a buffer
-	//	of 1, implemented as this lastChar character. Every loop we take char
-	//	from lastChar if not zero, from input channel otherwise.
-	var char, lastChar rune
 	inStringLiteral := false
+	buffered := bufio.NewReader(unbuffered)
 
-lexLoop:
-	for {
-		if lastChar != 0 {
-			char, lastChar = lastChar, 0
-		} else {
-			var open bool
-			char, open = <-input
-			if !open {
+	peeked, err := buffered.Peek(2)
+	if string(peeked) == "#!" {
+		// shebang-style ignored line, keep taking until EOL
+		var nextChar rune
+		for nextChar != '\n' {
+			nextChar, _, err = buffered.ReadRune()
+			if err != nil {
 				break
 			}
 		}
+
+		lineNo++
+	}
+
+	for {
+		char, _, err := buffered.ReadRune()
+		if err != nil {
+			break
+		}
+
 		switch {
 		case char == '\'':
 			if inStringLiteral {
@@ -240,23 +241,30 @@ lexLoop:
 				colNo = 0
 				strbuf += string(char)
 			} else if char == '\\' {
-				// backtick escapes like in most other languages,
+				// backslash escapes like in most other languages,
 				//	so just consume whatever the next char is into
 				//	the current string buffer
-				strbuf += string(<-input)
+				c, _, err := buffered.ReadRune()
+				if err != nil {
+					break
+				}
+				strbuf += string(c)
 				colNo++
 			} else {
 				strbuf += string(char)
 			}
 		case char == '`':
-			nextChar := <-input
+			nextChar, _, err := buffered.ReadRune()
+			if err != nil {
+				break
+			}
+
 			if nextChar == '`' {
 				// single-line comment, keep taking until EOL
 				for nextChar != '\n' {
-					var ok bool
-					nextChar, ok = <-input
-					if !ok {
-						break lexLoop // input closed
+					nextChar, _, err = buffered.ReadRune()
+					if err != nil {
+						break
 					}
 				}
 
@@ -266,11 +274,11 @@ lexLoop:
 			} else {
 				// multi-line block comment, keep taking until end of block
 				for nextChar != '`' {
-					var ok bool
-					nextChar, ok = <-input
-					if !ok {
-						break lexLoop // input closed
+					nextChar, _, err = buffered.ReadRune()
+					if err != nil {
+						break
 					}
+
 					if nextChar == '\n' {
 						lineNo++
 						colNo = 0
@@ -332,7 +340,11 @@ lexLoop:
 				}
 			}
 		case char == ':':
-			nextChar := <-input
+			nextChar, _, err := buffered.ReadRune()
+			if err != nil {
+				break
+			}
+
 			colNo++
 			if nextChar == '=' {
 				commitChar(DefineOp)
@@ -343,25 +355,33 @@ lexLoop:
 				//	we mark expression end (Separator)
 				ensureSeparator()
 				commitChar(KeyValueSeparator)
-				lastChar = nextChar
+				buffered.UnreadRune()
 			}
 		case char == '=':
-			nextChar := <-input
+			nextChar, _, err := buffered.ReadRune()
+			if err != nil {
+				break
+			}
+
 			colNo++
 			if nextChar == '>' {
 				commitChar(FunctionArrow)
 			} else {
 				commitChar(EqualOp)
-				lastChar = nextChar
+				buffered.UnreadRune()
 			}
 		case char == '-':
-			nextChar := <-input
+			nextChar, _, err := buffered.ReadRune()
+			if err != nil {
+				break
+			}
+
 			colNo++
 			if nextChar == '>' {
 				commitChar(CaseArrow)
 			} else {
 				commitChar(SubtractOp)
-				lastChar = nextChar
+				buffered.UnreadRune()
 			}
 		case char == '(':
 			commitChar(LeftParen)

@@ -149,9 +149,42 @@ Ink uses [GNU Make](https://www.gnu.org/software/make/manual/make.html) to manag
 
 ### Go API
 
-As the canonical interpreter is currently written in Go, if you want to embed Ink within your own application, you can use the Go APIs from this package to do so.
+As the baseline interpreter is currently written in Go, if you want to embed Ink within your own application, you can use the Go APIs from this package to do so.
 
 The APIs are still in development / in flux, but you can check out `main.go` and `eval.go` for the Go channels-based concurrent lexer/parser/evaler APIs. As the APIs are finalized, I'll put more information here directly.
+
+For now, here's a minimal example of creating an execution context for Ink and running some Ink code from stdin. (In fact, this is very nearly the implementation of executing from stdin in the interpreter.)
+
+```go
+func main() {
+    // Create an "Engine", which is a global execution context for the lifetime of an Ink program.
+    eng := Engine{}
+    // Create a "Context", which is a temporary execution context for a given source of input.
+    ctx := eng.CreateContext{}
+
+    // Execute code from an io.Reader
+    ctx.Exec(os.Stdin)
+    // Wait until all concurrent callbacks finish from the program before exiting
+    eng.Listeners.Wait()
+}
+```
+
+To run from a file, use `os.File` as an `io.Reader`.
+
+```go
+func main() {
+    eng := Engine{}
+    ctx := eng.CreateContext{}
+
+    file, err := os.Open("main.ink")
+    if err != nil {
+        log.Fatal("Could not open main.ink for execution")
+    }
+
+    ctx.Exec(file)
+    eng.Listeners.Wait()
+}
+```
 
 ### IDE support
 

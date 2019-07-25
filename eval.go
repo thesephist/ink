@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -1004,7 +1004,7 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 			if e, isErr := err.(Err); isErr {
 				ctx.LogErr(e)
 			}
-			return
+			break
 		}
 	}
 
@@ -1029,13 +1029,10 @@ func (ctx *Context) ExecListener(callback func()) {
 	}()
 }
 
-// ExecStream runs an Ink program defined by a stream of characters from `input`.
+// Exec runs an Ink program defined by an io.Reader.
 //	This is the main way to invoke Ink programs from Go.
-//
-// ExecStream returns a channel that will block on receive until the given program
-//	has finished executing, at which point it will send a function that returns either
-//	the Value, result of the execution, or an error.
-func (ctx *Context) ExecStream(input <-chan rune) <-chan func() (Value, error) {
+//	Exec blocks until the Ink program exits.
+func (ctx *Context) Exec(input io.Reader) (Value, error) {
 	eng := ctx.Engine
 
 	tokens := make(chan Tok)
@@ -1043,26 +1040,15 @@ func (ctx *Context) ExecStream(input <-chan rune) <-chan func() (Value, error) {
 	go Tokenize(input, tokens, eng.FatalError, eng.Debug.Lex)
 	go Parse(tokens, nodes, eng.FatalError, eng.Debug.Parse)
 
-	resolver := make(chan func() (Value, error), 1)
-	eng.Listeners.Add(1)
-	go func() {
-		defer eng.Listeners.Done()
-
-		val, err := ctx.Eval(nodes, eng.Debug.Dump)
-		resolver <- func() (Value, error) {
-			return val, err
-		}
-	}()
-
-	return resolver
+	return ctx.Eval(nodes, eng.Debug.Dump)
 }
 
-// ExecFile is a convenience function to execute a program file in a given Context.
-func (ctx *Context) ExecFile(filePath string) error {
+// ExecPath is a convenience function to Exec() a program file in a given Context.
+func (ctx *Context) ExecPath(filePath string) {
 	if !path.IsAbs(filePath) {
 		logErrf(
 			ErrAssert,
-			"Context.ExecFile expected an absolute path, got something else",
+			"Context.ExecPath expected an absolute path, got something else",
 		)
 	}
 
@@ -1070,39 +1056,14 @@ func (ctx *Context) ExecFile(filePath string) error {
 	ctx.Cwd = path.Dir(filePath)
 	ctx.File = filePath
 
-	input := make(chan rune)
-	resolver := ctx.ExecStream(input)
-	defer func() {
-		// wait for the file to finish executing before returning
-		<-resolver
-	}()
-	// must close input first, then wait for eval stream to resolve
-	defer close(input)
-
 	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {
-		return err
+		logSafeErr(
+			ErrSystem,
+			fmt.Sprintf("could not open %s for execution:\n\t-> %s", filePath, err),
+		)
 	}
 
-	scanner := bufio.NewScanner(file)
-
-	// special case for first line, detect #!/...
-	scanner.Scan()
-	line := scanner.Text()
-	if !strings.HasPrefix(line, "#!") {
-		for _, char := range line {
-			input <- char
-		}
-		input <- '\n'
-	}
-
-	for scanner.Scan() {
-		for _, char := range scanner.Text() {
-			input <- char
-		}
-		input <- '\n'
-	}
-
-	return nil
+	ctx.Exec(file)
 }

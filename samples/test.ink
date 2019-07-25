@@ -1,3 +1,6 @@
+#!/usr/bin/env ink
+clear := '__cleared'
+
 ` ink language test suite,
 	built on the suite library for testing `
 
@@ -11,6 +14,12 @@ t := s.test
 
 ` load std once for all tests `
 std := load('std')
+
+m('eval with #!/usr/bin/env ink')
+(
+	` check that the line immediately following #!/... still runs okay `
+	t(clear, '__cleared')
+)
 
 m('composite value access')
 (
@@ -175,7 +184,9 @@ m('empty identifier "_" in arguments and functions')
 m('comment syntaxes')
 (
 	`` t(wrong, wrong)
+	ping := 'pong'
 	` t(wrong, more wrong) `
+	t(ping, 'pong')
 	t(`hidden` '...thing', '...thing')
 	t(len('include `cmt` thing'), 19)
 )
