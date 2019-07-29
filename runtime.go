@@ -148,6 +148,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 			//	that would also require stdlib/scan() to change.
 			str, err := reader.ReadString('\n')
 			if err != nil {
+				// also captures io.EOF
 				break
 			}
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -92,7 +93,9 @@ func main() {
 			fmt.Printf(ANSI_GREEN_BOLD + "> " + ANSI_RESET)
 			text, err := reader.ReadString('\n')
 
-			if err != nil {
+			if err == io.EOF {
+				break
+			} else if err != nil {
 				logErrf(ErrSystem, "unexpected end to input:\n\t-> %s", err.Error())
 			}
 
