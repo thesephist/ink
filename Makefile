@@ -66,4 +66,4 @@ precommit:
 
 # clean any generated files
 clean:
-	rm -rvf *.bmp ink-*
+	rm -rvf *.bmp ink ink-*
