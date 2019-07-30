@@ -55,6 +55,7 @@ m('composite value access')
 		2.what is not a valid identifier.
 		these are some other recommended ways `
 	t(comp.list.(2).what, 'thing')
+	t(comp.list.('2').what, 'thing')
 	t((comp.list.2).what, 'thing')
 	t((comp.list).(2).what, 'thing')
 	t(comp.('li' + 'st').0, 'hi')
@@ -590,6 +591,53 @@ m('std.format -- the standard library formatter / templater')
 		f('{ {  this is not } {{ thingOne } wut } {{ nonexistent }}', values)
 		'{ {  this is not } 1 ()'
 	)
+)
+
+m('uuid -- uuid v4 generator')
+(
+	uuid := load('uuid').uuid
+
+	xeh := std.xeh
+	range := std.range
+	map := std.map
+	reduce := std.reduce
+
+	uuids := map(range(0, 200, 1), uuid)
+
+	` every character should be a hex character or "-" `
+	isValidChar := s => s :: {
+		'-' -> true
+		_ -> ~(xeh(s) = ())
+	}
+	everyCharIsHex := reduce(
+		uuids
+		(acc, u) => acc & reduce(u, (acc, c) => acc & isValidChar(c), true)
+		true
+	)
+	t(everyCharIsHex, true)
+
+	` test for uniqueness (kinda) `
+	collisions? := reduce(
+		map(range(0, 200, 1), () => [uuid(), uuid()])
+		(acc, us) => acc | us.0 = us.1
+		false
+	)
+	t(collisions?, false)
+
+	` correct length, formatting `
+	format? := u => map(u, x => x) = [
+		_, _, _, _, _, _, _, _, '-'
+		_, _, _, _, '-'
+		_, _, _, _, '-'
+		_, _, _, _, '-'
+		_, _, _, _, _, _, _, _, _, _, _, _
+	]
+	everyIsFormatted := reduce(
+		uuids
+		(acc, u) => acc & format?(u)
+		true
+	)
+	t(everyIsFormatted, true)
 )
 
 m('json ser/de')

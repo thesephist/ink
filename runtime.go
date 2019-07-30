@@ -702,7 +702,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	var body Value
 	if r.ContentLength == 0 {
-		body = NullValue{}
+		body = StringValue{}
 	} else {
 		bodyBuf, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -1009,7 +1009,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 		var resBody Value
 		if resp.ContentLength == 0 {
-			resBody = NullValue{}
+			resBody = StringValue{}
 		} else {
 			bodyBuf, err := ioutil.ReadAll(resp.Body)
 			if err != nil {

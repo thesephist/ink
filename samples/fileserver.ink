@@ -20,14 +20,14 @@ ALLOWINDEX := true
 ` short non-comprehensive list of MIME types `
 TYPES := {
 	` text formats `
-	html: 'text/html'
-	js: 'text/javascript'
-	css: 'text/css'
-	txt: 'text/plain'
-	md: 'text/plain'
+	html: 'text/html; charset=utf-8'
+	js: 'text/javascript; charset=utf-8'
+	css: 'text/css; charset=utf-8'
+	txt: 'text/plain; charset=utf-8'
+	md: 'text/plain; charset=utf-8'
 	` serve go & ink source code as plain text`
-	ink: 'text/plain'
-	go: 'text/plain'
+	ink: 'text/plain; charset=utf-8'
+	go: 'text/plain; charset=utf-8'
 
 	` image formats `
 	jpg: 'image/jpeg'
@@ -39,6 +39,7 @@ TYPES := {
 	` other misc `
 	pdf: 'application/pdf'
 	zip: 'application/zip'
+	json: 'application/json'
 }
 
 ` prepare standard header `
