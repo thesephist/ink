@@ -30,6 +30,10 @@ func (v NativeFunctionValue) String() string {
 }
 
 func (v NativeFunctionValue) Equals(other Value) bool {
+	if _, isEmpty := other.(EmptyValue); isEmpty {
+		return true
+	}
+
 	if ov, ok := other.(NativeFunctionValue); ok {
 		return v.name == ov.name
 	} else {

@@ -220,31 +220,29 @@ func (v FunctionCallThunkValue) Equals(other Value) bool {
 	if ov, ok := other.(FunctionCallThunkValue); ok {
 		// to compare structs containing slices, we really want
 		//	a pointer comparison, not a value comparison
-		return &v.vt == &ov.vt &&
-			&v.function == &ov.function
+		return &v.vt == &ov.vt && &v.function == &ov.function
 	} else {
 		return false
 	}
 }
 
-func unwrapThunk(v Value) (Value, error) {
-	thunk, isThunk := v.(FunctionCallThunkValue)
-	// this effectively expands out a recursive structure (of thunks)
-	//	into a for loop control structure
+// unwrapThunk expands out a recursive structure of thunks
+// 	into a flat for loop control structure
+func unwrapThunk(thunk FunctionCallThunkValue) (v Value, err error) {
+	isThunk := true
 	for isThunk {
 		frame := &StackFrame{
 			parent: thunk.function.parentFrame,
 			vt:     thunk.vt,
 		}
-		var err error
 		v, err = thunk.function.defn.body.Eval(frame, true)
 		if err != nil {
-			return nil, err
+			return
 		}
 		thunk, isThunk = v.(FunctionCallThunkValue)
 	}
 
-	return v, nil
+	return
 }
 
 func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
@@ -857,40 +855,45 @@ type StackFrame struct {
 }
 
 // Get a value from the stack frame chain
-func (sh *StackFrame) Get(name string) (Value, bool) {
-	val, ok := sh.vt[name]
-	if ok {
-		return val, true
-	} else if sh.parent != nil {
-		return sh.parent.Get(name)
-	} else {
-		return NullValue{}, false
+func (frame *StackFrame) Get(name string) (Value, bool) {
+	for frame != nil {
+		val, ok := frame.vt[name]
+		if ok {
+			return val, true
+		}
+
+		frame = frame.parent
 	}
+
+	return NullValue{}, false
 }
 
 // Set a value to the most recent call stack frame
-func (sh *StackFrame) Set(name string, val Value) {
-	sh.vt[name] = val
+func (frame *StackFrame) Set(name string, val Value) {
+	frame.vt[name] = val
 }
 
 // Update a value in the stack frame chain
-func (sh *StackFrame) Up(name string, val Value) {
-	_, ok := sh.vt[name]
-	if ok {
-		sh.vt[name] = val
-	} else if sh.parent != nil {
-		sh.parent.Up(name, val)
-	} else {
-		logErrf(
-			ErrAssert,
-			fmt.Sprintf("StackFrame.Up expected to find variable '%s' in frame but did not",
-				name),
-		)
+func (frame *StackFrame) Up(name string, val Value) {
+	for frame != nil {
+		_, ok := frame.vt[name]
+		if ok {
+			frame.vt[name] = val
+			return
+		}
+
+		frame = frame.parent
 	}
+
+	logErrf(
+		ErrAssert,
+		fmt.Sprintf("StackFrame.Up expected to find variable '%s' in frame but did not",
+			name),
+	)
 }
 
-func (sh *StackFrame) String() string {
-	return fmt.Sprintf("%s -prnt-> (%s)", sh.vt, sh.parent)
+func (frame *StackFrame) String() string {
+	return fmt.Sprintf("%s -prnt-> (%s)", frame.vt, frame.parent)
 }
 
 // Engine is a single global context of Ink program execution.
@@ -1016,7 +1019,7 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 }
 
 // ExecListener queues an asynchronous callback task to the Engine behind the Context.
-//	Callbacks registered this way will also run under the Engine's execution lock.
+//	Callbacks registered this way will also run with the Engine's execution lock.
 func (ctx *Context) ExecListener(callback func()) {
 	ctx.Engine.Listeners.Add(1)
 	go func() {
