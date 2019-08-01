@@ -431,8 +431,10 @@ m('string/composite pass by reference / mutation check')
 		str.(i) := s
 	)
 	mut(4, 'AAA')
+	t('assigning to string index with more than one char modifies multiple indexes'
+		str, '0000AAA0')
 	mut(8, 'YYY')
-	t('assigning to string index with more than one char modifies multiple indexes, appending as necessary'
+	t('assigning to string index with more than one char appends as necessary'
 		str, '0000AAA0YYY')
 )
 
