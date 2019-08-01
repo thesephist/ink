@@ -42,11 +42,18 @@ suite := label => (
 	)
 
 	` perform a new test case `
-	test := (result, expected) => result :: {
+	indent := '  ' + '  ' + '  ' + '  '
+	test := (label, result, expected) => result :: {
 		expected -> onSuccess()
 		_ -> (
-			msg := f('  + got {{ result }}' + '
-  ' + '  ' + '  exp {{ expected }}', {expected: expected, result: result})
+			msg := f('  * {{ label }}
+{{ indent }}got {{ result }}
+{{ indent }}exp {{ expected }}', {
+				label: label
+				result: result
+				expected: expected
+				indent: indent
+			})
 			onFail(msg)
 		)
 	}
