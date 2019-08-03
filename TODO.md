@@ -1,5 +1,6 @@
 # Todo items
 
+
 ## Interpreter
 
 - [ ] Implement the concurrency system (`send()`, `receive()`, `create()` builtins) as described in the language spec.
@@ -11,8 +12,12 @@
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
 - [ ] Set up travis ci for Ink, and for now make it run run-all and then the test-all script. If zero exit value, it worked.
-- [ ] Think about making an ANSI C implementation? It'll be much more portable and potentially meaningfully faster.
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
+- [ ] Potential room for optimizations:
+    - Reducing memory allocations. Specifically, pooling `StackFrame` and other function call-related data structures to reduce allocations.
+    - Optimized tail recursion unwrapping that doesn't require cost of wrapping and then immediatley unwrapping thunks.
+    - Cache locality for data structures (stack-local variables?)
+- [ ] Make the interpreter a Homebrew brew tap
 
 
 ## Language
@@ -30,7 +35,7 @@
 - [ ] We should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
 
 
-## Potential exampels / projects
+## Potential examples / projects
 
 - [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
 - [ ] The Knuth/McIlroy test -- read a text file (stream), find the top N most frequent words and print it.
