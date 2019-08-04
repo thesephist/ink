@@ -74,7 +74,7 @@ If you're looking for more realistic and complex examples, check out...
 - [a small static file server](samples/fileserver.ink)
 - [Mandelbrot set renderer](samples/mandelbrot.ink)
 
-You'll notice a few characteristic things about Ink:
+You'll notice a few characteristics about Ink:
 
 - Functions are defined using arrows (`=>`) _a la_ JavaScript arrow functions
 - Ink does not have a looping primitive (no `for` or `while`), and instead defaults to tail-optimized recursion. Loops may be possible to have in syntax with macros in the near future.
@@ -123,9 +123,9 @@ I'm also very interested in Elixir's approach towards language development, wher
 
 Ink has a very small surface area to interface with the rest of the interpreter and runtime, which is through the list of builtin functions defined in `runtime.go`. In an effort to make it safe and easy to run potentially untrusted scripts, the Ink interpreter provides a few flags that determine whether the running Ink program may interface with the operating system in certain ways. Rather than simply fail or error on any restricted interface calls, the runtime will silently ignore the requested action and potentially return empty but valid data.
 
-- `--no-read`: When enabled, the builtin `read()` function will simply return an empty read, as if the file being read was of size 0. `--no-read` also blocks directory traversals.
-- `--no-write`: When enabled, the builtins `write()`, `delete()`, and `make()` will pretend to have written the requested data or finished the requested filesystem operations safely, but cause no change.
-- `--no-net`: When enabled, the builtin `listen()` function will pretend to have bound to a local network socket, but will not actually bind. The builtin `req()` will also pretend to have sent a valid request, but will do nothing.
+- `-no-read`: When enabled, the builtin `read()` function will simply return an empty read, as if the file being read was of size 0. `-no-read` also blocks directory traversals.
+- `-no-write`: When enabled, the builtins `write()`, `delete()`, and `make()` will pretend to have written the requested data or finished the requested filesystem operations safely, but cause no change.
+- `-no-net`: When enabled, the builtin `listen()` function will pretend to have bound to a local network socket, but will not actually bind. The builtin `req()` will also pretend to have sent a valid request, but will do nothing.
 
 To run an Ink program completely untrusted, run `ink -isolate` (with the "isolate" flag), which will revoke all revokable permissions from the running script.
 
