@@ -177,6 +177,7 @@ func main() {
     ctx := eng.CreateContext{}
 
     file, err := os.Open("main.ink")
+    defer file.Close()
     if err != nil {
         log.Fatal("Could not open main.ink for execution")
     }

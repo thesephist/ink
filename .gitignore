@@ -1,5 +1,6 @@
 # Build artifacts
 ink
+ink-*
 ink.exe
 ink.exe~
 ink.wasm

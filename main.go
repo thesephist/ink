@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const VERSION = "0.1.4"
+const VERSION = "0.1.5"
 
 const HELP_MSG = `
 Ink is a minimal, powerful, functional programming language.
