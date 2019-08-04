@@ -30,13 +30,17 @@ ws? := c => point(c) :: {
 	_ -> false
 }
 
+` hasPrefix? checks if a string begins with the given prefix substring `
 hasPrefix? := (s, prefix) => reduce(prefix, (sofar, c, i) => s.(i) = c, true)
 
+` hasSuffix? checks if a string ends with the given suffix substring `
 hasSuffix? := (s, suffix) => (
 	diff := len(s) - len(suffix)
 	reduceBack(suffix, (sofar, c, i) => s.(i + diff) = c, true)
 )
 
+` mostly used for internal bookkeeping, matchesAt? reports if a string contains
+	the given substring at the given index idx. `
 matchesAt? := (s, substring, idx) => (
 	max := len(substring)
 	(sub := i => i :: {
@@ -48,6 +52,7 @@ matchesAt? := (s, substring, idx) => (
 	})(0)
 )
 
+` index is indexOf() for ink strings `
 index := (s, substring) => (
 	max := len(s) - 1
 	(sub := i => matchesAt?(s, substring, i) :: {
@@ -59,18 +64,23 @@ index := (s, substring) => (
 	})(0)
 )
 
+` contains? checks if a string contains the given substring `
 contains? := (s, substring) => index(s, substring) > ~1
 
+` transforms given string to lowercase `
 lower := s => reduce(s, (acc, c, i) => upper?(c) :: {
 	true -> acc.(i) := char(point(c) + 32)
 	false -> acc.(i) := c
 }, '')
 
+` transforms given string to uppercase`
 upper := s => reduce(s, (acc, c, i) => lower?(c) :: {
 	true -> acc.(i) := char(point(c) - 32)
 	false -> acc.(i) := c
 }, '')
 
+` primitive "title-case" transformation, uppercases first letter
+	and lowercases the rest. `
 title := s => (
 	lowered := lower(s)
 	lowered.0 := upper(lowered.0)
@@ -91,6 +101,7 @@ replaceNonEmpty := (s, old, new) => (
 	})(s, 0)
 )
 
+` replace all occurrences of old substring with new substring in a string `
 replace := (s, old, new) => old :: {
 	'' -> s
 	_ -> replaceNonEmpty(s, old, new)
@@ -111,14 +122,12 @@ splitNonEmpty := (s, delim) => (
 	})(s, 0, 0)
 )
 
+` split given string into a list of substrings, splitting by the delimiter `
 split := (s, delim) => delim :: {
 	'' -> map(s, c => c)
 	_ -> splitNonEmpty(s, delim)
 }
 
-` trim string from start until it does not begin with prefix.
-	trimPrefix is more efficient than repeated application of
-	hasPrefix? because it minimizes copying. `
 trimPrefixNonEmpty := (s, prefix) => (
 	max := len(s)
 	lpref := len(prefix)
@@ -132,6 +141,9 @@ trimPrefixNonEmpty := (s, prefix) => (
 	slice(s, idx, len(s))
 )
 
+` trim string from start until it does not begin with prefix.
+	trimPrefix is more efficient than repeated application of
+	hasPrefix? because it minimizes copying. `
 trimPrefix := (s, prefix) => prefix :: {
 	'' -> s
 	_ -> trimPrefixNonEmpty(s, prefix)
@@ -149,9 +161,13 @@ trimSuffixNonEmpty := (s, suffix) => (
 	slice(s, 0, idx)
 )
 
+` trim string from end until it does not end with suffix.
+	trimSuffix is more efficient than repeated application of
+	hasSuffix? because it minimizes copying. `
 trimSuffix := (s, suffix) => suffix :: {
 	'' -> s
 	_ -> trimSuffixNonEmpty(s, suffix)
 }
 
+` trim string from both start and end with substring ss `
 trim := (s, ss) => trimPrefix(trimSuffix(s, ss), ss)
