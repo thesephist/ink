@@ -404,11 +404,15 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				}
 			}
 		} else {
-			left, _ := n.leftOperand.Eval(frame, false)
-			return nil, Err{
-				ErrRuntime,
-				fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
-					left, poss(n.leftOperand)),
+			left, err := n.leftOperand.Eval(frame, false)
+			if err != nil {
+				return nil, err
+			} else {
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
+						left, poss(n.leftOperand)),
+				}
 			}
 		}
 	} else if n.operator == AccessorOp {
@@ -638,7 +642,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue(bytes.Compare(left, right) == 1), nil
+				return BooleanValue(bytes.Compare(left, right) > 0), nil
 			}
 		}
 		return nil, Err{
@@ -654,7 +658,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			}
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
-				return BooleanValue(bytes.Compare(left, right) == -1), nil
+				return BooleanValue(bytes.Compare(left, right) < 0), nil
 			}
 		}
 		return nil, Err{
