@@ -38,6 +38,18 @@ xeh := s => (
 	})(0, 0)
 )
 
+` find minimum in list `
+min := numbers => reduce(numbers, (acc, n) => n < acc :: {
+	true -> n
+	false -> acc
+}, numbers.0)
+
+` find maximum in list `
+max := numbers => reduce(numbers, (acc, n) => n > acc :: {
+	true -> n
+	false -> acc
+}, numbers.0)
+
 ` like Python's range(), but no optional arguments `
 range := (start, end, step) => (
 	span := end - start
@@ -147,20 +159,13 @@ reverse := list => (
 )
 
 ` tail recursive map `
-map := (list, f) => (
-	idx := [0]
-	reduce(list, (l, item) => (
-		l.(idx.0) := f(item)
-		idx.0 := idx.0 + 1
-		l
-	), {})
-)
+map := (list, f) => reduce(list, (l, item, i) => l.(i) := f(item, i), {})
 
 ` tail recursive filter `
 filter := (list, f) => (
 	idx := [0]
-	reduce(list, (l, item) => (
-		f(item) :: {
+	reduce(list, (l, item, i) => (
+		f(item, i) :: {
 			true -> (
 				l.(idx.0) := item
 				idx.0 := idx.0 + 1
@@ -172,22 +177,48 @@ filter := (list, f) => (
 
 ` tail recursive reduce `
 reduce := (list, f, acc) => (
-	length := len(list)
+	max := len(list)
 	(sub := (i, acc) => i :: {
-		length -> acc
-		_ -> sub(
-			i + 1
-			f(acc, list.(i))
-		)
+		max -> acc
+		_ -> sub(i + 1, f(acc, list.(i), i))
 	})(0, acc)
 )
 
+` tail recursive reduce from list end `
+reduceBack := (list, f, acc) => (
+	(sub := (i, acc) => i :: {
+		~1 -> acc
+		_ -> sub(i - 1, f(acc, list.(i), i))
+	})(len(list) - 1, acc)
+)
+
+` flatten by depth 1 `
+flatten := list => (
+	max := len(list)
+	(sub := (i, count, acc) => i :: {
+		max -> acc
+		_ -> (
+			cur := list.(i)
+			each(cur, (item, idx) => (
+				acc.(count + idx) := item
+			))
+			sub(i + 1, count + len(cur), acc)
+		)
+	})(0, 0, [])
+)
+
+` true iff some items in list are true `
+some := list => reduce(list, (acc, x) => acc | x, false)
+
+` true iff every item in list is true `
+every := list => reduce(list, (acc, x) => acc & x, true)
+
 ` concatenate (join) a list of strings into a string `
 cat := (list, joiner) => (
-	length := len(list) :: {
+	max := len(list) :: {
 		0 -> ''
 		_ -> (sub := (i, acc) => i :: {
-			length -> acc
+			max -> acc
 			_ -> sub(i + 1, acc + joiner + list.(i))
 		})(1, list.0)
 	}
@@ -195,11 +226,11 @@ cat := (list, joiner) => (
 
 ` for-each loop over a list `
 each := (list, f) => (
-	length := len(list)
+	max := len(list)
 	(sub := i => i :: {
-		length -> ()
+		max -> ()
 		_ -> (
-			f(list.(i))
+			f(list.(i), i)
 			sub(i + 1)
 		)
 	})(0)

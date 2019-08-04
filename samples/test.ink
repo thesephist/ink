@@ -12,8 +12,9 @@ s := (load('suite').suite)(
 m := s.mark
 t := s.test
 
-` load std once for all tests `
+` load std & str once for all tests `
 std := load('std')
+str := load('str')
 
 m('eval with #!/usr/bin/env ink')
 (
@@ -289,7 +290,38 @@ m('order of operations')
 	t('logical operators, arithmetic, and parentheses', 1 + 1 & 5 % 3 * 10, (1 + 1) & ((5 % 3) * 10))
 )
 
-m('logic composition correctness')
+m('string lexicographical comparisons')
+(
+	t('less-than, I','a' < 'b', true)
+	t('less-than, II','x' < 'A', false)
+	` shorter strings are lesser `
+	t('less-than, III','x long str' < 'A', false)
+
+	t('greater-than, I', 'E' > 'A', true)
+	t('greater-than, II', '0' > '_', false)
+	t('greater-than, III', 'xxxxx' > 'xxx', true)
+
+	t('empty strings', '' < ' ', true)
+	t('uppercase < lowercase', 'S' < 's', true)
+	t('non-printed byte arrays', char(253) > char(252), true)
+)
+
+m('min/max')
+(
+	min := std.min
+	max := std.max
+
+	t('min of list of 1', min([~30]), ~30)
+	t('minimum of list', min([39, 254, 5, ~2, 0, 3]), ~2)
+
+	t('max of list of 1', max([101]), 101)
+	t('maximum of list', max([39, 254, 5, ~2, 0, 3]), 254)
+
+	t('min of array of same', min([2, 2, 2, 2, 2, 2, 2, 2]), 2)
+	t('max of array of same', min([2, 2, 2, 2, 2, 2, 2, 2]), 2)
+)
+
+m('logic composition correctness, std.some/std.every')
 (
 	` and `
 	t('number & number, I', 1 & 4, 0)
@@ -314,6 +346,21 @@ m('logic composition correctness')
 	t('t ^ f', true ^ false, true)
 	t('f ^ t', false ^ true, true)
 	t('f ^ f', false ^ false, false)
+
+	` std.some and std.every `
+	some := std.some
+	every := std.every
+
+	t('std.some() of empty list is false', some([]), false)
+	t('std.every() of empty list is true', every([]), true)
+	t('std.some() is true if at least one in list is true'
+		some([false, false, true, false]), true)
+	t('std.some() is false if none in list is true'
+		some([false, false, false, false]), false)
+	t('std.every() is true if all in list is true'
+		every([true, true, true, true, true]), true)
+	t('std.every() is false if at least one in list is false'
+		every([true, true, true, false, true]), false)
 )
 
 m('object keys / list, mutable strings, std.clone')
@@ -508,7 +555,7 @@ m('type() builtin function')
 	t('type(()) = ()', type(()), '()')
 )
 
-m('stdlib range/slice/append/join/cat functions and stringList')
+m('std.range/slice/append/join/cat and stringList')
 (
 	stringList := std.stringList
 	sliceList := std.sliceList
@@ -517,6 +564,22 @@ m('stdlib range/slice/append/join/cat functions and stringList')
 	slice := std.slice
 	join := std.join
 	cat := std.cat
+
+	` slice/sliceList returns copies `
+	(
+		st := '12345'
+		li := [1, 2, 3, 4, 5]
+
+		stc := slice(st, 0, len(st))
+		lic := sliceList(li, 0, len(li))
+		stc.2 := 'x'
+		lic.2 := 'x'
+
+		t('slice(string) should make a copy', st, '12345')
+		t('slice(string) should return a copy', stc, '12x45')
+		t('sliceList(list) should make a copy', li, [1, 2, 3, 4, 5])
+		t('sliceList(list) should return a copy', lic, [1, 2, 'x', 4, 5])
+	)
 
 	sl := (l, s, e) => stringList(sliceList(l, s, e))
 	list := range(10, ~1, ~1)
@@ -605,13 +668,15 @@ m('ascii <-> char point conversions and string encode/decode')
 	t('repeated decode/encode, III', decode(encode(decode(encode(s3)))), s3)
 )
 
-m('functional list reducers: map, filter, reduce, each, reverse, join/append')
+m('std list: map/filter/reduce[Back]/each/reverse/flatten, join/append')
 (
 	map := std.map
 	filter := std.filter
 	reduce := std.reduce
+	reduceBack := std.reduceBack
 	each := std.each
 	reverse := std.reverse
+	flatten := std.flatten
 	append := std.append
 	join := std.join
 
@@ -619,10 +684,31 @@ m('functional list reducers: map, filter, reduce, each, reverse, join/append')
 
 	t('std.map', map(list, n => n * n), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
 	t('std.filter', filter(list, n => n % 2 = 0), [2, 4, 6, 8, 10])
-	t('std.reduce', reduce(list, (acc, n) => acc * n, 1), 3628800)
+	t('std.reduce', reduce(list, (acc, n) => acc + string(n), '')
+		'12345678910')
+	t('std.reduceBack', reduceBack(list, (acc, n) => acc + string(n), '')
+		'10987654321')
+	t('std.flatten', flatten([[1, 2, 3], [4], [], [[5], 6, 7, [8, 9, 10]]])
+		[1, 2, 3, 4, [5], 6, 7, [8, 9, 10]])
 	t('std.reverse', reverse(list), [10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
 	t('std.join', join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+	` passing index in callback `
+	t('std.map passes index to callback', map(list, (_, i) => i)
+		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+	t('std.filter passes index to callback', filter(list, (_, i) => i % 2 = 1)
+		[2, 4, 6, 8, 10])
+	t('std.reduce passes index to callback'
+		reduce(list, (acc, _, i) => acc + string(i), ''), '0123456789')
+	t('std.reduceBack passes index to callback'
+		reduceBack(list, (acc, _, i) => acc + string(i), ''), '9876543210')
+	(
+		eachAcc := []
+		each(list, (_, i) => eachAcc.len(eachAcc) := i)
+		t('std.each passes index to callback', eachAcc
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+	)
 	
 	` each doesn't return anything meaningful `
 	acc := {
@@ -801,6 +887,175 @@ me')
 	listr := clone(list)
 	listr.1 := objr
 	t('de ser de ser complex list', de(ser(de(ser(list)))), listr)
+)
+
+m('str.upper/lower/digit/letter/ws? -- checked char ranges')
+(
+	upper? := str.upper?
+	lower? := str.lower?
+	digit? := str.digit?
+	letter? := str.letter?
+	ws? := str.ws? 
+
+	every := std.every
+	some := std.some
+	map := std.map
+
+	t('upper? verifies uppercase letters'
+		every(map('ABCDEFGHIJKLMNOPQRSTUVWXYZ', upper?)), true)
+	t('upper? rejects non-uppercase-letters'
+		some(map('onawfepd913043?-~\'!/.,;()$@)%', upper?)), false)
+	t('lower? verifies lowercase letters'
+		every(map('abcdefghijklmnopqrstuvwxyz', lower?)), true)
+	t('lower? rejects non-lowercase-letters'
+		some(map('ONAWFEPD913043?-~\'!/.,;()$@)%', lower?)), false)
+	t('digit? verifies digits'
+		every(map('0123456789', digit?)), true)
+	t('digit? rejects non-digits, including punctuations'
+		some(map('~@!#@$%^()&?!.;,-', digit?)), false)
+	t('letter? verifies all alphabet letters'
+		every(map('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', letter?))
+		true)
+	t('letter? rejects non-letters'
+		some(map('913043?-~\'!/.,;()$@)%', upper?)), false)
+	t('ws? verifies whitespace characters'
+		every(map('	   
+', ws?)), true)
+	t('ws? rejects all non-whitespace'
+		some(map('jafsioSINDFOEJ#@%@()_#9u40529' + char(250), ws?)), false)
+
+	hasPrefix? := str.hasPrefix?
+	hasSuffix? := str.hasSuffix?
+
+	t('hasPrefix? detects prefix'
+		hasPrefix?('programming', 'prog'), true)
+	t('hasPrefix? returns true for empty prefix'
+		hasPrefix?('programming', ''), true)
+	t('hasPrefix? returns true if s = prefix'
+		hasPrefix?('programming', 'programming'), true)
+	t('hasPrefix? returns false if not prefix'
+		hasPrefix?('programming', 'progx'), false)
+
+	t('hasSuffix? detects suffix'
+		hasSuffix?('programming', 'mming'), true)
+	t('hasSuffix? returns true for empty suffix'
+		hasSuffix?('programming', ''), true)
+	t('hasSuffix? returns true if s = suffix'
+		hasSuffix?('programming', 'programming'), true)
+	t('hasSuffix? returns false if not suffix'
+		hasSuffix?('programming', 'science'), false)
+
+	matchesAt? := str.matchesAt?
+
+	t('matchesAt? returns true for empty substring'
+		matchesAt?('some substring', ''), true)
+	t('matchesAt? returns true if string matches at idx'
+		matchesAt?('some substring', 'substr', 5), true)
+	t('matchesAt? returns false if string matches not at idx'
+		matchesAt?('some substring', 'substr', 2), false)
+	t('matchesAt? returns false if no match'
+		matchesAt?('some substring', 'other', 5), false)
+
+	index := str.index
+
+	t('index = 0 for empty string', index('quick brown fox', ''), 0)
+	t('index returns index of substring'
+		index('quick brown fox', 'ick'), 2)
+	t('index returns 0 if matches whole string'
+		index('quick brown fox', 'quick brown fox'), 0)
+	t('index returns ~1 if no match'
+		index('quick brown fox', 'lazy dog'), ~1)
+	t('index returned is first occurrence'
+		index('quick brown fox', 'o'), 8)
+	t('index works if substring longer than string'
+		index('quick brown fox', 'jumps over the lazy dog'), ~1)
+
+	contains? := str.contains?
+
+	t('contains? = true for empty string'
+		contains?('quick brown fox', ''), true)
+	t('contains? = true if string fits substring'
+		contains?('quick brown fox', 'fox'), true)
+	t('contains? = true if substring fits multiple times'
+		contains?('quick brown fox', 'o'), true)
+	t('contains? = false if not contained'
+		contains?('quick brown fox', 'lazy dog'), false)
+
+	lower := str.lower
+	upper := str.upper
+	title := str.title
+	given := 'MIXED case StrinG with ?!~:punct'
+
+	t('lower transforms string to lowercase'
+		lower(given), 'mixed case string with ?!~:punct')
+	t('upper transforms string to uppercase'
+		upper(given), 'MIXED CASE STRING WITH ?!~:PUNCT')
+	t('title returns uppercase first + lowercase rest'
+		title(given), 'Mixed case string with ?!~:punct')
+
+	replace := str.replace
+
+	t('replace is no-op if empty string'
+		replace('he stared in amazement', '', '__')
+		'he stared in amazement')
+	t('replace replaces all instances of given substring'
+		replace('he stared in amazement', 'e', 'j')
+		'hj starjd in amazjmjnt')
+	t('replace works for multi-character substring'
+		replace('he is staring in amazement', 'in', 'xx')
+		'he is starxxg xx amazement')
+	t('replace accounts for different old/new substring lengths'
+		replace('he is staring in amazement', 'in', 'wonder')
+		'he is starwonderg wonder amazement')
+	t('replace deals gracefully with overlapping matches'
+		replace('wow what a sight, wow', 'ow', 'wow')
+		'wwow what a sight, wwow')
+	t('replace works if new substring is empty'
+		replace('wow what a sight, wow', 'wow', '')
+		' what a sight, ')
+
+	split := str.split
+
+	t('split splits string into letters if empty'
+		split('alphabet', '')
+		['a', 'l', 'p', 'h', 'a', 'b', 'e', 't'])
+	t('splits with given delimiter'
+		split('a,b,cde,fg', ',')
+		['a', 'b', 'cde', 'fg'])
+	t('splits with empty strings if delimiter in start or end'
+		split(', original taste, ', ', ')
+		['', 'original taste', ''])
+	t('returns one chunk if no match of delimiter found'
+		split('no taste whatsoever!', 'grand')
+		['no taste whatsoever!'])
+
+	trimPrefix := str.trimPrefix
+	trimSuffix := str.trimSuffix
+	trim := str.trim
+
+	t('trimPrefix is a no-op with empty string', 
+		trimPrefix('???????what???', ''), '???????what???')
+	t('trimPrefix trims given prefix until it does not prefix'
+		trimPrefix('???????what???', '?'), 'what???')
+	t('trimPrefix works with multi-char prefix'
+		trimPrefix('abababacdef', 'ab'), 'acdef')
+	t('trimPrefix only trims whole multiples of prefix'
+		trimPrefix('aaaaaaaadef', 'aaa'), 'aadef')
+
+	t('trimSuffix is a no-op with empty string', 
+		trimSuffix('???????what???', ''), '???????what???')
+	t('trimSuffix trims given suffix until it does not suffix'
+		trimSuffix('???????what???', '?'), '???????what')
+	t('trimSuffix works with multi-char suffix'
+		trimSuffix('abacdefabcabab', 'ab'), 'abacdefabc')
+	t('trimSuffix only trims whole multiples of suffix'
+		trimSuffix('xxxyyyyyyyy', 'yyy'), 'xxxyy')
+
+
+	t('trim is a no-op with empty string'
+		trim('????what?????', ''), '????what?????')
+	t('trim trims whole multiples of substring from both sides'
+		trim('????what?????', '???'), '?what??')
 )
 
 ` end test suite, print result `

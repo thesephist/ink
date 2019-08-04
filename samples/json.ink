@@ -1,9 +1,13 @@
 ` JSON serde `
 
 std := load('std')
+str := load('str')
 
 map := std.map
 cat := std.cat
+
+ws? := str.ws?
+digit? := str.digit?
 
 ` string escape '"' `
 esc := c => point(c) :: {
@@ -36,23 +40,7 @@ ser := c => type(c) :: {
 num? := c => c :: {
 	'' -> false
 	'.' -> true
-	_ -> 47 < point(c) & point(c) < 58
-}
-
-` is the char a whitespace? `
-ws? := c => c :: {
-	'' -> false
-	_ -> point(c) :: {
-		` hard tab `
-		9 -> true
-		` newline `
-		10 -> true
-		` carriage return `
-		13 -> true
-		` space `
-		32 -> true
-		_ -> false
-	}
+	_ -> digit?(c)
 }
 
 ` reader implementation with internal state for deserialization `
