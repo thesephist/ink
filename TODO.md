@@ -10,6 +10,9 @@
     - Cache locality for data structures (stack-local variables?)
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
+- [ ] Run Go pprof on
+    1. fileserver.ink (typical server kind of workload)
+    2. mandelbrot.ink (typical compute-heavy workload)
 - [ ] Implement the concurrency system (`send()`, `receive()`, `create()` builtins) as described in the language spec.
 - [ ] Make the interpreter a Homebrew brew tap
 - [ ] Ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
@@ -27,6 +30,7 @@
     - Since Ink has no implicit casts, this seems like it'll be straightforward to infer most variable types from their declaration (what they're bound to in the beginning) and recurse up the tree. So to compute "what's the type of this expression?" the type checker will recursively ask its children for their types, and assuming none of them return an error, we can define a `func (n Node) TypeCheck() (Type, error)` that recursively descends to type check an entire AST node from the top. We can expose this behind an `ink -type-check <file>.ink` flag.
     - To support Ink's way of error handling and signaling (returning null data values), the type system must support sum types, i.e. `number | ()`
 - [ ] Should study event systems / event loop models like libuv and Tokio more, especially in light of Golang's strange Erlangy processes / green threads model.
+- [ ] Add to GitHub Linguist: https://github.com/github/linguist
 
 
 ## Potential examples / projects
