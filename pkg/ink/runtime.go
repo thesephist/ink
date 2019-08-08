@@ -1,4 +1,4 @@
-package main
+package ink
 
 import (
 	"bufio"
@@ -1090,7 +1090,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 				if e, isErr := err.(Err); isErr {
 					ctx.LogErr(e)
 				} else {
-					logErrf(ErrAssert, "Eval of an Ink node returned error not of type Err")
+					LogErrf(ErrAssert, "Eval of an Ink node returned error not of type Err")
 				}
 			}
 		})

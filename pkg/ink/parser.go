@@ -1,4 +1,4 @@
-package main
+package ink
 
 import (
 	"fmt"
@@ -289,19 +289,19 @@ func Parse(
 			e, isErr := err.(Err)
 			if isErr {
 				if fatalError {
-					logErr(e.reason, e.message)
+					LogErr(e.reason, e.message)
 				} else {
-					logSafeErr(e.reason, e.message)
+					LogSafeErr(e.reason, e.message)
 				}
 			} else {
-				logErrf(ErrAssert, "err raised that was not of Err type -> %s",
+				LogErrf(ErrAssert, "err raised that was not of Err type -> %s",
 					err.Error())
 			}
 			return
 		}
 
 		if debugParser {
-			logDebug("parse ->", expr.String())
+			LogDebug("parse ->", expr.String())
 		}
 		nodes <- expr
 	}

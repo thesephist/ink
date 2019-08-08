@@ -1,9 +1,9 @@
 # Build artifacts
-ink
-ink-*
-ink.exe
-ink.exe~
-ink.wasm
+./ink
+./ink-*
+./ink.exe
+./ink.exe~
+./ink.wasm
 *.dll
 *.o
 *.so

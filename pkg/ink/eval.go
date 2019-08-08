@@ -1,4 +1,4 @@
-package main
+package ink
 
 import (
 	"bytes"
@@ -267,7 +267,7 @@ func (n UnaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 		}
 	}
 
-	logErrf(ErrAssert, "unrecognized unary operator %s", n)
+	LogErrf(ErrAssert, "unrecognized unary operator %s", n)
 	return nil, nil
 }
 
@@ -670,7 +670,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		return BooleanValue(leftValue.Equals(rightValue)), nil
 	}
 
-	logErrf(ErrAssert, "unknown binary operator %s", n.String())
+	LogErrf(ErrAssert, "unknown binary operator %s", n.String())
 	return nil, err
 }
 
@@ -725,7 +725,7 @@ func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 }
 
 func (n MatchClauseNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	logErrf(ErrAssert, "cannot Eval a MatchClauseNode")
+	LogErrf(ErrAssert, "cannot Eval a MatchClauseNode")
 	return nil, nil
 }
 
@@ -823,7 +823,7 @@ func (n ObjectLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, erro
 }
 
 func (n ObjectEntryNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
-	logErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
+	LogErrf(ErrAssert, "cannot Eval an ObjectEntryNode")
 	return nil, nil
 }
 
@@ -889,7 +889,7 @@ func (frame *StackFrame) Up(name string, val Value) {
 		frame = frame.parent
 	}
 
-	logErrf(
+	LogErrf(
 		ErrAssert,
 		fmt.Sprintf("StackFrame.Up expected to find variable '%s' in frame but did not",
 			name),
@@ -961,9 +961,9 @@ func (ctx *Context) LogErr(e Err) {
 	}
 
 	if ctx.Engine.FatalError {
-		logErr(e.reason, msg)
+		LogErr(e.reason, msg)
 	} else {
-		logSafeErr(e.reason, msg)
+		LogSafeErr(e.reason, msg)
 	}
 }
 
@@ -984,14 +984,14 @@ type DebugConfig struct {
 
 // Dump prints the current state of the Context's global heap
 func (ctx *Context) Dump() {
-	logDebug("frame dump ->", ctx.Frame.String())
+	LogDebug("frame dump ->", ctx.Frame.String())
 }
 
 func (ctx *Context) resetWd() {
 	var err error
 	ctx.Cwd, err = os.Getwd()
 	if err != nil {
-		logErrf(
+		LogErrf(
 			ErrSystem,
 			"could not identify current working directory\n\t-> %s", err,
 		)
@@ -1053,7 +1053,7 @@ func (ctx *Context) Exec(input io.Reader) (Value, error) {
 // ExecPath is a convenience function to Exec() a program file in a given Context.
 func (ctx *Context) ExecPath(filePath string) {
 	if !path.IsAbs(filePath) {
-		logErrf(
+		LogErrf(
 			ErrAssert,
 			"Context.ExecPath expected an absolute path, got something else",
 		)
@@ -1066,7 +1066,7 @@ func (ctx *Context) ExecPath(filePath string) {
 	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {
-		logSafeErr(
+		LogSafeErr(
 			ErrSystem,
 			fmt.Sprintf("could not open %s for execution:\n\t-> %s", filePath, err),
 		)

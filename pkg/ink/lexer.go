@@ -1,4 +1,4 @@
-package main
+package ink
 
 import (
 	"bufio"
@@ -127,7 +127,7 @@ func Tokenize(
 	simpleCommit := func(tok Tok) {
 		lastKind = tok.kind
 		if debugLexer {
-			logDebug("lex ->", tok.String())
+			LogDebug("lex ->", tok.String())
 		}
 		tokens <- tok
 	}
@@ -156,9 +156,9 @@ func Tokenize(
 								lineNo, colNo, err.Error()),
 						}
 						if fatalError {
-							logErr(e.reason, e.message)
+							LogErr(e.reason, e.message)
 						} else {
-							logSafeErr(e.reason, e.message)
+							LogSafeErr(e.reason, e.message)
 						}
 					}
 					simpleCommit(Tok{

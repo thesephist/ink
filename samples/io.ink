@@ -13,10 +13,10 @@ stringList := std.stringList
 rf := std.readFile
 wf := std.writeFile
 
-SOURCE := 'eval.go'
-TARGET := 'sub.go'
+SOURCE := 'pkg/ink/eval.go'
+TARGET := 'test_io.go'
 
-` we're going to copy main.go to sub.go,
+` we're going to copy SOURCE to TARGET
 	and we're going to buffer it `
 BUFSIZE := 4096 ` bytes `
 
@@ -44,14 +44,13 @@ incrementalCopy := (src, dest, offset) => read(src, offset, BUFSIZE, evt => (
 	}
 ))
 
-` copy main.go to sub.go`
 copy(SOURCE, TARGET)
 log('Copy scheduled at ' + string(time()))
 
 ` delete the file, since we don't need it `
 wait(1, () => (
 	log('Delete fired at ' + string(time()))
-	delete('sub.go', evt => evt.type :: {
+	delete(TARGET, evt => evt.type :: {
 		'error' -> log('Encountered an error deleting: ' + evt.message)
 		'end' -> log('Safely deleted the generated file')
 	}))

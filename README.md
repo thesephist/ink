@@ -156,34 +156,46 @@ The APIs are still in development / in flux, but you can check out `main.go` and
 For now, here's a minimal example of creating an execution context for Ink and running some Ink code from stdin. (In fact, this is very nearly the implementation of executing from stdin in the interpreter.)
 
 ```go
-func main() {
-    // Create an "Engine", which is a global execution context for the lifetime of an Ink program.
-    eng := Engine{}
-    // Create a "Context", which is a temporary execution context for a given source of input.
-    ctx := eng.CreateContext{}
+package main
 
-    // Execute code from an io.Reader
-    ctx.Exec(os.Stdin)
-    // Wait until all concurrent callbacks finish from the program before exiting
-    eng.Listeners.Wait()
+import (
+	"github.com/thesephist/ink/pkg/ink"
+)
+
+func main() {
+	// Create an "Engine", which is a global execution context for the lifetime of an Ink program.
+	eng := ink.Engine{}
+	// Create a "Context", which is a temporary execution context for a given source of input.
+	ctx := eng.CreateContext{}
+
+	// Execute code from an io.Reader
+	ctx.Exec(os.Stdin)
+	// Wait until all concurrent callbacks finish from the program before exiting
+	eng.Listeners.Wait()
 }
 ```
 
 To run from a file, use `os.File` as an `io.Reader`.
 
 ```go
+package main
+
+import (
+	"github.com/thesephist/ink/pkg/ink"
+)
+
 func main() {
-    eng := Engine{}
-    ctx := eng.CreateContext{}
+	eng := ink.Engine{}
+	ctx := eng.CreateContext{}
 
-    file, err := os.Open("main.ink")
-    defer file.Close()
-    if err != nil {
-        log.Fatal("Could not open main.ink for execution")
-    }
+	file, err := os.Open("main.ink")
+	defer file.Close()
+	if err != nil {
+		log.Fatal("Could not open main.ink for execution")
+	}
 
-    ctx.Exec(file)
-    eng.Listeners.Wait()
+	ctx.Exec(file)
+	eng.Listeners.Wait()
 }
 ```
 

@@ -1,4 +1,4 @@
-package main
+package ink
 
 // Error reasons are enumerated here to be used in the Err struct,
 //	the error type shared across all Ink APIs.

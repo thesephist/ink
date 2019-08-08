@@ -1,4 +1,4 @@
-package main
+package ink
 
 import (
 	"fmt"
@@ -18,23 +18,23 @@ const (
 	ANSI_RED_BOLD    = "[31;1m"
 )
 
-func logDebug(args ...string) {
+func LogDebug(args ...string) {
 	fmt.Println(ANSI_BLUE_BOLD + "debug: " + ANSI_BLUE + strings.Join(args, " ") + ANSI_RESET)
 }
 
-func logDebugf(s string, args ...interface{}) {
-	logDebug(fmt.Sprintf(s, args...))
+func LogDebugf(s string, args ...interface{}) {
+	LogDebug(fmt.Sprintf(s, args...))
 }
 
-func logInteractive(args ...string) {
+func LogInteractive(args ...string) {
 	fmt.Println(ANSI_GREEN + strings.Join(args, " ") + ANSI_RESET)
 }
 
-func logInteractivef(s string, args ...interface{}) {
-	logInteractive(fmt.Sprintf(s, args...))
+func LogInteractivef(s string, args ...interface{}) {
+	LogInteractive(fmt.Sprintf(s, args...))
 }
 
-func logSafeErr(reason int, args ...string) {
+func LogSafeErr(reason int, args ...string) {
 	errStr := "error"
 	switch reason {
 	case ErrSyntax:
@@ -51,11 +51,11 @@ func logSafeErr(reason int, args ...string) {
 	fmt.Fprintln(os.Stderr, ANSI_RED_BOLD+errStr+": "+ANSI_RED+strings.Join(args, " ")+ANSI_RESET)
 }
 
-func logErr(reason int, args ...string) {
-	logSafeErr(reason, args...)
+func LogErr(reason int, args ...string) {
+	LogSafeErr(reason, args...)
 	os.Exit(reason)
 }
 
-func logErrf(reason int, s string, args ...interface{}) {
-	logErr(reason, fmt.Sprintf(s, args...))
+func LogErrf(reason int, s string, args ...interface{}) {
+	LogErr(reason, fmt.Sprintf(s, args...))
 }

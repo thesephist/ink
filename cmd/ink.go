@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/thesephist/ink/pkg/ink"
 )
 
 const VERSION = "0.1.5"
@@ -67,14 +69,14 @@ func main() {
 	}
 
 	// execution environment
-	eng := Engine{
+	eng := ink.Engine{
 		FatalError: false,
-		Permissions: PermissionsConfig{
+		Permissions: ink.PermissionsConfig{
 			Read:  !*noRead && !*isolate,
 			Write: !*noWrite && !*isolate,
 			Net:   !*noNet && !*isolate,
 		},
-		Debug: DebugConfig{
+		Debug: ink.DebugConfig{
 			Lex:   *debugLexer || *verbose,
 			Parse: *debugParser || *verbose,
 			Dump:  *dump || *verbose,
@@ -90,13 +92,16 @@ func main() {
 	replLoop:
 		for {
 			// green arrow
-			fmt.Printf(ANSI_GREEN_BOLD + "> " + ANSI_RESET)
+			fmt.Printf(ink.ANSI_GREEN_BOLD + "> " + ink.ANSI_RESET)
 			text, err := reader.ReadString('\n')
 
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				logErrf(ErrSystem, "unexpected end to input:\n\t-> %s", err.Error())
+				ink.LogErrf(
+					ink.ErrSystem,
+					"unexpected end to input:\n\t-> %s", err.Error(),
+				)
 			}
 
 			switch {
@@ -112,7 +117,7 @@ func main() {
 			default:
 				val, _ := ctx.Exec(strings.NewReader(text))
 				if val != nil {
-					logInteractive(val.String())
+					ink.LogInteractive(val.String())
 				}
 			}
 		}

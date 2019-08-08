@@ -1,4 +1,5 @@
-RUN = go run -race .
+CMD = ./cmd/ink.go
+RUN = go run -race ${CMD}
 LDFLAGS = -ldflags="-s -w"
 
 all: run test install
@@ -44,7 +45,7 @@ test:
 
 # build for specific OS target
 build-%:
-	GOOS=$* GOARCH=amd64 go build ${LDFLAGS} -o ink-$*
+	GOOS=$* GOARCH=amd64 go build ${LDFLAGS} -o ink-$* ${CMD}
 
 
 # build for all OS targets, useful for releases
@@ -54,14 +55,14 @@ build: build-linux build-darwin build-windows build-openbsd
 # install on host system
 install:
 	cp utils/ink.vim ~/.vim/syntax/ink.vim
-	go install ${LDFLAGS}
+	go install ${LDFLAGS} ${CMD}
 	ls -l `which ink`
 
 
 # pre-commit hook
 precommit:
-	go vet .
-	go fmt .
+	go vet ./cmd ./pkg/ink
+	go fmt ./cmd ./pkg/ink
 
 
 # clean any generated files
