@@ -159,6 +159,8 @@ For now, here's a minimal example of creating an execution context for Ink and r
 package main
 
 import (
+	"os"
+
 	"github.com/thesephist/ink/pkg/ink"
 )
 
@@ -166,7 +168,7 @@ func main() {
 	// Create an "Engine", which is a global execution context for the lifetime of an Ink program.
 	eng := ink.Engine{}
 	// Create a "Context", which is a temporary execution context for a given source of input.
-	ctx := eng.CreateContext{}
+	ctx := eng.CreateContext()
 
 	// Execute code from an io.Reader
 	ctx.Exec(os.Stdin)
@@ -181,12 +183,15 @@ To run from a file, use `os.File` as an `io.Reader`.
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/thesephist/ink/pkg/ink"
 )
 
 func main() {
 	eng := ink.Engine{}
-	ctx := eng.CreateContext{}
+	ctx := eng.CreateContext()
 
 	file, err := os.Open("main.ink")
 	defer file.Close()
