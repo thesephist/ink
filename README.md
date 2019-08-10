@@ -1,6 +1,6 @@
 # Ink programming language 🖋
 
-Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style.
+Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API.
 
 Ink has a few goals. In order, they are
 
@@ -151,9 +151,9 @@ Ink uses [GNU Make](https://www.gnu.org/software/make/manual/make.html) to manag
 
 As the baseline interpreter is currently written in Go, if you want to embed Ink within your own application, you can use the Go APIs from this package to do so.
 
-The APIs are still in development / in flux, but you can check out `main.go` and `eval.go` for the Go channels-based concurrent lexer/parser/evaler APIs. As the APIs are finalized, I'll put more information here directly.
+The APIs are still in flux, but you can check out `main.go` and `eval.go` for the Go channels-based concurrent lexer/parser/evaler APIs. As the APIs are finalized, I'll put more information here directly.
 
-For now, here's a minimal example of creating an execution context for Ink and running some Ink code from stdin. (In fact, this is very nearly the implementation of executing from stdin in the interpreter.)
+For now, here's a minimal example of creating an execution context for Ink and running some Ink code from standard input, and from a file as an `io.Reader`. (In fact, this is very nearly the implementation of executing from stdin in the interpreter.)
 
 ```go
 package main
