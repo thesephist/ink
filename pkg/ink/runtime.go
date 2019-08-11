@@ -18,7 +18,7 @@ import (
 )
 
 // NativeFunctionValue represents a function whose implementation is written
-//	in Go and built-into the runtime.
+// in Go and built-into the runtime.
 type NativeFunctionValue struct {
 	name string
 	exec func(*Context, []Value) (Value, error)
@@ -109,13 +109,13 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 			importPath := path.Join(ctx.Cwd, string(givenPath)+".ink")
 
 			// evalLock blocks file eval; temporary unlock it for the load to run.
-			//	Calling load() from within a running program is not supported, so we
-			//	don't really care if catastrophic things happen because of unlocked evalLock.
+			// Calling load() from within a running program is not supported, so we
+			// don't really care if catastrophic things happen because of unlocked evalLock.
 			ctx.Engine.evalLock.Unlock()
 			defer ctx.Engine.evalLock.Lock()
 
 			// The loaded program runs in a "child context", a distinct context from
-			//	the importing program.
+			// the importing program.
 			childCtx := ctx.Engine.CreateContext()
 			childCtx.ExecPath(importPath)
 
@@ -148,8 +148,8 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			// XXX: currently reads after every newline / return
-			//	but should ideally read every character input / keystroke
-			//	that would also require stdlib/scan() to change.
+			// but should ideally read every character input / keystroke
+			// that would also require stdlib/scan() to change.
 			str, err := reader.ReadString('\n')
 			if err != nil {
 				// also captures io.EOF
@@ -875,7 +875,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 
 	closer := func(ctx *Context, in []Value) (Value, error) {
 		// attempt graceful shutdown, concurrently, without
-		//	blocking Ink evaluation thread
+		// blocking Ink evaluation thread
 		ctx.Engine.Listeners.Add(1)
 		go func() {
 			defer ctx.Engine.Listeners.Done()
@@ -1074,8 +1074,8 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 	}
 
 	// This is a bit tricky, since we don't want wait() to hold the evalLock
-	//	on the Context while we're waiting for the timeout, but do want to hold
-	//	the main goroutine from completing with sync.WaitGroup.
+	// on the Context while we're waiting for the timeout, but do want to hold
+	// the main goroutine from completing with sync.WaitGroup.
 	ctx.Engine.Listeners.Add(1)
 	go func() {
 		defer ctx.Engine.Listeners.Done()

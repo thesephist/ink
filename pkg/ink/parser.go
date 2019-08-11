@@ -13,7 +13,7 @@ type Node interface {
 }
 
 // a string representation of the Position of a given node,
-//	appropriate for an error message
+// appropriate for an error message
 func poss(n Node) string {
 	return n.Position().String()
 }
@@ -260,7 +260,7 @@ func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 }
 
 // Parse concurrently transforms a stream of Tok (tokens) to Node (AST nodes).
-//	This implementation uses recursive descent parsing.
+// This implementation uses recursive descent parsing.
 func Parse(
 	tokenStream <-chan Tok,
 	nodes chan<- Node,
@@ -367,7 +367,7 @@ func parseBinaryExpression(
 	nodes[1] = rightAtom
 
 	// build up a list of binary operations, with tree nodes
-	//	where there are higher-priority binary ops
+	// where there are higher-priority binary ops
 	for len(tokens) > idx && isBinaryOp(tokens[idx]) {
 		if previousPriority >= getOpPriority(tokens[idx]) {
 			// Priority is lower than the calling function's last op,
@@ -375,7 +375,7 @@ func parseBinaryExpression(
 			break
 		} else if getOpPriority(ops[len(ops)-1]) >= getOpPriority(tokens[idx]) {
 			// Priority is lower than the previous op (but higher than parent),
-			//	so it's ok to be left-heavy in this tree
+			// so it's ok to be left-heavy in this tree
 			ops = append(ops, tokens[idx])
 			idx++
 
@@ -397,7 +397,7 @@ func parseBinaryExpression(
 			}
 
 			// Priority is higher than previous ops,
-			//	so make it a right-heavy tree
+			// so make it a right-heavy tree
 			subtree, incr, err := parseBinaryExpression(
 				nodes[len(nodes)-1],
 				tokens[idx],
@@ -434,7 +434,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 
 	consumeDanglingSeparator := func() {
 		// bounds check in case parseExpress() called at some point
-		//	consumed end token
+		// consumed end token
 		if idx < len(tokens) && tokens[idx].kind == Separator {
 			idx++
 		}
@@ -460,7 +460,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 
 	case KeyValueSeparator, RightParen:
 		// these belong to the parent atom that contains this expression,
-		//	so return without consuming token (idx - 1)
+		// so return without consuming token (idx - 1)
 		return atom, idx - 1, nil
 
 	case AddOp, SubtractOp, MultiplyOp, DivideOp, ModulusOp,
@@ -567,7 +567,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			atom = IdentifierNode{tok.str, tok.position}
 		}
 		// may be called as a function, so flows beyond
-		//	switch case
+		// switch case
 	case EmptyIdentifier:
 		if tokens[idx].kind == FunctionArrow {
 			var err error
@@ -625,7 +625,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		// may be called as a function, so flows beyond
-		//	switch case
+		// switch case
 	case LeftBrace:
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {
@@ -704,7 +704,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 	}
 
 	// bounds check here because parseExpression may have
-	//	consumed all tokens before this
+	// consumed all tokens before this
 	for idx < len(tokens) && tokens[idx].kind == LeftParen {
 		var incr int
 		var err error

@@ -12,24 +12,24 @@ import (
 )
 
 // Value represents any value in the Ink programming language.
-//	Each value corresponds to some primitive or object value created
-//	during the execution of an Ink program.
+// Each value corresponds to some primitive or object value created
+// during the execution of an Ink program.
 type Value interface {
 	String() string
 	// Equals reports whether the given value is deep-equal to the
-	//	receiving value. It does not compare references.
+	// receiving value. It does not compare references.
 	Equals(Value) bool
 }
 
 func isIntable(n NumberValue) bool {
 	// XXX: not the most reliable check for int because of int64 range
-	//	limitations, but works for now until we nail down Ink's number
-	//	spec more rigorously
+	// limitations, but works for now until we nail down Ink's number
+	// spec more rigorously
 	return n == NumberValue(int64(n))
 }
 
 // Utility func to get a consistent, language spec-compliant
-//	string representation of numbers
+// string representation of numbers
 func nToS(f float64) string {
 	if i := int64(f); f == float64(i) {
 		return strconv.FormatInt(i, 10)
@@ -44,7 +44,7 @@ func nvToS(v NumberValue) string {
 }
 
 // EmptyValue is the value of the empty identifier.
-//	it is globally unique and matches everything in equality.
+// it is globally unique and matches everything in equality.
 type EmptyValue struct{}
 
 func (v EmptyValue) String() string {
@@ -56,7 +56,7 @@ func (v EmptyValue) Equals(other Value) bool {
 }
 
 // NumberValue represents the number type (integer and floating point)
-//	in the Ink language.
+// in the Ink language.
 type NumberValue float64
 
 func (v NumberValue) String() string {
@@ -120,7 +120,7 @@ func (v BooleanValue) Equals(other Value) bool {
 }
 
 // NullValue is a value that only exists at the type level,
-//	and is represented by the empty expression list `()`.
+// and is represented by the empty expression list `()`.
 type NullValue struct{}
 
 func (v NullValue) String() string {
@@ -170,7 +170,7 @@ func (v CompositeValue) Equals(other Value) bool {
 }
 
 // FunctionValue is the value of any variables referencing functions
-//	defined in an Ink program.
+// defined in an Ink program.
 type FunctionValue struct {
 	defn        *FunctionLiteralNode
 	parentFrame *StackFrame
@@ -178,7 +178,7 @@ type FunctionValue struct {
 
 func (v FunctionValue) String() string {
 	// ellipsize function body at a reasonable length,
-	//	so as not to be too verbose in repl environments
+	// so as not to be too verbose in repl environments
 	fstr := v.defn.String()
 	if len(fstr) < 120 {
 		return fstr
@@ -194,7 +194,7 @@ func (v FunctionValue) Equals(other Value) bool {
 
 	if ov, ok := other.(FunctionValue); ok {
 		// to compare structs containing slices, we really want
-		//	a pointer comparison, not a value comparison
+		// a pointer comparison, not a value comparison
 		return v.defn == ov.defn
 	} else {
 		return false
@@ -202,7 +202,7 @@ func (v FunctionValue) Equals(other Value) bool {
 }
 
 // FunctionCallThunkValue is an internal representation of a lazy
-//	function evaluation used to implement tail call optimization.
+// function evaluation used to implement tail call optimization.
 type FunctionCallThunkValue struct {
 	vt       ValueTable
 	function FunctionValue
@@ -219,7 +219,7 @@ func (v FunctionCallThunkValue) Equals(other Value) bool {
 
 	if ov, ok := other.(FunctionCallThunkValue); ok {
 		// to compare structs containing slices, we really want
-		//	a pointer comparison, not a value comparison
+		// a pointer comparison, not a value comparison
 		return &v.vt == &ov.vt && &v.function == &ov.function
 	} else {
 		return false
@@ -477,8 +477,8 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		case StringValue:
 			if right, ok := rightValue.(StringValue); ok {
 				// In this context, strings are immutable. i.e. concatenating
-				//	strings should produce a completely new string whose modifications
-				//	won't be observable by the original strings.
+				// strings should produce a completely new string whose modifications
+				// won't be observable by the original strings.
 				base := make([]byte, 0, len(left)+len(right))
 				base = append(base, left...)
 				return StringValue(append(base, right...)), nil
@@ -703,8 +703,8 @@ func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 		}
 
 		// TCO: used for evaluating expressions that may be in tail positions
-		//	at the end of Nodes whose evaluation allocates another StackFrame
-		//	like ExpressionList and FunctionLiteral's body
+		// at the end of Nodes whose evaluation allocates another StackFrame
+		// like ExpressionList and FunctionLiteral's body
 		returnThunk := FunctionCallThunkValue{
 			vt:       argValueTable,
 			function: fnt,
@@ -748,7 +748,7 @@ func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 			}
 
 			// match expression clauses are tail call optimized,
-			//	so return a maybe ThunkValue
+			// so return a maybe ThunkValue
 			return rv, nil
 		}
 	}
@@ -775,7 +775,7 @@ func (n ExpressionListNode) Eval(frame *StackFrame, allowThunk bool) (Value, err
 	}
 
 	// return values of expression lists are tail call optimized,
-	//	so return a maybe ThunkValue
+	// so return a maybe ThunkValue
 	return n.expressions[length-1].Eval(callFrame, allowThunk)
 }
 
@@ -848,11 +848,11 @@ func (n FunctionLiteralNode) Eval(frame *StackFrame, allowThunk bool) (Value, er
 }
 
 // ValueTable is used anytime a map of names/labels to Ink Values is needed,
-//	and is notably used to represent stack frames / heaps and CompositeValue dictionaries.
+// and is notably used to represent stack frames / heaps and CompositeValue dictionaries.
 type ValueTable map[string]Value
 
 // StackFrame represents the heap of variables local to a particular function call frame,
-//	and recursively references other parent StackFrames internally.
+// and recursively references other parent StackFrames internally.
 type StackFrame struct {
 	parent *StackFrame
 	vt     ValueTable
@@ -903,15 +903,15 @@ func (frame *StackFrame) String() string {
 // Engine is a single global context of Ink program execution.
 //
 // A single thread of execution may run within an Engine at any given moment,
-//	and this is ensured by an internal execution lock. An execution's Engine
-//	also holds all permission and debugging flags.
+// and this is ensured by an internal execution lock. An execution's Engine
+// also holds all permission and debugging flags.
 //
 // Within an Engine, there may exist multiple Contexts that each contain different
-//	execution environments, running concurrently under a single lock.
+// execution environments, running concurrently under a single lock.
 type Engine struct {
 	// Listeners keeps track of the concurrent threads of execution running
-	//	in the Engine. Call `Engine.Listeners.Wait()` to block until all concurrent
-	//	execution threads finish on an Engine.
+	// in the Engine. Call `Engine.Listeners.Wait()` to block until all concurrent
+	// execution threads finish on an Engine.
 	Listeners sync.WaitGroup
 
 	// If FatalError is true, an error will halt the interpreter
@@ -920,7 +920,7 @@ type Engine struct {
 	Debug       DebugConfig
 
 	// only a single function may write to the stack frames
-	//	at any moment.
+	// at any moment.
 	evalLock sync.Mutex
 }
 
@@ -941,7 +941,7 @@ func (eng *Engine) CreateContext() *Context {
 }
 
 // Context represents a single, isolated execution context with its global heap,
-//	imports, call stack, and cwd (working directory).
+// imports, call stack, and cwd (working directory).
 type Context struct {
 	// Cwd is an always-absolute path to current working dir (of module system)
 	Cwd string
@@ -953,7 +953,7 @@ type Context struct {
 }
 
 // LogErr logs an Err (interpreter error) according to the configurations
-//	specified in the Context's Engine.
+// specified in the Context's Engine.
 func (ctx *Context) LogErr(e Err) {
 	msg := e.message
 	if ctx.File != "" {
@@ -968,7 +968,7 @@ func (ctx *Context) LogErr(e Err) {
 }
 
 // PermissionsConfig defines Context's permissions to
-//	operating system interfaces
+// operating system interfaces
 type PermissionsConfig struct {
 	Read  bool
 	Write bool
@@ -999,8 +999,8 @@ func (ctx *Context) resetWd() {
 }
 
 // Eval takes a channel of Nodes to evaluate, and executes the Ink programs defined
-//	in the syntax tree. Eval returns the last value of the last expression in the AST,
-//	or an error if there was a runtime error.
+// in the syntax tree. Eval returns the last value of the last expression in the AST,
+// or an error if there was a runtime error.
 func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err error) {
 	ctx.Engine.evalLock.Lock()
 	defer ctx.Engine.evalLock.Unlock()
@@ -1023,7 +1023,7 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 }
 
 // ExecListener queues an asynchronous callback task to the Engine behind the Context.
-//	Callbacks registered this way will also run with the Engine's execution lock.
+// Callbacks registered this way will also run with the Engine's execution lock.
 func (ctx *Context) ExecListener(callback func()) {
 	ctx.Engine.Listeners.Add(1)
 	go func() {
@@ -1037,8 +1037,8 @@ func (ctx *Context) ExecListener(callback func()) {
 }
 
 // Exec runs an Ink program defined by an io.Reader.
-//	This is the main way to invoke Ink programs from Go.
-//	Exec blocks until the Ink program exits.
+// This is the main way to invoke Ink programs from Go.
+// Exec blocks until the Ink program exits.
 func (ctx *Context) Exec(input io.Reader) (Value, error) {
 	eng := ctx.Engine
 

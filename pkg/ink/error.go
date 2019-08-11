@@ -1,7 +1,7 @@
 package ink
 
 // Error reasons are enumerated here to be used in the Err struct,
-//	the error type shared across all Ink APIs.
+// the error type shared across all Ink APIs.
 const (
 	ErrUnknown = 0
 	ErrSyntax  = 1
@@ -11,7 +11,7 @@ const (
 )
 
 // Err constants represent possible errors that Ink interpreter
-//	binding functions may return.
+// binding functions may return.
 type Err struct {
 	reason  int
 	message string

@@ -79,12 +79,12 @@ func (p position) String() string {
 }
 
 // Tok is the monomorphic struct representing all Ink program tokens
-//	in the lexer.
+// in the lexer.
 type Tok struct {
 	kind Kind
 	// str and num are both present to implement Tok
-	//	as a monomorphic type for all tokens; will be zero
-	//	values often.
+	// as a monomorphic type for all tokens; will be zero
+	// values often.
 	str string
 	num float64
 	position
@@ -242,8 +242,8 @@ func Tokenize(
 				strbuf += string(char)
 			} else if char == '\\' {
 				// backslash escapes like in most other languages,
-				//	so just consume whatever the next char is into
-				//	the current string buffer
+				// so just consume whatever the next char is into
+				// the current string buffer
 				c, _, err := buffered.ReadRune()
 				if err != nil {
 					break
@@ -318,12 +318,12 @@ func Tokenize(
 			commitChar(Separator)
 		case char == '.':
 			// only non-AccessorOp case is [Number token] . [Number],
-			//	so we commit and bail early if the buf is empty or contains
-			//	a clearly non-numeric token. Note that this means all numbers
-			//	must start with a digit. i.e. .5 is not 0.5 but a syntax error.
-			//	This is the case since we don't know what the last token was,
-			//	and I think streaming parse is worth the tradeoffs of losing
-			//	that context.
+			// so we commit and bail early if the buf is empty or contains
+			// a clearly non-numeric token. Note that this means all numbers
+			// must start with a digit. i.e. .5 is not 0.5 but a syntax error.
+			// This is the case since we don't know what the last token was,
+			// and I think streaming parse is worth the tradeoffs of losing
+			// that context.
 			committed := false
 			for _, d := range buf {
 				if !unicode.IsDigit(d) {
@@ -352,7 +352,7 @@ func Tokenize(
 				commitChar(MatchColon)
 			} else {
 				// key is parsed as expression, so make sure
-				//	we mark expression end (Separator)
+				// we mark expression end (Separator)
 				ensureSeparator()
 				commitChar(KeyValueSeparator)
 				buffered.UnreadRune()
