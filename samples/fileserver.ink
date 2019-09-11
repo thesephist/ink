@@ -105,18 +105,39 @@ handlePath := (url, path, end, getElapsed) => stat(path, evt => evt.type :: {
 	'data' -> handleStat(url, path, evt.data, end, getElapsed)
 })
 
-` handles requests to directories '/' `
+` handles requests to validated paths `
 handleStat := (url, path, data, end, getElapsed) => data :: {
 	` means file didn't exist `
 	() -> (
-		log(f('  -> {{ url }} not found in {{ ms }}ms', {
-			url: url
-			ms: getElapsed()
-		}))
-		end({
-			status: 404
-			headers: hdr({})
-			body: 'not found'
+		` what if the path omits the .html extension? `
+		hpath := path + '.html'
+		stat(hpath, evt => evt.type :: {
+			'error' -> (
+				log(f('  -> {{ url }} (.html) led to error in {{ ms }}ms: {{ error }}', {
+					url: url
+					ms: getElapsed()
+					error: evt.message
+				}))
+				end({
+					status: 500
+					headers: hdr({})
+					body: 'server error'
+				})
+			)
+			'data' -> evt.data :: {
+				{dir: false, name: _, len: _} -> handlePath(url, hpath, end, getElapsed)
+				_ -> (
+					log(f('  -> {{ url }} not found in {{ ms }}ms', {
+						url: url
+						ms: getElapsed()
+					}))
+					end({
+						status: 404
+						headers: hdr({})
+						body: 'not found'
+					})
+				)
+			}
 		})
 	)
 	{dir: true, name: _, len: _} -> dirPath?(path) :: {
