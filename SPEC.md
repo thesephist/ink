@@ -158,7 +158,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `write(string, number, string, callback)`: Write to given file descriptor at some offset, some given bytes.
 - `delete(string, callback)`: Delete some given file.
 - `listen(string, callback) => callback`: Bind to a local TCP port and start handling HTTP requests.
-- `req(composite, callback) => callback`: Send an HTTP client request.
+- `req(composite, callback) => callback`: Send an HTTP client request. `url` is required, `method`, `headers`, `body` are optional and default to their sensible zero values.
 - `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`.
 - `time() => number`: number of seconds in floating point in UNIX epoch.

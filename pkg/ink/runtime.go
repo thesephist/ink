@@ -317,7 +317,6 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		// mkdir
 		err := os.Mkdir(string(dirPath), 0755)
 		if err != nil {
 			ctx.ExecListener(func() {
@@ -960,6 +959,19 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 		headersVal, okHeaders := data["headers"]
 		bodyVal, okBody := data["body"]
 
+		if !okMethod {
+			methodVal = StringValue("GET")
+			okMethod = true
+		}
+		if !okHeaders {
+			headersVal = CompositeValue{}
+			okHeaders = true
+		}
+		if !okBody {
+			bodyVal = StringValue("")
+			okBody = true
+		}
+
 		reqMethod, okMethod := methodVal.(StringValue)
 		reqURL, okURL := urlVal.(StringValue)
 		reqHeaders, okHeaders := headersVal.(CompositeValue)
@@ -970,6 +982,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 				ErrRuntime,
 				fmt.Sprintf("request in req() is malformed, %s", data),
 			})
+			return
 		}
 
 		req, err := http.NewRequest(
