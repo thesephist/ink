@@ -567,7 +567,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			atom = IdentifierNode{tok.str, tok.position}
 		}
 		// may be called as a function, so flows beyond
-		// switch case
+		// switch block
 	case EmptyIdentifier:
 		if tokens[idx].kind == FunctionArrow {
 			var err error
@@ -625,7 +625,7 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 		}
 		// may be called as a function, so flows beyond
-		// switch case
+		// switch block
 	case LeftBrace:
 		entries := make([]ObjectEntryNode, 0)
 		for tokens[idx].kind != RightBrace {
@@ -635,6 +635,10 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			}
 
 			idx += keyIncr
+			err = guardUnexpectedInputEnd(tokens, idx)
+			if err != nil {
+				return nil, 0, err
+			}
 			if tokens[idx].kind == KeyValueSeparator {
 				idx++
 			} else {
