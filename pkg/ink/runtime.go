@@ -205,7 +205,7 @@ func inkOut(ctx *Context, in []Value) (Value, error) {
 }
 
 func inkDir(ctx *Context, in []Value) (Value, error) {
-	if (len(in)) != 2 {
+	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
 			fmt.Sprintf("dir() expects two arguments: path and callback, but got %d", len(in)),
@@ -278,7 +278,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 }
 
 func inkMake(ctx *Context, in []Value) (Value, error) {
-	if (len(in)) != 2 {
+	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
 			fmt.Sprintf("make() expects two arguments: path and callback, but got %d", len(in)),
@@ -340,7 +340,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 }
 
 func inkStat(ctx *Context, in []Value) (Value, error) {
-	if (len(in)) != 2 {
+	if len(in) != 2 {
 		return nil, Err{
 			ErrRuntime,
 			fmt.Sprintf("stat() expects two arguments: path and callback, but got %d", len(in)),

@@ -138,41 +138,44 @@ func Tokenize(
 		})
 	}
 	commitClear := func() {
-		if buf != "" {
-			cbuf := buf
-			buf = ""
-			switch cbuf {
-			case "true":
-				simpleCommitChar(TrueLiteral)
-			case "false":
-				simpleCommitChar(FalseLiteral)
-			default:
-				if unicode.IsDigit(rune(cbuf[0])) {
-					f, err := strconv.ParseFloat(cbuf, 64)
-					if err != nil {
-						e := Err{
-							ErrSyntax,
-							fmt.Sprintf("parsing error in number at %d:%d, %s",
-								lineNo, colNo, err.Error()),
-						}
-						if fatalError {
-							LogErr(e.reason, e.message)
-						} else {
-							LogSafeErr(e.reason, e.message)
-						}
+		if buf == "" {
+			// no need to commit empty token
+			return
+		}
+
+		cbuf := buf
+		buf = ""
+		switch cbuf {
+		case "true":
+			simpleCommitChar(TrueLiteral)
+		case "false":
+			simpleCommitChar(FalseLiteral)
+		default:
+			if unicode.IsDigit(rune(cbuf[0])) {
+				f, err := strconv.ParseFloat(cbuf, 64)
+				if err != nil {
+					e := Err{
+						ErrSyntax,
+						fmt.Sprintf("parsing error in number at %d:%d, %s",
+							lineNo, colNo, err.Error()),
 					}
-					simpleCommit(Tok{
-						num:      f,
-						kind:     NumberLiteral,
-						position: position{lineNo, colNo - len(cbuf)},
-					})
-				} else {
-					simpleCommit(Tok{
-						str:      cbuf,
-						kind:     Identifier,
-						position: position{lineNo, colNo - len(cbuf)},
-					})
+					if fatalError {
+						LogErr(e.reason, e.message)
+					} else {
+						LogSafeErr(e.reason, e.message)
+					}
 				}
+				simpleCommit(Tok{
+					num:      f,
+					kind:     NumberLiteral,
+					position: position{lineNo, colNo - len(cbuf)},
+				})
+			} else {
+				simpleCommit(Tok{
+					str:      cbuf,
+					kind:     Identifier,
+					position: position{lineNo, colNo - len(cbuf)},
+				})
 			}
 		}
 	}
