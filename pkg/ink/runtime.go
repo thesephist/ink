@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
 	"strings"
@@ -59,6 +60,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("rand", inkRand)
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
+	ctx.LoadFunc("exec", inkExec)
 
 	// math
 	ctx.LoadFunc("sin", inkSin)
@@ -1110,6 +1112,111 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 	}()
 
 	return NullValue{}, nil
+}
+
+func inkExec(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 4 {
+		return nil, Err{
+			ErrRuntime,
+			"exec() takes exactly four arguments",
+		}
+	}
+
+	path, isPathStr := in[0].(StringValue)
+	args, isArgsComp := in[1].(CompositeValue)
+	stdin, isStdinStr := in[2].(StringValue)
+	stdoutFn, isStdoutFnFunc := in[3].(FunctionValue)
+
+	if !isPathStr || !isArgsComp || !isStdinStr || !isStdoutFnFunc {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in exec()",
+		}
+	}
+
+	argsList := make([]string, len(args))
+	for k, v := range args {
+		i, err := strconv.ParseInt(string(k), 10, 64)
+		if err != nil {
+			return nil, Err{
+				ErrRuntime,
+				"second argument of exec() must be a list",
+			}
+		}
+
+		if a, ok := v.(StringValue); ok {
+			argsList[i] = string(a)
+		} else {
+			return nil, Err{
+				ErrRuntime,
+				fmt.Sprintf("second argument of exec() must contain strings, got %s", v),
+			}
+		}
+	}
+
+	cmd := exec.Command(string(path), argsList...)
+	cmd.Stdin = strings.NewReader(string(stdin))
+
+	runAndExit := func() {
+		output, err := cmd.Output()
+		if err != nil {
+			ctx.ExecListener(func() {
+				_, err := evalInkFunction(stdoutFn, false, BooleanValue(false))
+				if err != nil {
+					ctx.LogErr(Err{
+						ErrRuntime,
+						fmt.Sprintf("error in callback to exec(), %s", err.Error()),
+					})
+				}
+			})
+			return
+		}
+
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(stdoutFn, false, StringValue(output))
+			if err != nil {
+				ctx.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to exec(), %s", err.Error()),
+				})
+			}
+		})
+	}
+
+	// if the caller closes the cmd before it ever starts running,
+	// we need to signal that safely to the cmd-running goroutine
+	neverRun := make(chan bool, 1)
+	ctx.Engine.Listeners.Add(1)
+	go func() {
+		defer ctx.Engine.Listeners.Done()
+
+		select {
+		case <-neverRun:
+			// do nothing
+		default:
+			runAndExit()
+		}
+	}()
+
+	closed := false
+	return NativeFunctionValue{
+		name: "close",
+		exec: func(ctx *Context, in []Value) (Value, error) {
+			// multiple calls to close() should be idempotent
+			if closed {
+				return NullValue{}, nil
+			}
+
+			neverRun <- true
+			closed = true
+
+			if cmd.Process != nil || cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
+				cmd.Process.Kill()
+			}
+			return NullValue{}, nil
+		},
+		ctx: ctx,
+	}, nil
 }
 
 func inkSin(ctx *Context, in []Value) (Value, error) {
