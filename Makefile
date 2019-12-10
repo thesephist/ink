@@ -2,7 +2,7 @@ CMD = ./cmd/ink.go
 RUN = go run -race ${CMD}
 LDFLAGS = -ldflags="-s -w"
 
-all: run test install
+all: run test
 
 # run standard samples
 run:

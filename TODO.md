@@ -2,7 +2,6 @@
 
 ## Interpreter
 
-- [ ] Set up Travis CI for Ink: for now, just run `make run && make test`, and pass/fail on the exit value.
 - [ ] Potential room for optimizations:
     - Reducing memory allocations. Specifically, pooling `StackFrame` and other function call-related data structures to reduce allocations.
     - Optimized tail recursion unwrapping that doesn't require cost of wrapping and then immediatley unwrapping thunks.
