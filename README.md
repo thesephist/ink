@@ -1,5 +1,7 @@
 # Ink programming language 🖋
 
+[![Build Status](https://travis-ci.com/thesephist/ink.svg?branch=master)](https://travis-ci.com/thesephist/ink)
+
 Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API.
 
 Ink has a few goals. In order, they are
