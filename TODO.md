@@ -1,6 +1,5 @@
 # Todo items
 
-
 ## Interpreter
 
 - [ ] Set up Travis CI for Ink: for now, just run `make run && make test`, and pass/fail on the exit value.

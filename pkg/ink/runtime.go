@@ -1154,6 +1154,35 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
+	if !ctx.Engine.Permissions.Exec {
+		closed := false
+
+		// faked stdout callback
+		ctx.ExecListener(func() {
+			if closed {
+				return
+			}
+
+			_, err := evalInkFunction(stdoutFn, false, StringValue(""))
+			if err != nil {
+				ctx.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to exec(), %s", err.Error()),
+				})
+			}
+		})
+
+		return NativeFunctionValue{
+			name: "close",
+			exec: func(ctx *Context, in []Value) (Value, error) {
+				// fake close callback
+				closed = true
+				return NullValue{}, nil
+			},
+			ctx: ctx,
+		}, nil
+	}
+
 	cmd := exec.Command(string(path), argsList...)
 	cmd.Stdin = strings.NewReader(string(stdin))
 

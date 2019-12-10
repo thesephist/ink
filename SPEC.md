@@ -162,6 +162,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`.
 - `time() => number`: number of seconds in floating point in UNIX epoch.
+- `exec(string, [list], string, callback) => callback`: Exec the command at a given path with given arguments, with a given stdin, call given callback with stdout when exited.
 
 ### Math
 
@@ -173,9 +174,9 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### Type casts and utilities (implemented as native functions)
 
-- `string(any) => string`: convert type to string
-- `number(any) => number`: convert type to number
-- `point(string) => number`: take the first byte (i.e. ASCII value) of the string and return its numerical value
+- `string(any) => string`: Convert type to string
+- `number(any) => number`: Convert type to number
+- `point(string) => number`: Take the first byte (i.e. ASCII value) of the string and return its numerical value
 - `char(number) => string`: reverse of `point()`. Note that behavior for values above 255 (full Unicode values) is undefined (so far).
 - `len(composite) => number`: length of a list, string, or list-like composite value (equal to the number of keys on the composite or list value)
 - `keys(composite) => list<string>`: list of keys of the given composite
