@@ -15,6 +15,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -1184,20 +1185,45 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 	}
 
 	cmd := exec.Command(string(path), argsList...)
+	// cmdMutex locks control over reading and modifying child
+	// process state, because both the Ink eval thread and exec
+	// thread must read from/write to cmd.
+	cmdMutex := sync.Mutex{}
+	stdout := bytes.Buffer{}
 	cmd.Stdin = strings.NewReader(string(stdin))
+	cmd.Stdout = &stdout
+
+	sendErr := func() {
+		ctx.ExecListener(func() {
+			_, err := evalInkFunction(stdoutFn, false, BooleanValue(false))
+			if err != nil {
+				ctx.LogErr(Err{
+					ErrRuntime,
+					fmt.Sprintf("error in callback to exec(), %s", err.Error()),
+				})
+			}
+		})
+	}
 
 	runAndExit := func() {
-		output, err := cmd.Output()
+		cmdMutex.Lock()
+		err := cmd.Start()
+		cmdMutex.Unlock()
+
 		if err != nil {
-			ctx.ExecListener(func() {
-				_, err := evalInkFunction(stdoutFn, false, BooleanValue(false))
-				if err != nil {
-					ctx.LogErr(Err{
-						ErrRuntime,
-						fmt.Sprintf("error in callback to exec(), %s", err.Error()),
-					})
-				}
-			})
+			sendErr()
+			return
+		}
+
+		err = cmd.Wait()
+		if err != nil {
+			sendErr()
+			return
+		}
+
+		output, err := ioutil.ReadAll(&stdout)
+		if err != nil {
+			sendErr()
 			return
 		}
 
@@ -1239,9 +1265,12 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 			neverRun <- true
 			closed = true
 
+			cmdMutex.Lock()
 			if cmd.Process != nil || cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
 				cmd.Process.Kill()
 			}
+			cmdMutex.Unlock()
+
 			return NullValue{}, nil
 		},
 		ctx: ctx,

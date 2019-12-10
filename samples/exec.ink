@@ -25,9 +25,10 @@ exec('/bin/echo', ['Hello, Echo!'], '', s => out(s))
 log('See: lovin-pasta')
 exec('cat', [], 'lovin-pasta', s => out(s))
 
-` closes before execution `
+` closes immediately after exec `
 (
-	close := exec('sleep', ['10'], '', s => log('YOU SHOULD NEVER SEE THIS'))
+	log('Should close immediately after exec safely (may not run):')
+	close := exec('sleep', ['10'], '', s => log('Closed immediately after exec safely!'))
 	close()
 
 	` multiple closes do not fail `
