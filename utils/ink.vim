@@ -74,6 +74,7 @@ syntax keyword inkBuiltin req contained
 syntax keyword inkBuiltin rand contained
 syntax keyword inkBuiltin time contained
 syntax keyword inkBuiltin wait contained
+syntax keyword inkBuiltin exec contained
 
 syntax keyword inkBuiltin sin contained
 syntax keyword inkBuiltin cos contained

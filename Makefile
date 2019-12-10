@@ -20,6 +20,7 @@ run:
 		samples/pingpong.ink \
 		samples/undefinedme.ink \
 		samples/error.ink \
+		samples/exec.ink \
 		samples/prompt.ink
 
 
