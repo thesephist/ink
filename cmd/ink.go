@@ -40,7 +40,8 @@ func main() {
 	noRead := flag.Bool("no-read", false, "Silently fail all read operations")
 	noWrite := flag.Bool("no-write", false, "Silently fail all write operations")
 	noNet := flag.Bool("no-net", false, "Silently fail all access to local network")
-	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write, net")
+	noExec := flag.Bool("no-exec", false, "Silently fail all exec calls")
+	isolate := flag.Bool("isolate", false, "Isolate all system operations: read, write, net, exec")
 
 	// cli arguments
 	verbose := flag.Bool("verbose", false, "Log all interpreter debug information")
@@ -75,6 +76,7 @@ func main() {
 			Read:  !*noRead && !*isolate,
 			Write: !*noWrite && !*isolate,
 			Net:   !*noNet && !*isolate,
+			Exec:  !*noExec && !*isolate,
 		},
 		Debug: ink.DebugConfig{
 			Lex:   *debugLexer || *verbose,

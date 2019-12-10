@@ -20,6 +20,7 @@ run:
 		samples/pingpong.ink \
 		samples/undefinedme.ink \
 		samples/error.ink \
+		samples/exec.ink \
 		samples/prompt.ink
 
 
@@ -39,6 +40,7 @@ test:
 	${RUN} -no-write samples/io.ink
 	${RUN} -isolate samples/io.ink
 	${RUN} -isolate samples/pingpong.ink
+	${RUN} -no-exec samples/exec.ink
 	# test -eval flag
 	${RUN} -eval "log:=load('samples/std').log,f:=x=>()=>log('Eval test: '+x),f('passed!')()"
 

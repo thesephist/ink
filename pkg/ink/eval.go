@@ -973,6 +973,7 @@ type PermissionsConfig struct {
 	Read  bool
 	Write bool
 	Net   bool
+	Exec  bool
 }
 
 // DebugConfig defines any debugging flags referenced at runtime
