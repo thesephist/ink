@@ -36,9 +36,15 @@ test:
 		samples/test.ink \
 		samples/io.ink
 	# run I/O test under isolated mode -- all ops should still return valid responses
+	# We copy the file in question -- eval.go -- to a temporary location, since
+	# no-read and no-write I/O operations will delete the file.
+	cp pkg/ink/eval.go tmp.go
 	${RUN} -no-read samples/io.ink
+	cp tmp.go pkg/ink/eval.go
 	${RUN} -no-write samples/io.ink
+	cp tmp.go pkg/ink/eval.go
 	${RUN} -isolate samples/io.ink
+	rm tmp.go
 	${RUN} -isolate samples/pingpong.ink
 	${RUN} -no-exec samples/exec.ink
 	# test -eval flag
