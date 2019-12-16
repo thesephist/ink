@@ -766,7 +766,9 @@ m('uuid -- uuid v4 generator')
 	xeh := std.xeh
 	range := std.range
 	map := std.map
+	every := std.every
 	reduce := std.reduce
+	split := str.split
 
 	uuids := map(range(0, 200, 1), uuid)
 
@@ -775,11 +777,10 @@ m('uuid -- uuid v4 generator')
 		'-' -> true
 		_ -> ~(xeh(s) = ())
 	}
-	everyCharIsHex := reduce(
+	everyCharIsHex := every(map(
 		uuids
-		(acc, u) => acc & reduce(u, (acc, c) => acc & isValidChar(c), true)
-		true
-	)
+		u => every(map(split(u, ''), c => isValidChar(c)))
+	))
 	t('uuid() validity, hexadecimal range set', everyCharIsHex, true)
 
 	` test for uniqueness (kinda) `
@@ -798,11 +799,10 @@ m('uuid -- uuid v4 generator')
 		_, _, _, _, '-'
 		_, _, _, _, _, _, _, _, _, _, _, _
 	]
-	everyIsFormatted := reduce(
+	everyIsFormatted := every(map(
 		uuids
-		(acc, u) => acc & format?(u)
-		true
-	)
+		u => format?(u)
+	))
 	t('uuid() validity, correct string formatting', everyIsFormatted, true)
 )
 
@@ -1056,6 +1056,19 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 		trim('????what?????', ''), '????what?????')
 	t('trim trims whole multiples of substring from both sides'
 		trim('????what?????', '???'), '?what??')
+)
+
+m('load() import semantics')
+(
+	A := load('load_dedup')
+	B := load('load_dedup/load_dedup_child')
+	getObjA := A.getObj
+	getObjB := B.getObj
+
+	t('load() from different contexts should be deduplicated'
+		getObjA() = getObjB(), true)
+	t('load() of different source files should still return different contexts'
+		A = B, false)
 )
 
 ` end test suite, print result `

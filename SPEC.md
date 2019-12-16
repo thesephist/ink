@@ -145,7 +145,7 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### Metaprogramming and packaging
 
-- `load(string) => composite`: load the Ink expressions from another file as a _module_ to a different program file. The values declared in the top frame of the loaded module will be entries in the composite value returned by `load`. If currently executing from a file, Ink will search relative to the executing file. Otherwise (e.g. if running from standard input or through the `-eval` flag), Ink will search relative to the current working directory of the running process.
+- `load(string) => composite`: load the Ink expressions from another file as a _module_ to a different program file. The values declared in the top frame of the loaded module will be entries in the composite value returned by `load`. If currently executing from a file, Ink will search relative to the executing file. Otherwise (e.g. if running from standard input or through the `-eval` flag), Ink will search relative to the current working directory of the running process. Ink programs loaded this way are deduplicated by a canonicalized URL within a single Engine.
 
 ### System interfaces
 
