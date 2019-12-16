@@ -159,7 +159,7 @@ func (v CompositeValue) Equals(other Value) bool {
 
 		for key, val := range v {
 			otherVal, prs := ov[key]
-			if prs && !val.Equals(otherVal) {
+			if !prs || prs && !val.Equals(otherVal) {
 				return false
 			}
 		}
@@ -919,7 +919,14 @@ type Engine struct {
 	Permissions PermissionsConfig
 	Debug       DebugConfig
 
-	// only a single function may write to the stack frames
+	// Ink de-duplicates imported source files here, where
+	// Contexts from imports are deduplicated keyed by the
+	// canonicalized import path. This prevents recursive
+	// imports from crashing the interpreter and allows other
+	// nice functionality.
+	Contexts map[string]*Context
+
+	// Only a single function may write to the stack frames
 	// at any moment.
 	evalLock sync.Mutex
 }
@@ -932,6 +939,12 @@ func (eng *Engine) CreateContext() *Context {
 			parent: nil,
 			vt:     ValueTable{},
 		},
+	}
+
+	// If first time creating Context in this Engine,
+	// initialize the Contexts map
+	if eng.Contexts == nil {
+		eng.Contexts = make(map[string]*Context)
 	}
 
 	ctx.resetWd()

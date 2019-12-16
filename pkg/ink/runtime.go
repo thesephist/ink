@@ -117,10 +117,19 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 			ctx.Engine.evalLock.Unlock()
 			defer ctx.Engine.evalLock.Lock()
 
-			// The loaded program runs in a "child context", a distinct context from
-			// the importing program.
-			childCtx := ctx.Engine.CreateContext()
-			childCtx.ExecPath(importPath)
+			childCtx, prs := ctx.Engine.Contexts[importPath]
+			if !prs {
+				// The loaded program runs in a "child context", a distinct context from
+				// the importing program. The "child" term is a bit of a misnomer as Contexts
+				// do not exist in a hierarchy, but conceptually makes sense here.
+				childCtx = ctx.Engine.CreateContext()
+				ctx.Engine.Contexts[importPath] = childCtx
+
+				// Execution here follows updating ctx.Engine.Contexts
+				// to behave correctly in the case where A loads B loads A again,
+				// and still only import one instance of A.
+				childCtx.ExecPath(importPath)
+			}
 
 			return CompositeValue(childCtx.Frame.vt), nil
 		}
