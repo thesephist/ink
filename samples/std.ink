@@ -279,15 +279,21 @@ readFile := (path, callback) => (
 	we'll address that if/when it becomes a performance issue `
 writeFile := (path, data, callback) => (
 	sent := [false]
-	write(path, 0, data, evt => (
-		sent.0 :: {false -> (
-			sent.0 := true
-			evt.type :: {
-				'error' -> callback(())
-				'end' -> callback(true)
-			}
-		)}
-	))
+	` write() by itself will not truncate files that are too long,
+		so we delete the file and re-write. Not efficient, but writeFile
+		is not meant for large files `
+	delete(path, evt => evt.type :: {
+		'end' -> write(path, 0, data, evt => (
+			sent.0 :: {false -> (
+				sent.0 := true
+				evt.type :: {
+					'error' -> callback(())
+					'end' -> callback(true)
+				}
+			)}
+		))
+		_ -> callback(())
+	})
 )
 
 ` template formatting with {{ key }} constructs `
