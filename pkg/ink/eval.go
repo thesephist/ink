@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+const MaxPrintLen = 120
+
 // Value represents any value in the Ink programming language.
 // Each value corresponds to some primitive or object value created
 // during the execution of an Ink program.
@@ -142,7 +144,7 @@ type CompositeValue ValueTable
 func (v CompositeValue) String() string {
 	entries := make([]string, 0, len(v))
 	for key, val := range v {
-		entries = append(entries, fmt.Sprintf("%s: %s", key, val.String()))
+		entries = append(entries, fmt.Sprintf("%s: %s", key, val))
 	}
 	return "{" + strings.Join(entries, ", ") + "}"
 }
@@ -180,11 +182,10 @@ func (v FunctionValue) String() string {
 	// ellipsize function body at a reasonable length,
 	// so as not to be too verbose in repl environments
 	fstr := v.defn.String()
-	if len(fstr) < 120 {
-		return fstr
-	} else {
-		return v.defn.String()[:120] + ".."
+	if len(fstr) > MaxPrintLen {
+		fstr = fstr[:MaxPrintLen] + ".."
 	}
+	return fstr
 }
 
 func (v FunctionValue) Equals(other Value) bool {
@@ -897,7 +898,16 @@ func (frame *StackFrame) Up(name string, val Value) {
 }
 
 func (frame *StackFrame) String() string {
-	return fmt.Sprintf("%s -prnt-> (%s)", frame.vt, frame.parent)
+	entries := make([]string, 0, len(frame.vt))
+	for k, v := range frame.vt {
+		vstr := v.String()
+		if len(vstr) > MaxPrintLen {
+			vstr = vstr[:MaxPrintLen] + ".."
+		}
+		entries = append(entries, fmt.Sprintf("%s -> %s", k, vstr))
+	}
+
+	return fmt.Sprintf("{\n\t%s\n} -prnt-> %s", strings.Join(entries, "\n\t"), frame.parent)
 }
 
 // Engine is a single global context of Ink program execution.
@@ -998,7 +1008,7 @@ type DebugConfig struct {
 
 // Dump prints the current state of the Context's global heap
 func (ctx *Context) Dump() {
-	LogDebug("frame dump ->", ctx.Frame.String())
+	LogDebug("frame dump", ctx.Frame.String())
 }
 
 func (ctx *Context) resetWd() {

@@ -24,6 +24,10 @@ run:
 		samples/prompt.ink
 
 
+repl:
+	${RUN} -repl
+
+
 # run just the minimal test suite
 test-mini:
 	${RUN} samples/test.ink

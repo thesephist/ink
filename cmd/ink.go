@@ -12,9 +12,9 @@ import (
 	"github.com/thesephist/ink/pkg/ink"
 )
 
-const VERSION = "0.1.6"
+const Version = "0.1.6"
 
-const HELP_MSG = `
+const HelpMessage = `
 Ink is a minimal, powerful, functional programming language.
 	ink v%s
 
@@ -32,7 +32,7 @@ Run from the command line with -eval.
 
 func main() {
 	flag.Usage = func() {
-		fmt.Printf(HELP_MSG, VERSION)
+		fmt.Printf(HelpMessage, Version)
 		flag.PrintDefaults()
 	}
 
@@ -62,7 +62,7 @@ func main() {
 
 	// if asked for version, disregard everything else
 	if *version {
-		fmt.Println("ink", VERSION)
+		fmt.Printf("ink v%s\n", Version)
 		os.Exit(0)
 	} else if *help {
 		flag.Usage()
@@ -88,10 +88,19 @@ func main() {
 	if *repl {
 		ctx := eng.CreateContext()
 
+		// add repl-specific builtins
+		ctx.LoadFunc("clear", func(ctx *ink.Context, in []ink.Value) (ink.Value, error) {
+			fmt.Printf("[2J[H")
+			return ink.NullValue{}, nil
+		})
+		ctx.LoadFunc("dump", func(ctx *ink.Context, in []ink.Value) (ink.Value, error) {
+			ctx.Dump()
+			return ink.NullValue{}, nil
+		})
+
 		// run interactively in a repl
 		reader := bufio.NewReader(os.Stdin)
 
-	replLoop:
 		for {
 			// green arrow
 			fmt.Printf(ink.ANSI_GREEN_BOLD + "> " + ink.ANSI_RESET)
@@ -102,25 +111,15 @@ func main() {
 			} else if err != nil {
 				ink.LogErrf(
 					ink.ErrSystem,
-					"unexpected end to input:\n\t-> %s", err.Error(),
+					"unexpected end of input:\n\t-> %s", err.Error(),
 				)
 			}
 
-			switch {
-			// specialized introspection / observability directives
-			//	in repl session
-			case strings.HasPrefix(text, "@dump"):
-				ctx.Dump()
-			case strings.HasPrefix(text, "@clear"):
-				fmt.Printf("[2J[H")
-			case strings.HasPrefix(text, "@exit"):
-				break replLoop
-
-			default:
-				val, _ := ctx.Exec(strings.NewReader(text))
-				if val != nil {
-					ink.LogInteractive(val.String())
-				}
+			// we don't really care if expressions fail to eval
+			// at the top level, user will see regardless, so drop err
+			val, _ := ctx.Exec(strings.NewReader(text))
+			if val != nil {
+				ink.LogInteractive(val.String())
 			}
 		}
 
