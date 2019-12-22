@@ -781,6 +781,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ErrRuntime,
 			fmt.Sprintf("callback to listen() should return a response, got %s", resp),
 		})
+		return
 	}
 
 	// unmarshal response from the return value
@@ -798,6 +799,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ErrRuntime,
 			fmt.Sprintf("callback to listen() returned malformed response, %s", rsp),
 		})
+		return
 	}
 
 	// write values to response
@@ -810,9 +812,23 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				ErrRuntime,
 				fmt.Sprintf("could not set response header, value %s was not a string", v),
 			})
+			return
 		}
 	}
-	// must follow all other header writes
+
+	code := int(resStatus)
+	// guard against invalid HTTP codes, which cause Go panics.
+	// https://golang.org/src/net/http/server.go
+	if code < 100 || code > 599 {
+		ctx.LogErr(Err{
+			ErrRuntime,
+			fmt.Sprintf("could not set response status code, code %d is not valid", code),
+		})
+		return
+	}
+
+	// status code write must follow all other header writes,
+	// since it sends the status
 	w.WriteHeader(int(resStatus))
 	_, err := w.Write(resBody)
 	if err != nil {
