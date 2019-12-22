@@ -667,7 +667,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		}
 
 		// delete
-		err := os.Remove(string(filePath))
+		err := os.RemoveAll(string(filePath))
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, errMsg(
