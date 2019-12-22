@@ -72,6 +72,7 @@ syntax keyword inkBuiltin delete contained
 syntax keyword inkBuiltin listen contained
 syntax keyword inkBuiltin req contained
 syntax keyword inkBuiltin rand contained
+syntax keyword inkBuiltin urand contained
 syntax keyword inkBuiltin time contained
 syntax keyword inkBuiltin wait contained
 syntax keyword inkBuiltin exec contained

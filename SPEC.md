@@ -161,6 +161,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `req(composite, callback) => callback`: Send an HTTP client request. `url` is required, `method`, `headers`, `body` are optional and default to their sensible zero values.
 - `wait(number, callback)`: Call the callback function after at least the given number of seconds has elapsed.
 - `rand() => number`: a pseudorandom floating point number in interval `[0, 1)`.
+- `urand(length) => string`: a string of given length containing random bits, safe for cryptography work
 - `time() => number`: number of seconds in floating point in UNIX epoch.
 - `exec(string, [list], string, callback) => callback`: Exec the command at a given path with given arguments, with a given stdin, call given callback with stdout when exited.
 

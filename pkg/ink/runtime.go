@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -59,6 +60,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("listen", inkListen)
 	ctx.LoadFunc("req", inkReq)
 	ctx.LoadFunc("rand", inkRand)
+	ctx.LoadFunc("urand", inkUrand)
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
 	ctx.LoadFunc("exec", inkExec)
@@ -1091,6 +1093,31 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 func inkRand(ctx *Context, in []Value) (Value, error) {
 	return NumberValue(rand.Float64()), nil
+}
+
+func inkUrand(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("urand() expects one argument: length, but got %d", len(in)),
+		}
+	}
+
+	bufLength, isNum := in[0].(NumberValue)
+	if !isNum || bufLength < 0 {
+		return nil, Err{
+			ErrRuntime,
+			"unsupported combination of argument types in urand()",
+		}
+	}
+
+	buf := make([]byte, int64(float64(bufLength)))
+	_, err := crand.Read(buf)
+	if err != nil {
+		return NullValue{}, nil
+	}
+
+	return StringValue(buf), nil
 }
 
 func inkTime(ctx *Context, in []Value) (Value, error) {

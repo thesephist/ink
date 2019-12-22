@@ -8,7 +8,7 @@ map := std.map
 
 uuid := () => (
 	` generate 16 random bytes `
-	r := map(range(0, 16, 1), () => floor(rand() * 256))
+	r := map(urand(16), b => point(b))
 
 	` helper to map numbers to uniform hexadecimals `
 	x := i => (
