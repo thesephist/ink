@@ -402,6 +402,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 						"name": statPathCopy,
 						"len":  NumberValue(0),
 						"dir":  BooleanValue(false),
+						"mod":  NumberValue(0),
 					},
 				})
 				cbMaybeErr(err)
@@ -437,6 +438,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 					"name": StringValue(fi.Name()),
 					"len":  NumberValue(fi.Size()),
 					"dir":  BooleanValue(fi.IsDir()),
+					"mod":  NumberValue(fi.ModTime().Unix()),
 				},
 			})
 			cbMaybeErr(err)

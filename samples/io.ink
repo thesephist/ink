@@ -85,9 +85,10 @@ each(['.', 'samples', 'README.md', 'fake.txt'], path => stat(path, evt => evt.ty
 	'error' -> log('Error stat ' + path + ': ' + evt.message)
 	'data' -> evt.data :: {
 		() -> log(f('{{ path }} does not exist', {path: path}))
-		_ -> log(f('{{ name }}{{ sep }}: {{ len }}B', {
+		_ -> log(f('{{ name }}{{ sep }}: {{ len }}B mod:{{ mod }}', {
 			name: evt.data.name
 			len: evt.data.len
+			mod: evt.data.mod
 			sep: evt.data.dir :: {
 				true -> '/'
 				false -> ''
