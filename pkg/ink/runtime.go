@@ -340,7 +340,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 			return
 		}
 
-		err := os.Mkdir(string(dirPath), 0755)
+		err := os.MkdirAll(string(dirPath), 0755)
 		if err != nil {
 			ctx.ExecListener(func() {
 				_, err := evalInkFunction(cb, false, errMsg(
