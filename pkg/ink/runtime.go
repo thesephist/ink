@@ -1227,7 +1227,10 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 				return
 			}
 
-			_, err := evalInkFunction(stdoutFn, false, StringValue(""))
+			_, err := evalInkFunction(stdoutFn, false, CompositeValue{
+				"type": StringValue("data"),
+				"data": StringValue(""),
+			})
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,
@@ -1256,9 +1259,9 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 	cmd.Stdin = strings.NewReader(string(stdin))
 	cmd.Stdout = &stdout
 
-	sendErr := func() {
+	sendErr := func(msg string) {
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(stdoutFn, false, BooleanValue(false))
+			_, err := evalInkFunction(stdoutFn, false, errMsg(msg))
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,
@@ -1274,24 +1277,27 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 		cmdMutex.Unlock()
 
 		if err != nil {
-			sendErr()
+			sendErr(fmt.Sprintf("error starting command in exec(), %s", err.Error()))
 			return
 		}
 
 		err = cmd.Wait()
 		if err != nil {
-			sendErr()
+			sendErr(fmt.Sprintf("error waiting for command to exit in exec(), %s", err.Error()))
 			return
 		}
 
 		output, err := ioutil.ReadAll(&stdout)
 		if err != nil {
-			sendErr()
+			sendErr(fmt.Sprintf("error reading command output in exec(), %s", err.Error()))
 			return
 		}
 
 		ctx.ExecListener(func() {
-			_, err := evalInkFunction(stdoutFn, false, StringValue(output))
+			_, err := evalInkFunction(stdoutFn, false, CompositeValue{
+				"type": StringValue("data"),
+				"data": StringValue(output),
+			})
 			if err != nil {
 				ctx.LogErr(Err{
 					ErrRuntime,

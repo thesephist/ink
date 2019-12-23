@@ -5,30 +5,38 @@ std := load('std')
 
 log := std.log
 
+handleExec := evt => evt.type :: {
+	'error' -> log(evt.message)
+	_ -> out(evt.data)
+}
+
 ` runs without problems `
 log('See: Hello, World!')
-exec('echo', ['Hello, World!'], '', s => out(s))
+exec('echo', ['Hello, World!'], '', handleExec)
 
 ` swallows stdout correctly `
 log('See: nothing')
-exec('echo', ['Hello, World!'], '', s => ())
+exec('echo', ['Hello, World!'], '', evt => evt.type :: {
+	'error' -> log(evt.message)
+	_ -> ()
+})
 
 ` sets args correctly `
 log('See: Goodbye, World!')
-exec('echo', ['Goodbye,', 'World!'], '', s => out(s))
+exec('echo', ['Goodbye,', 'World!'], '', handleExec)
 
 ` runs commands at full paths `
 log('See: Hello, Echo!')
-exec('/bin/echo', ['Hello, Echo!'], '', s => out(s))
+exec('/bin/echo', ['Hello, Echo!'], '', handleExec)
 
 ` interprets stdin correctly `
 log('See: lovin-pasta')
-exec('cat', [], 'lovin-pasta', s => out(s))
+exec('cat', [], 'lovin-pasta', handleExec)
 
 ` closes immediately after exec `
 (
 	log('Should close immediately after exec safely (may not run):')
-	close := exec('sleep', ['10'], '', s => log('Closed immediately after exec safely!'))
+	close := exec('sleep', ['10'], '', _ => log('Closed immediately after exec safely!'))
 	close()
 
 	` multiple closes do not fail `
@@ -39,7 +47,7 @@ exec('cat', [], 'lovin-pasta', s => out(s))
 ` closes during execution `
 (
 	log('Should close during execution safely:')
-	close := exec('sleep', ['5'], '', s => log('Closed during execution safely!'))
+	close := exec('sleep', ['5'], '', _ => log('Closed during execution safely!'))
 	wait(1, () => close())
 
 	` multiple closes do not fail `
@@ -49,7 +57,7 @@ exec('cat', [], 'lovin-pasta', s => out(s))
 ` closes after execution `
 (
 	log('Should exit safely, then close:')
-	close := exec('sleep', ['1'], '', s => log('Exited safely!'))
+	close := exec('sleep', ['1'], '', _ => log('Exited safely!'))
 	wait(2, () => (
 		close()
 		log('Closed!')
