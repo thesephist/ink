@@ -12,7 +12,7 @@ import (
 	"github.com/thesephist/ink/pkg/ink"
 )
 
-const Version = "0.1.6"
+const Version = "0.1.7"
 
 const HelpMessage = `
 Ink is a minimal, powerful, functional programming language.
@@ -132,26 +132,19 @@ func main() {
 		ctx.Exec(strings.NewReader(*eval))
 		eng.Listeners.Wait()
 	} else if len(files) > 0 {
-		// read from file
-		for _, filePath := range files {
-			// execution context is one-per-file
-			ctx := eng.CreateContext()
+		filePath := files[0]
+		ctx := eng.CreateContext()
 
-			// expand out ~ for $HOME, which is not done by shells
-			if strings.HasPrefix(filePath, "~"+string(os.PathSeparator)) {
-				filePath = os.Getenv("HOME") + string(os.PathSeparator) + filePath[2:]
-			}
-
-			// canonicalize relative paths, but not absolute ones
-			if !path.IsAbs(filePath) {
-				filePath = path.Join(ctx.Cwd, filePath)
-			}
-
-			ctx.ExecPath(filePath)
-
-			// Wait per-file -- finish all callbacks on one file before moving to the next
-			eng.Listeners.Wait()
+		// expand out ~ to $HOME and canonicalize relative paths
+		if strings.HasPrefix(filePath, "~"+string(os.PathSeparator)) {
+			filePath = os.Getenv("HOME") + string(os.PathSeparator) + filePath[2:]
 		}
+		if !path.IsAbs(filePath) {
+			filePath = path.Join(ctx.Cwd, filePath)
+		}
+
+		ctx.ExecPath(filePath)
+		eng.Listeners.Wait()
 	} else {
 		ctx := eng.CreateContext()
 		eng.FatalError = true
