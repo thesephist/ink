@@ -49,6 +49,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("load", inkLoad)
 
 	// system interfaces
+	ctx.LoadFunc("args", inkArgs)
 	ctx.LoadFunc("in", inkIn)
 	ctx.LoadFunc("out", inkOut)
 	ctx.LoadFunc("dir", inkDir)
@@ -141,6 +142,14 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 		ErrRuntime,
 		"load() takes one string argument, without the .ink suffix",
 	}
+}
+
+func inkArgs(ctx *Context, in []Value) (Value, error) {
+	comp := CompositeValue{}
+	for i, v := range os.Args {
+		comp[nToS(float64(i))] = StringValue(v)
+	}
+	return comp, nil
 }
 
 func inkIn(ctx *Context, in []Value) (Value, error) {

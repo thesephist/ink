@@ -61,6 +61,7 @@ highlight link inkIdentifier Identifier
 syntax match builtinFunctionCall "\v[A-Za-z@!?][A-Za-z0-9@!?]*\(" contains=inkIdentifier,inkBuiltin,inkDelim
 syntax keyword inkBuiltin load contained
 
+syntax keyword inkBuiltin args contained
 syntax keyword inkBuiltin in contained
 syntax keyword inkBuiltin out contained
 syntax keyword inkBuiltin dir contained

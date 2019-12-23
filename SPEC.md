@@ -149,6 +149,7 @@ These are the right primitives, but we can build much more sophisticated systems
 
 ### System interfaces
 
+- `args() => list`: argv of the currently running process
 - `in(callback<string> => boolean)`: Read from stdin. The callback function returns a boolean that determines whether to continue reading from input.
 - `out(string)`: Print to stdout.
 - `dir(string, callback<list>)`: List the contents of a directory. The callback gets a list of values of the form `{name: string, len: number, dir: boolean}`. Effectively `stat()` for all files in the directory.

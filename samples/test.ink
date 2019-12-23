@@ -1071,5 +1071,18 @@ m('load() import semantics')
 		A = B, false)
 )
 
+m('args() list')
+(
+	hasSuffix? := str.hasSuffix?
+
+	as := args()
+	t('args() returns a list'
+		type(as), 'composite')
+	t('first item in args() is the Ink executable'
+		hasSuffix?(as.0, 'ink'), true)
+	t('second item in args() is the test script'
+		hasSuffix?(as.1, 'test.ink'), true)
+)
+
 ` end test suite, print result `
 (s.end)()
