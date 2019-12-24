@@ -32,7 +32,6 @@ syntax match inkOp "\v\>"
 syntax match inkOp "\v\="
 syntax match inkOp "\v\."
 syntax match inkOp "\v\:\="
-syntax keyword inkOp is
 highlight link inkOp Operator
 
 " match
