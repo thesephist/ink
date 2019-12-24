@@ -4,7 +4,7 @@
 
 - [ ] Potential room for optimizations:
     - Reducing memory allocations. Specifically, pooling `StackFrame` and other function call-related data structures to reduce allocations.
-    - Optimized tail recursion unwrapping that doesn't require cost of wrapping and then immediatley unwrapping thunks.
+    - Optimized tail recursion unwrapping that doesn't require cost of wrapping and then immediately unwrapping thunks.
     - Cache locality for data structures (stack-local variables?)
 - [ ] Implement go-fuzz to fuzz test the whole toolchain
     - go-fuzz talk: http://go-talks.appspot.com/github.com/dvyukov/go-fuzz/slides/go-fuzz.slide#1
@@ -13,11 +13,7 @@
     2. mandelbrot.ink (typical compute-heavy workload)
 - [ ] Implement the concurrency system (`send()`, `receive()`, `create()` builtins) as described in the language spec.
 - [ ] Make the interpreter a Homebrew brew tap
-- [ ] Ink -> JavaScript in JS and/or an Ink interpreter in JS and maybe ship it as a javascript compiler? Great for
-    1. correctness checking against Go implementation
-    2. writing web code
-    3. having a second independent implementation of the language
-    - If we have ink in go and JS we can fuzz both together which allows us to also test for correctness better
+- [ ] Run Ink on Windows, ensure core functionality + builtins work out of the box and document any non-POSIX interfaces or discrepancies
 - [ ] --no-color option for piping output to another application / for scripting use (e.g. inker).
 
 
@@ -36,4 +32,3 @@
 
 - [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
 - [ ] The Knuth/McIlroy test -- read a text file (stream), find the top N most frequent words and print it.
-- [ ] Math guessing game, but where we show you a product of two 2x2 or 2x3 digit numbers and you have to guess the output. It should ask you to retry until you get it.
