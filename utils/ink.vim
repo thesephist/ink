@@ -7,8 +7,10 @@ if exists("b:current_syntax")
     finish
 endif
 
-" ink syntax highlight definition for vi/vim
-syntax sync fromstart
+" ink syntax definition for vi/vim
+
+" prefer hard tabs
+set noexpandtab
 
 " case
 syntax match inkLabel "\v\:"
