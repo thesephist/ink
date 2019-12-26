@@ -140,7 +140,7 @@ handleStat := (url, path, data, end, getElapsed) => data :: {
 			}
 		})
 	)
-	{dir: true, name: _, len: _} -> dirPath?(path) :: {
+	{dir: true, name: _, len: _, mod: _} -> dirPath?(path) :: {
 		true -> handleDir(url, path, data, end, getElapsed)
 		false -> (
 			log(f('  -> {{ url }} returned redirect to {{ url }}/ in {{ ms }}ms', {
@@ -156,7 +156,12 @@ handleStat := (url, path, data, end, getElapsed) => data :: {
 			})
 		)
 	}
-	{dir: false, name: _, len: _} -> readFile(path, data => handleFileRead(url, path, data, end, getElapsed))
+	{dir: false, name: _, len: _, mod: _} -> readFile(path, data => handleFileRead(url, path, data, end, getElapsed))
+	_ -> end({
+		status: 500
+		headers: hdr({})
+		body: 'server invariant violation'
+	})
 }
 
 ` handles requests to readFile() `
@@ -208,8 +213,13 @@ handleDir := (url, path, data, end, getElapsed) => (
 		'data' -> evt.data :: {
 			() -> handleExistingDir(url, path, end, getElapsed)
 			` in the off chance that /index.html is a dir, just render index `
-			{dir: true, name: _, len: _} -> handleExistingDir(url, path, end, getElapsed)
-			{dir: false, name: _, len: _} -> handlePath(url, ipath, end, getElapsed)
+			{dir: true, name: _, len: _, mod: _} -> handleExistingDir(url, path, end, getElapsed)
+			{dir: false, name: _, len: _, mod: _} -> handlePath(url, ipath, end, getElapsed)
+			_ -> end({
+				status: 500
+				headers: hdr({})
+				body: 'server invariant violation'
+			})
 		}
 	})
 )
