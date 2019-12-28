@@ -82,6 +82,7 @@ A few quirks of this syntax, and notes about the language:
 - Ink allows boolean algebra with both logical/bitwise (`&|^`) and algebraic (`+*~`) operators, and which one is used depends on context.
     - Notably, Ink does not lazy-evaluate logical operators. That means, given `A & B` or `A | B`, both operands are _always evaluated_. This seems simpler and leaves less room for abuse of logical operators in the style of JavaScript's `&&` used as a conditional. I might change my mind on this in the future, but seems like unnecessary complexity at the moment.
 - The only control flow constructs are the function call and the match expression (`a :: {b -> c...}`), and the only control flow construct that branches the execution flow is the match expression. This makes Ink programs simple to analyze programmatically and simple to audit manually.
+- Ink does not have constants or immutable variables guaranteed by the language. By convention, constants are denoted with identifiers starting with an uppercase letter, like `RootFS`, and mutable variables are denoted otherwise, like `checkCounter`.
 
 ## Types
 
