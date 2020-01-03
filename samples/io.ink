@@ -100,5 +100,5 @@ each(['.', 'samples', 'README.md', 'fake.txt'], path => stat(path, evt => evt.ty
 ` test dir(): list all samples and file sizes `
 dir('./samples', evt => evt.type :: {
 	'error' -> log('Error listing samples: ' + evt.message)
-	'data' -> log(stringList(map(evt.data, file => f('{{ name }} ({{ len}}B)', file))))
+	'data' -> log(stringList(map(evt.data, file => f('{{ name }} ({{ len }}B mod:{{ mod }})', file))))
 })
