@@ -285,6 +285,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 				"name": StringValue(fi.Name()),
 				"len":  NumberValue(fi.Size()),
 				"dir":  BooleanValue(fi.IsDir()),
+				"mod":  NumberValue(fi.ModTime().Unix()),
 			}
 		}
 
