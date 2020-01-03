@@ -1284,8 +1284,13 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 
 		err = cmd.Wait()
 		if err != nil {
-			sendErr(fmt.Sprintf("error waiting for command to exit in exec(), %s", err.Error()))
-			return
+			// if there is an err but err is just ExitErr, this means
+			// the process ran successfully but exited with an error code.
+			// We consider this ok and keep going.
+			if _, isExitErr := err.(*exec.ExitError); !isExitErr {
+				sendErr(fmt.Sprintf("error waiting for command to exit in exec(), %s", err.Error()))
+				return
+			}
 		}
 
 		output, err := ioutil.ReadAll(&stdout)
