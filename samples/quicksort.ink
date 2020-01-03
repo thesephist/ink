@@ -24,7 +24,7 @@ partition := (list, lo, hi) => (
 		i: lo
 	}
 
-	jLoop := j => j :: {
+	loop := j => j :: {
 		hi -> ()
 		_ -> (
 			list.(j) < pivot :: {
@@ -33,11 +33,11 @@ partition := (list, lo, hi) => (
 					acc.i := acc.i + 1
 				)
 			}
-			jLoop(j + 1)
+			loop(j + 1)
 		)
 	}
 	
-	jLoop(lo)
+	loop(lo)
 
 	swap(list, acc.i, hi)
 	acc.i
