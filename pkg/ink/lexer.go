@@ -8,6 +8,8 @@ import (
 	"unicode"
 )
 
+// Kind is the sum type of all possible types
+// of tokens in an Ink program
 type Kind int
 
 const (

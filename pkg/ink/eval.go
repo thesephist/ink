@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-const MaxPrintLen = 120
+const maxPrintLen = 120
 
 // Value represents any value in the Ink programming language.
 // Each value corresponds to some primitive or object value created
@@ -35,9 +35,9 @@ func isIntable(n NumberValue) bool {
 func nToS(f float64) string {
 	if i := int64(f); f == float64(i) {
 		return strconv.FormatInt(i, 10)
-	} else {
-		return strconv.FormatFloat(f, 'f', 8, 64)
 	}
+
+	return strconv.FormatFloat(f, 'f', 8, 64)
 }
 
 // nToS for NumberValue type
@@ -72,9 +72,9 @@ func (v NumberValue) Equals(other Value) bool {
 
 	if ov, ok := other.(NumberValue); ok {
 		return v == ov
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // StringValue represents all characters and strings in Ink
@@ -93,9 +93,9 @@ func (v StringValue) Equals(other Value) bool {
 
 	if ov, ok := other.(StringValue); ok {
 		return bytes.Equal(v, ov)
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // BooleanValue is either `true` or `false`
@@ -116,9 +116,9 @@ func (v BooleanValue) Equals(other Value) bool {
 
 	if ov, ok := other.(BooleanValue); ok {
 		return v == ov
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // NullValue is a value that only exists at the type level,
@@ -166,9 +166,9 @@ func (v CompositeValue) Equals(other Value) bool {
 			}
 		}
 		return true
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // FunctionValue is the value of any variables referencing functions
@@ -182,8 +182,8 @@ func (v FunctionValue) String() string {
 	// ellipsize function body at a reasonable length,
 	// so as not to be too verbose in repl environments
 	fstr := v.defn.String()
-	if len(fstr) > MaxPrintLen {
-		fstr = fstr[:MaxPrintLen] + ".."
+	if len(fstr) > maxPrintLen {
+		fstr = fstr[:maxPrintLen] + ".."
 	}
 	return fstr
 }
@@ -197,9 +197,9 @@ func (v FunctionValue) Equals(other Value) bool {
 		// to compare structs containing slices, we really want
 		// a pointer comparison, not a value comparison
 		return v.defn == ov.defn
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // FunctionCallThunkValue is an internal representation of a lazy
@@ -222,9 +222,9 @@ func (v FunctionCallThunkValue) Equals(other Value) bool {
 		// to compare structs containing slices, we really want
 		// a pointer comparison, not a value comparison
 		return &v.vt == &ov.vt && &v.function == &ov.function
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // unwrapThunk expands out a recursive structure of thunks
@@ -408,12 +408,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			left, err := n.leftOperand.Eval(frame, false)
 			if err != nil {
 				return nil, err
-			} else {
-				return nil, Err{
-					ErrRuntime,
-					fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
-						left, poss(n.leftOperand)),
-				}
+			}
+
+			return nil, Err{
+				ErrRuntime,
+				fmt.Sprintf("cannot assign value to non-identifier %s [%s]",
+					left, poss(n.leftOperand)),
 			}
 		}
 	} else if n.operator == AccessorOp {
@@ -431,9 +431,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			v, prs := leftValueComposite[rightValueStr]
 			if prs {
 				return v, nil
-			} else {
-				return NullValue{}, nil
 			}
+
+			return NullValue{}, nil
 		} else if leftString, isString := leftValue.(StringValue); isString {
 			rightNum, err := strconv.ParseInt(rightValueStr, 10, 64)
 			if err != nil {
@@ -447,9 +447,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			rn := int(rightNum)
 			if -1 < rn && rn < len(leftString) {
 				return StringValue([]byte{leftString[rn]}), nil
-			} else {
-				return NullValue{}, nil
 			}
+
+			return NullValue{}, nil
 		} else {
 			return nil, Err{
 				ErrRuntime,
@@ -530,9 +530,9 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 						ErrRuntime,
 						fmt.Sprintf("division by zero error [%s]", poss(n.rightOperand)),
 					}
-				} else {
-					return leftNum / right, nil
 				}
+
+				return leftNum / right, nil
 			}
 		}
 		return nil, Err{
@@ -552,12 +552,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 
 				if isIntable(right) {
 					return NumberValue(int(leftNum) % int(right)), nil
-				} else {
-					return nil, Err{
-						ErrRuntime,
-						fmt.Sprintf("cannot take modulus of non-integer value %s [%s]",
-							nvToS(right), poss(n.leftOperand)),
-					}
+				}
+
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot take modulus of non-integer value %s [%s]",
+						nvToS(right), poss(n.leftOperand)),
 				}
 			}
 		}
@@ -571,12 +571,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if rightNum, ok := rightValue.(NumberValue); ok {
 				if isIntable(leftNum) && isIntable(rightNum) {
 					return NumberValue(int64(leftNum) & int64(rightNum)), nil
-				} else {
-					return nil, Err{
-						ErrRuntime,
-						fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s [%s]",
-							nvToS(rightNum), nvToS(leftNum), poss(n)),
-					}
+				}
+
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s [%s]",
+						nvToS(rightNum), nvToS(leftNum), poss(n)),
 				}
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
@@ -594,12 +594,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if rightNum, ok := rightValue.(NumberValue); ok {
 				if isIntable(leftNum) && isIntable(rightNum) {
 					return NumberValue(int64(leftNum) | int64(rightNum)), nil
-				} else {
-					return nil, Err{
-						ErrRuntime,
-						fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s [%s]",
-							nvToS(rightNum), nvToS(leftNum), poss(n)),
-					}
+				}
+
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s [%s]",
+						nvToS(rightNum), nvToS(leftNum), poss(n)),
 				}
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
@@ -617,12 +617,12 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if rightNum, ok := rightValue.(NumberValue); ok {
 				if isIntable(leftNum) && isIntable(rightNum) {
 					return NumberValue(int64(leftNum) ^ int64(rightNum)), nil
-				} else {
-					return nil, Err{
-						ErrRuntime,
-						fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
-							nvToS(rightNum), nvToS(leftNum), poss(n)),
-					}
+				}
+
+				return nil, Err{
+					ErrRuntime,
+					fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
+						nvToS(rightNum), nvToS(leftNum), poss(n)),
 				}
 			}
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
@@ -710,11 +710,11 @@ func evalInkFunction(fn Value, allowThunk bool, args ...Value) (Value, error) {
 			vt:       argValueTable,
 			function: fnt,
 		}
+
 		if allowThunk {
 			return returnThunk, nil
-		} else {
-			return unwrapThunk(returnThunk)
 		}
+		return unwrapThunk(returnThunk)
 	} else if fnt, isNativeFunc := fn.(NativeFunctionValue); isNativeFunc {
 		return fnt.exec(fnt.ctx, args)
 	} else {
@@ -878,7 +878,7 @@ func (frame *StackFrame) Set(name string, val Value) {
 	frame.vt[name] = val
 }
 
-// Update a value in the stack frame chain
+// Up updates a value in the stack frame chain
 func (frame *StackFrame) Up(name string, val Value) {
 	for frame != nil {
 		_, ok := frame.vt[name]
@@ -901,8 +901,8 @@ func (frame *StackFrame) String() string {
 	entries := make([]string, 0, len(frame.vt))
 	for k, v := range frame.vt {
 		vstr := v.String()
-		if len(vstr) > MaxPrintLen {
-			vstr = vstr[:MaxPrintLen] + ".."
+		if len(vstr) > maxPrintLen {
+			vstr = vstr[:maxPrintLen] + ".."
 		}
 		entries = append(entries, fmt.Sprintf("%s -> %s", k, vstr))
 	}

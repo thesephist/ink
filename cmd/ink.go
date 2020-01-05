@@ -12,9 +12,9 @@ import (
 	"github.com/thesephist/ink/pkg/ink"
 )
 
-const Version = "0.1.7"
+const cliVersion = "0.1.7"
 
-const HelpMessage = `
+const helpMessage = `
 Ink is a minimal, powerful, functional programming language.
 	ink v%s
 
@@ -32,7 +32,7 @@ Run from the command line with -eval.
 
 func main() {
 	flag.Usage = func() {
-		fmt.Printf(HelpMessage, Version)
+		fmt.Printf(helpMessage, cliVersion)
 		flag.PrintDefaults()
 	}
 
@@ -62,7 +62,7 @@ func main() {
 
 	// if asked for version, disregard everything else
 	if *version {
-		fmt.Printf("ink v%s\n", Version)
+		fmt.Printf("ink v%s\n", cliVersion)
 		os.Exit(0)
 	} else if *help {
 		flag.Usage()
@@ -103,7 +103,7 @@ func main() {
 
 		for {
 			// green arrow
-			fmt.Printf(ink.ANSI_GREEN_BOLD + "> " + ink.ANSI_RESET)
+			fmt.Printf(ink.AnsiGreenBold + "> " + ink.AnsiReset)
 			text, err := reader.ReadString('\n')
 
 			if err == io.EOF {

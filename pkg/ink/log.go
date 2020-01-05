@@ -7,19 +7,20 @@ import (
 )
 
 const (
-	ANSI_RESET       = "[0;0m"
-	ANSI_BLUE        = "[34;22m"
-	ANSI_GREEN       = "[32;22m"
-	ANSI_YELLOW      = "[33;22m"
-	ANSI_RED         = "[31;22m"
-	ANSI_BLUE_BOLD   = "[34;1m"
-	ANSI_GREEN_BOLD  = "[32;1m"
-	ANSI_YELLOW_BOLD = "[33;1m"
-	ANSI_RED_BOLD    = "[31;1m"
+	// ANSI terminal escape codes for color output
+	AnsiReset      = "[0;0m"
+	AnsiBlue       = "[34;22m"
+	AnsiGreen      = "[32;22m"
+	ansiYellow     = "[33;22m"
+	AnsiRed        = "[31;22m"
+	AnsiBlueBold   = "[34;1m"
+	AnsiGreenBold  = "[32;1m"
+	AnsiYellowBold = "[33;1m"
+	AnsiRedBold    = "[31;1m"
 )
 
 func LogDebug(args ...string) {
-	fmt.Println(ANSI_BLUE_BOLD + "debug: " + ANSI_BLUE + strings.Join(args, " ") + ANSI_RESET)
+	fmt.Println(AnsiBlueBold + "debug: " + AnsiBlue + strings.Join(args, " ") + AnsiReset)
 }
 
 func LogDebugf(s string, args ...interface{}) {
@@ -27,13 +28,14 @@ func LogDebugf(s string, args ...interface{}) {
 }
 
 func LogInteractive(args ...string) {
-	fmt.Println(ANSI_GREEN + strings.Join(args, " ") + ANSI_RESET)
+	fmt.Println(AnsiGreen + strings.Join(args, " ") + AnsiReset)
 }
 
 func LogInteractivef(s string, args ...interface{}) {
 	LogInteractive(fmt.Sprintf(s, args...))
 }
 
+// LogSafeErr is like LogErr, but does not immediately exit the interpreter
 func LogSafeErr(reason int, args ...string) {
 	errStr := "error"
 	switch reason {
@@ -48,7 +50,7 @@ func LogSafeErr(reason int, args ...string) {
 	default:
 		errStr = "error"
 	}
-	fmt.Fprintln(os.Stderr, ANSI_RED_BOLD+errStr+": "+ANSI_RED+strings.Join(args, " ")+ANSI_RESET)
+	fmt.Fprintln(os.Stderr, AnsiRedBold+errStr+": "+AnsiRed+strings.Join(args, " ")+AnsiReset)
 }
 
 func LogErr(reason int, args ...string) {

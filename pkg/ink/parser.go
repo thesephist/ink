@@ -248,11 +248,11 @@ func guardUnexpectedInputEnd(tokens []Tok, idx int) error {
 				ErrSyntax,
 				fmt.Sprintf("unexpected end of input at %s", tokens[len(tokens)-1]),
 			}
-		} else {
-			return Err{
-				ErrSyntax,
-				fmt.Sprintf("unexpected end of input"),
-			}
+		}
+
+		return Err{
+			ErrSyntax,
+			fmt.Sprintf("unexpected end of input"),
 		}
 	}
 
@@ -489,10 +489,10 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 				clauses:   clauses,
 				position:  colonPos,
 			}, idx, nil
-		} else {
-			consumeDanglingSeparator()
-			return binExpr, idx, nil
 		}
+
+		consumeDanglingSeparator()
+		return binExpr, idx, nil
 
 	case MatchColon:
 		clauses, incr, err := parseMatchBody(tokens[idx:])
@@ -580,9 +580,9 @@ func parseAtom(tokens []Tok) (Node, int, error) {
 			// 	parseFunctionLiteral does because it ends with expressions.
 			// 	so we backtrack one token.
 			return atom, idx - 1, nil
-		} else {
-			return EmptyIdentifierNode{tok.position}, idx, nil
 		}
+
+		return EmptyIdentifierNode{tok.position}, idx, nil
 	case LeftParen:
 		// grouped expression or function literal
 		exprs := make([]Node, 0)

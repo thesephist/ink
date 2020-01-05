@@ -39,9 +39,9 @@ func (v NativeFunctionValue) Equals(other Value) bool {
 
 	if ov, ok := other.(NativeFunctionValue); ok {
 		return v.name == ov.name
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // LoadEnvironment loads all builtins (functions and constants) to a given Context.
@@ -1411,11 +1411,11 @@ func inkPow(ctx *Context, in []Value) (Value, error) {
 			}
 		}
 		return NumberValue(math.Pow(float64(base), float64(exp))), nil
-	} else {
-		return nil, Err{
-			ErrRuntime,
-			fmt.Sprintf("pow() takes exactly 2 number arguments, but got %s, %s", in[0], in[1]),
-		}
+	}
+
+	return nil, Err{
+		ErrRuntime,
+		fmt.Sprintf("pow() takes exactly 2 number arguments, but got %s, %s", in[0], in[1]),
 	}
 }
 
@@ -1507,9 +1507,8 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 		f, err := strconv.ParseFloat(string(v), 64)
 		if err != nil {
 			return NullValue{}, nil
-		} else {
-			return NumberValue(f), nil
 		}
+		return NumberValue(f), nil
 	case NumberValue:
 		return v, nil
 	case BooleanValue:
@@ -1624,7 +1623,7 @@ func inkKeys(ctx *Context, in []Value) (Value, error) {
 	cv := CompositeValue{}
 
 	i := 0
-	for k, _ := range obj {
+	for k := range obj {
 		cv[strconv.Itoa(i)] = StringValue(k)
 		i++
 	}
