@@ -11,6 +11,7 @@ run:
 	./ink samples/graph.ink
 	./ink samples/basic.ink
 	./ink samples/kv.ink
+	./ink samples/html.ink
 	./ink samples/fib.ink
 	./ink samples/newton.ink
 	./ink samples/pi.ink
