@@ -3,17 +3,15 @@
 log := val => out(string(val) + '
 ')
 
-scan := callback => (
+scan := cb => (
 	acc := ['']
-	cb := evt => evt.type :: {
-		'end' -> callback(acc.0)
+	in(evt => evt.type :: {
+		'end' -> cb(acc.0)
 		'data' -> (
-			acc.0 :=
-				acc.0 + slice(evt.data, 0, len(evt.data) - 1)
+			acc.0 := acc.0 + slice(evt.data, 0, len(evt.data) - 1)
 			false
 		)
-	}
-	in(cb)
+	})
 )
 
 ` hexadecimal conversion utility functions `
@@ -249,7 +247,7 @@ encode := str => (
 decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
 
 ` utility for reading an entire file `
-readFile := (path, callback) => (
+readFile := (path, cb) => (
 	BUFSIZE := 4096 ` bytes `
 	sent := [false]
 	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
@@ -257,7 +255,7 @@ readFile := (path, callback) => (
 			evt.type :: {
 				'error' -> (
 					sent.0 := true
-					callback(())
+					cb(())
 				)
 				'data' -> (
 					dataLen := len(evt.data)
@@ -265,7 +263,7 @@ readFile := (path, callback) => (
 						true -> accumulate(offset + dataLen, acc + evt.data)
 						false -> (
 							sent.0 := true
-							callback(acc + evt.data)
+							cb(acc + evt.data)
 						)
 					}
 				)
@@ -277,7 +275,7 @@ readFile := (path, callback) => (
 ` utility for writing an entire file
 	it's not buffered, because it's simpler, but may cause jank later
 	we'll address that if/when it becomes a performance issue `
-writeFile := (path, data, callback) => (
+writeFile := (path, data, cb) => (
 	sent := [false]
 	` write() by itself will not truncate files that are too long,
 		so we delete the file and re-write. Not efficient, but writeFile
@@ -287,12 +285,12 @@ writeFile := (path, data, callback) => (
 			sent.0 :: {false -> (
 				sent.0 := true
 				evt.type :: {
-					'error' -> callback(())
-					'end' -> callback(true)
+					'error' -> cb(())
+					'end' -> cb(true)
 				}
 			)}
 		))
-		_ -> callback(())
+		_ -> cb(())
 	})
 )
 
