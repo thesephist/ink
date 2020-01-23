@@ -8,15 +8,13 @@ import (
 
 const (
 	// ANSI terminal escape codes for color output
-	AnsiReset      = "[0;0m"
-	AnsiBlue       = "[34;22m"
-	AnsiGreen      = "[32;22m"
-	ansiYellow     = "[33;22m"
-	AnsiRed        = "[31;22m"
-	AnsiBlueBold   = "[34;1m"
-	AnsiGreenBold  = "[32;1m"
-	AnsiYellowBold = "[33;1m"
-	AnsiRedBold    = "[31;1m"
+	AnsiReset     = "[0;0m"
+	AnsiBlue      = "[34;22m"
+	AnsiGreen     = "[32;22m"
+	AnsiRed       = "[31;22m"
+	AnsiBlueBold  = "[34;1m"
+	AnsiGreenBold = "[32;1m"
+	AnsiRedBold   = "[31;1m"
 )
 
 func LogDebug(args ...string) {
