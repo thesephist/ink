@@ -8,6 +8,7 @@ if exists("b:current_syntax")
 endif
 
 " ink syntax definition for vi/vim
+syntax sync fromstart
 
 " prefer hard tabs
 set noexpandtab
