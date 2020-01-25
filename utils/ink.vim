@@ -2,7 +2,6 @@
 au BufNewFile,BufRead *.ink set filetype=ink
 
 " place this in $HOME/.vim/syntax/ink.vim
-"  (I have it symlinked)
 if exists("b:current_syntax")
     finish
 endif
@@ -60,7 +59,7 @@ syntax match inkIdentifier "\v_"
 highlight link inkIdentifier Identifier
 
 " builtin functions
-syntax match builtinFunctionCall "\v[A-Za-z@!?][A-Za-z0-9@!?]*\(" contains=inkIdentifier,inkBuiltin,inkDelim
+syntax match builtinFunctionCall "\v[A-Za-z@!?][A-Za-z0-9@!?]*\(" contains=inkIdentifier,inkBuiltin
 syntax keyword inkBuiltin load contained
 
 syntax keyword inkBuiltin args contained
