@@ -13,6 +13,7 @@ run:
 	./ink samples/kv.ink
 	./ink samples/html.ink
 	./ink samples/fib.ink
+	./ink samples/collatz.ink
 	./ink samples/newton.ink
 	./ink samples/pi.ink
 	./ink samples/prime.ink
