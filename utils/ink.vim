@@ -1,7 +1,6 @@
 " place this in the init path (.vimrc)
-au BufNewFile,BufRead *.ink set filetype=ink
+" au BufNewFile,BufRead *.ink set filetype=ink
 
-" place this in $HOME/.vim/syntax/ink.vim
 if exists("b:current_syntax")
     finish
 endif
