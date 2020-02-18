@@ -36,7 +36,7 @@ exec('cat', [], 'lovin-pasta', handleExec)
 ` closes immediately after exec `
 (
 	log('Should close immediately after exec safely (may not run):')
-	close := exec('sleep', ['10'], '', _ => log('Closed immediately after exec safely!'))
+	close := exec('sleep', ['10'], '', () => log('Closed immediately after exec safely!'))
 	close()
 
 	` multiple closes do not fail `
@@ -47,17 +47,17 @@ exec('cat', [], 'lovin-pasta', handleExec)
 ` closes during execution `
 (
 	log('Should close during execution safely:')
-	close := exec('sleep', ['5'], '', _ => log('Closed during execution safely!'))
-	wait(1, () => close())
+	close := exec('sleep', ['5'], '', () => log('Closed during execution safely!'))
+	wait(1, close)
 
 	` multiple closes do not fail `
-	wait(2, () => close())
+	wait(2, close)
 )
 
 ` closes after execution `
 (
 	log('Should exit safely, then close:')
-	close := exec('sleep', ['1'], '', _ => log('Exited safely!'))
+	close := exec('sleep', ['1'], '', () => log('Exited safely!'))
 	wait(2, () => (
 		close()
 		log('Closed!')
