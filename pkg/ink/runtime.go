@@ -1405,6 +1405,13 @@ func inkAsin(ctx *Context, in []Value) (Value, error) {
 		}
 	}
 
+	if inNum > 1 || inNum < -1 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("asin() takes a number in range [-1, 1], got %s", in[0]),
+		}
+	}
+
 	return NumberValue(math.Asin(float64(inNum))), nil
 }
 
@@ -1420,6 +1427,13 @@ func inkAcos(ctx *Context, in []Value) (Value, error) {
 		return nil, Err{
 			ErrRuntime,
 			fmt.Sprintf("acos() takes a number argument, got %s", in[0]),
+		}
+	}
+
+	if inNum > 1 || inNum < -1 {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("acos() takes a number in range [-1, 1], got %s", in[0]),
 		}
 	}
 
