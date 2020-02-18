@@ -69,6 +69,8 @@ func (ctx *Context) LoadEnvironment() {
 	// math
 	ctx.LoadFunc("sin", inkSin)
 	ctx.LoadFunc("cos", inkCos)
+	ctx.LoadFunc("asin", inkAsin)
+	ctx.LoadFunc("acos", inkAcos)
 	ctx.LoadFunc("pow", inkPow)
 	ctx.LoadFunc("ln", inkLn)
 	ctx.LoadFunc("floor", inkFloor)
@@ -1386,6 +1388,42 @@ func inkCos(ctx *Context, in []Value) (Value, error) {
 	}
 
 	return NumberValue(math.Cos(float64(inNum))), nil
+}
+
+func inkAsin(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"sin() takes exactly one number argument",
+		}
+	}
+	inNum, isNum := in[0].(NumberValue)
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("sin() takes a number argument, got %s", in[0]),
+		}
+	}
+
+	return NumberValue(math.Asin(float64(inNum))), nil
+}
+
+func inkAcos(ctx *Context, in []Value) (Value, error) {
+	if len(in) != 1 {
+		return nil, Err{
+			ErrRuntime,
+			"cos() takes exactly one number argument",
+		}
+	}
+	inNum, isNum := in[0].(NumberValue)
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("cos() takes a number argument, got %s", in[0]),
+		}
+	}
+
+	return NumberValue(math.Acos(float64(inNum))), nil
 }
 
 func inkPow(ctx *Context, in []Value) (Value, error) {

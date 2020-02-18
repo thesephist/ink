@@ -173,6 +173,8 @@ These are the right primitives, but we can build much more sophisticated systems
 
 - `sin(number) => number`: sine
 - `cos(number) => number`: cosine
+- `asin(number) => number`: arcsine (inverse sin)
+- `acos(number) => number`: arccosine (inverse cos)
 - `pow(number, number) => number`: power, also stands in for finding roots with exponent < 1
 - `ln(number) => number`: natural log
 - `floor(number) => number`: floor / truncation
