@@ -102,7 +102,7 @@ slice := (str, start, end) => (
 	max := end - start
 	(sub := (i, acc) => i :: {
 		max -> acc
-		_ -> sub(i + 1, acc + str.(start + i))
+		_ -> sub(i + 1, acc.(i) := str.(start + i))
 	})(0, '')
 )
 
