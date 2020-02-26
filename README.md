@@ -8,8 +8,7 @@ Ink is a minimal programming language inspired by modern JavaScript and Go, with
 Ink has a few goals. In order, they are
 
 - Ink should have a simple, minimal syntax and feature set
-- Ink should be quickly readable yet expressive
-- Ink should be easy to learn regardless of skill level
+- Ink should be quickly readable and clear in expression
 - Ink should have a great, fully featured, and modular standard library
 - Ink should have an ergonomic interpreter and runtime API
 
@@ -132,13 +131,7 @@ Ink has a very small surface area to interface with the rest of the interpreter 
 
 To run an Ink program completely untrusted, run `ink -isolate` (with the "isolate" flag), which will revoke all revokable permissions from the running script.
 
-## Development
-
-Ink is currently a single go package. Run `go run .` to run from source, and `go build` to build the release binary.
-
-The `ink` binary takes in scripts from standard input, unless at least one input file is provided, in which case it reads from the filesystem.
-
-### Make
+### Build scripts and Make
 
 Ink uses [GNU Make](https://www.gnu.org/software/make/manual/make.html) to manage build and development processes:
 
