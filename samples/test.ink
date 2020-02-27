@@ -1013,6 +1013,9 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	t('replace works if new substring is empty'
 		replace('wow what a sight, wow', 'wow', '')
 		' what a sight, ')
+	t('replace works even if new str contains recursive match'
+		replace('a {} b {} c {}', '{}', '{}-{}')
+		'a {}-{} b {}-{} c {}-{}')
 
 	split := str.split
 
@@ -1052,6 +1055,8 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 		trimSuffix('xxxyyyyyyyy', 'yyy'), 'xxxyy')
 
 
+	t('trim trims given string from both sides'
+		trim('????what?????', '?'), 'what')
 	t('trim is a no-op with empty string'
 		trim('????what?????', ''), '????what?????')
 	t('trim trims whole multiples of substring from both sides'
