@@ -20,9 +20,3 @@
     - Enforce mutability restrictions at the type level -- variables are (deeply) immutable by default, must be marked as mutable to allow mutation. This also improves functional ergonomics of the language.
     - Potential type annotation: `myVar<type>` (`myVar` is of type `type`), `myFunc<string, boolean => {number}>` (`myFunc` is of type function mapping `string`, `boolean` to type composite of `number`)
 - [ ] Add to [GitHub Linguist](https://github.com/github/linguist)
-
-
-## Potential examples / projects
-
-- [ ] Markdown parser (or, a reduced subset of Markdown to HTML)
-- [ ] The Knuth/McIlroy test -- read a text file (stream), find the top N most frequent words and print it.
