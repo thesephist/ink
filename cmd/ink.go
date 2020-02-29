@@ -71,7 +71,7 @@ func main() {
 
 	// if no files given and no stdin, default to repl
 	stdinStat, _ := os.Stdin.Stat()
-	if len(files) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 {
+	if len(files) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 && *eval == "" {
 		*repl = true
 	}
 
