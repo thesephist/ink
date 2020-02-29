@@ -22,9 +22,9 @@ By default, ink interprets from stdin.
 	ink < main.ink
 Run Ink programs from source files by passing it to the interpreter.
 	ink main.ink other.ink
-Start an interactive repl with -repl.
-	ink -repl
-	> ___
+Start an interactive repl.
+	ink
+	>
 Run from the command line with -eval.
 	ink -eval "f := () => out('hi'), f()"
 
@@ -67,6 +67,12 @@ func main() {
 	} else if *help {
 		flag.Usage()
 		os.Exit(0)
+	}
+
+	// if no files given and no stdin, default to repl
+	stdinStat, _ := os.Stdin.Stat()
+	if len(files) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 {
+		*repl = true
 	}
 
 	// execution environment

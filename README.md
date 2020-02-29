@@ -97,7 +97,7 @@ $ cat main.ink | ink
 $ ink < main.ink
 ```
 2. Use `ink main.ink` to execute an Ink script file. You may pass multiple files to execute multiple scripts, like `ink a.ink b.ink`.
-3. Invoke `ink -repl` to start an interactive repl session, and start typing Ink code. You can run files in this context by loading Ink files into the context using the `load` builtin function, like `load('main')`. (Note that we remove the `.ink` file extension when we call `load`.)
+3. Invoke `ink` without flags (or with the optional `-repl` flag) to start an interactive repl session, and start typing Ink code. You can run files in this context by loading Ink files into the context using the `load` builtin function, like `load('main')`. (Note that we remove the `.ink` file extension when we call `load`.)
 
 Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with `ink`, which will then accept this file and run it for you when you execute the file.
 
