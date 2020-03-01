@@ -62,15 +62,15 @@ func main() {
 	// if asked for version, disregard everything else
 	if *version {
 		fmt.Printf("ink v%s\n", cliVersion)
-		os.Exit(0)
+		return
 	} else if *help {
 		flag.Usage()
-		os.Exit(0)
+		return
 	}
 
 	// if no files given and no stdin, default to repl
-	stdinStat, _ := os.Stdin.Stat()
-	if len(args) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 && *eval == "" {
+	stdin, _ := os.Stdin.Stat()
+	if len(args) == 0 && (stdin.Mode()&os.ModeCharDevice) != 0 && *eval == "" {
 		*repl = true
 	}
 
@@ -96,11 +96,11 @@ func main() {
 		// add repl-specific builtins
 		ctx.LoadFunc("clear", func(ctx *ink.Context, in []ink.Value) (ink.Value, error) {
 			fmt.Printf("[2J[H")
-			return ink.NullValue{}, nil
+			return ink.Null, nil
 		})
 		ctx.LoadFunc("dump", func(ctx *ink.Context, in []ink.Value) (ink.Value, error) {
 			ctx.Dump()
-			return ink.NullValue{}, nil
+			return ink.Null, nil
 		})
 
 		// run interactively in a repl
@@ -128,25 +128,24 @@ func main() {
 			}
 		}
 
-		// no need to wait for eng.Listeners, since this part here
-		//	is unreachable
+		// unreachable
 	} else if *eval != "" {
-		ctx := eng.CreateContext()
 		eng.FatalError = true
 
+		ctx := eng.CreateContext()
 		ctx.Exec(strings.NewReader(*eval))
-		eng.Listeners.Wait()
 	} else if len(args) > 0 {
-		filePath := args[0]
-		ctx := eng.CreateContext()
-
-		ctx.ExecPath(filePath)
-		eng.Listeners.Wait()
-	} else {
-		ctx := eng.CreateContext()
 		eng.FatalError = true
 
+		ctx := eng.CreateContext()
+		filePath := args[0]
+		ctx.ExecPath(filePath)
+	} else {
+		eng.FatalError = true
+
+		ctx := eng.CreateContext()
 		ctx.Exec(os.Stdin)
-		eng.Listeners.Wait()
 	}
+
+	eng.Listeners.Wait()
 }
