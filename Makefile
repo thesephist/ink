@@ -19,8 +19,8 @@ run:
 	./ink samples/prime.ink
 	./ink samples/quicksort.ink
 	./ink samples/pingpong.ink
-	./ink samples/undefinedme.ink
-	./ink samples/error.ink
+	./ink samples/undefinedme.ink || true
+	./ink samples/error.ink || true
 	./ink samples/exec.ink
 	# we echo in some input for prompt.ink testing stdin
 	echo 'Linus' | ./ink samples/prompt.ink
