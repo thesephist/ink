@@ -1076,13 +1076,6 @@ func (ctx *Context) Exec(input io.Reader) (Value, error) {
 
 // ExecPath is a convenience function to Exec() a program file in a given Context.
 func (ctx *Context) ExecPath(filePath string) {
-	if !path.IsAbs(filePath) {
-		LogErrf(
-			ErrAssert,
-			"Context.ExecPath expected an absolute path, got something else",
-		)
-	}
-
 	// update Cwd for any potential load() calls this file will make
 	ctx.Cwd = path.Dir(filePath)
 	ctx.File = filePath

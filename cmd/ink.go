@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/thesephist/ink/pkg/ink"
@@ -58,7 +57,7 @@ func main() {
 	flag.Parse()
 
 	// collect all other non-parsed arguments from the CLI as files to be run
-	files := flag.Args()
+	args := flag.Args()
 
 	// if asked for version, disregard everything else
 	if *version {
@@ -71,7 +70,7 @@ func main() {
 
 	// if no files given and no stdin, default to repl
 	stdinStat, _ := os.Stdin.Stat()
-	if len(files) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 && *eval == "" {
+	if len(args) == 0 && (stdinStat.Mode()&os.ModeCharDevice) != 0 && *eval == "" {
 		*repl = true
 	}
 
@@ -137,17 +136,9 @@ func main() {
 
 		ctx.Exec(strings.NewReader(*eval))
 		eng.Listeners.Wait()
-	} else if len(files) > 0 {
-		filePath := files[0]
+	} else if len(args) > 0 {
+		filePath := args[0]
 		ctx := eng.CreateContext()
-
-		// expand out ~ to $HOME and canonicalize relative paths
-		if strings.HasPrefix(filePath, "~"+string(os.PathSeparator)) {
-			filePath = os.Getenv("HOME") + string(os.PathSeparator) + filePath[2:]
-		}
-		if !path.IsAbs(filePath) {
-			filePath = path.Join(ctx.Cwd, filePath)
-		}
 
 		ctx.ExecPath(filePath)
 		eng.Listeners.Wait()
