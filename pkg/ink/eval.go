@@ -24,9 +24,9 @@ type Value interface {
 }
 
 func isIntable(n NumberValue) bool {
-	// XXX: not the most reliable check for int because of int64 range
-	// limitations, but works for now until we nail down Ink's number
-	// spec more rigorously
+	// Note: this returns false for int64 outside of the float64 range,
+	// but that's ok since isIntable is used to check before ops that will
+	// convert values to float64's (NumberValues) anyway
 	return n == NumberValue(int64(n))
 }
 
@@ -83,7 +83,8 @@ type StringValue []byte
 func (v StringValue) String() string {
 	return "'" + strings.ReplaceAll(
 		strings.ReplaceAll(string(v), "\\", "\\\\"),
-		"'", "\\'") + "'"
+		"'", "\\'",
+	) + "'"
 }
 
 func (v StringValue) Equals(other Value) bool {
@@ -123,7 +124,10 @@ func (v BooleanValue) Equals(other Value) bool {
 
 // NullValue is a value that only exists at the type level,
 // and is represented by the empty expression list `()`.
-type NullValue struct{}
+type NullValue byte
+
+// The singleton Null value is interned into a single value
+const Null = NullValue(0)
 
 func (v NullValue) String() string {
 	return "()"
@@ -210,7 +214,7 @@ type FunctionCallThunkValue struct {
 }
 
 func (v FunctionCallThunkValue) String() string {
-	return fmt.Sprintf("Tail Call Thunk of (%s)", v.function)
+	return fmt.Sprintf("Thunk of (%s)", v.function)
 }
 
 func (v FunctionCallThunkValue) Equals(other Value) bool {
@@ -433,7 +437,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return v, nil
 			}
 
-			return NullValue{}, nil
+			return Null, nil
 		} else if leftString, isString := leftValue.(StringValue); isString {
 			rightNum, err := strconv.ParseInt(rightValueStr, 10, 64)
 			if err != nil {
@@ -449,7 +453,7 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				return StringValue([]byte{leftString[rn]}), nil
 			}
 
-			return NullValue{}, nil
+			return Null, nil
 		} else {
 			return nil, Err{
 				ErrRuntime,
@@ -754,14 +758,14 @@ func (n MatchExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 		}
 	}
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func (n ExpressionListNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) {
 	length := len(n.expressions)
 
 	if length == 0 {
-		return NullValue{}, nil
+		return Null, nil
 	}
 
 	callFrame := &StackFrame{
@@ -870,7 +874,7 @@ func (frame *StackFrame) Get(name string) (Value, bool) {
 		frame = frame.parent
 	}
 
-	return NullValue{}, false
+	return Null, false
 }
 
 // Set a value to the most recent call stack frame

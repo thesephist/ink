@@ -172,9 +172,6 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 	ctx.ExecListener(func() {
 		reader := bufio.NewReader(os.Stdin)
 		for {
-			// XXX: currently reads after every newline / return
-			// but should ideally read every character input / keystroke
-			// that would also require stdlib/scan() to change.
 			str, err := reader.ReadString('\n')
 			if err != nil {
 				// also captures io.EOF
@@ -212,14 +209,14 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 		}
 	})
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkOut(ctx *Context, in []Value) (Value, error) {
 	if len(in) >= 1 {
 		if output, ok := in[0].(StringValue); ok {
 			os.Stdout.Write([]byte(output))
-			return NullValue{}, nil
+			return Null, nil
 		}
 	}
 
@@ -300,7 +297,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkMake(ctx *Context, in []Value) (Value, error) {
@@ -362,7 +359,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkStat(ctx *Context, in []Value) (Value, error) {
@@ -419,7 +416,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 				ctx.ExecListener(func() {
 					_, err := evalInkFunction(cb, false, CompositeValue{
 						"type": StringValue("data"),
-						"data": NullValue{},
+						"data": Null,
 					})
 					cbMaybeErr(err)
 				})
@@ -448,7 +445,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkRead(ctx *Context, in []Value) (Value, error) {
@@ -546,7 +543,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkWrite(ctx *Context, in []Value) (Value, error) {
@@ -639,7 +636,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkDelete(ctx *Context, in []Value) (Value, error) {
@@ -702,7 +699,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 // inkHTTPHandler fulfills the Handler interface for inkListen() to work
@@ -768,7 +765,7 @@ func (h inkHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		responseEnded = true
 		responses <- in[0]
 
-		return NullValue{}, nil
+		return Null, nil
 	}
 
 	ctx.ExecListener(func() {
@@ -881,7 +878,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 			name: "close",
 			exec: func(ctx *Context, in []Value) (Value, error) {
 				// fake close callback
-				return NullValue{}, nil
+				return Null, nil
 			},
 			ctx: ctx,
 		}, nil
@@ -929,7 +926,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 			}
 		}()
 
-		return NullValue{}, nil
+		return Null, nil
 	}
 
 	return NativeFunctionValue{
@@ -962,7 +959,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			name: "close",
 			exec: func(ctx *Context, in []Value) (Value, error) {
 				// fake close callback
-				return NullValue{}, nil
+				return Null, nil
 			},
 			ctx: ctx,
 		}, nil
@@ -978,7 +975,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 
 	closer := func(ctx *Context, in []Value) (Value, error) {
 		reqCancel()
-		return NullValue{}, nil
+		return Null, nil
 	}
 
 	sendErr := func(msg string) {
@@ -1128,7 +1125,7 @@ func inkUrand(ctx *Context, in []Value) (Value, error) {
 	buf := make([]byte, int64(float64(bufLength)))
 	_, err := crand.Read(buf)
 	if err != nil {
-		return NullValue{}, nil
+		return Null, nil
 	}
 
 	return StringValue(buf), nil
@@ -1178,7 +1175,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 		})
 	}()
 
-	return NullValue{}, nil
+	return Null, nil
 }
 
 func inkExec(ctx *Context, in []Value) (Value, error) {
@@ -1247,7 +1244,7 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 			exec: func(ctx *Context, in []Value) (Value, error) {
 				// fake close callback
 				closed = true
-				return NullValue{}, nil
+				return Null, nil
 			},
 			ctx: ctx,
 		}, nil
@@ -1336,7 +1333,7 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 		exec: func(ctx *Context, in []Value) (Value, error) {
 			// multiple calls to close() should be idempotent
 			if closed {
-				return NullValue{}, nil
+				return Null, nil
 			}
 
 			neverRun <- true
@@ -1348,7 +1345,7 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 			}
 			cmdMutex.Unlock()
 
-			return NullValue{}, nil
+			return Null, nil
 		},
 		ctx: ctx,
 	}, nil
@@ -1558,7 +1555,7 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	case StringValue:
 		f, err := strconv.ParseFloat(string(v), 64)
 		if err != nil {
-			return NullValue{}, nil
+			return Null, nil
 		}
 		return NumberValue(f), nil
 	case NumberValue:
