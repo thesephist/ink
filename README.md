@@ -3,16 +3,16 @@
 [![GoDoc](https://godoc.org/github.com/thesephist/ink?status.svg)](https://godoc.org/github.com/thesephist/ink)
 [![Build Status](https://travis-ci.com/thesephist/ink.svg?branch=master)](https://travis-ci.com/thesephist/ink)
 
-Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API.
+Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API. Ink is used to write my current personal productivity suite, [Polyx](https://github.com/thesephist/polyx).
 
 Ink has a few goals. In order, they are
 
 - Ink should have a simple, minimal syntax and feature set
 - Ink should be quickly readable and clear in expression
-- Ink should have a great, fully featured, and modular standard library
+- Ink should have a well designed, fully featured, and modular standard library
 - Ink should have an ergonomic interpreter and runtime API
 
-Design is always a game of tradeoffs. Ink's goals for minimalism and readability / expressivity means the language deliberately does not aim to be best in other ways:
+Design is always a game of tradeoffs. Ink's goals for minimalism and readability / expressiveness means the language deliberately does not aim to be best in other ways:
 
 - Ink doesn't need to be highly efficient or fast, especially compared to compiled languages
     - However, within the constraints of the interpreter design, I try not to leave performance on the table, both in execution speed and in memory footprint. Efficiently composed Ink programs are between 2-4x slower than equivalent Python programs, in my experience. Small programs can run on as little as 3MB of memory, while the interpreter can stably scale up to gigabytes of memory for data-heavy tasks.
@@ -90,13 +90,13 @@ You can find more sample code in the `samples/` directory and run them with `ink
 
 You can run Ink in three main ways:
 
-1. The Ink binary `ink` defaults to executing whatever comes through standard input. So you can pipe any Ink script (say, `main.ink`) to the binary to execute it.
+1. The Ink binary `ink` defaults to executing whatever comes through standard input, if there is any, or else starts a repl. So you can pipe any Ink script (say, `main.ink`) to the binary to execute it.
 ```
 $ cat main.ink | ink
 	# or
 $ ink < main.ink
 ```
-2. Use `ink main.ink` to execute an Ink script file. You may pass multiple files to execute multiple scripts, like `ink a.ink b.ink`.
+2. Use `ink main.ink` to execute an Ink script file.
 3. Invoke `ink` without flags (or with the optional `-repl` flag) to start an interactive repl session, and start typing Ink code. You can run files in this context by loading Ink files into the context using the `load` builtin function, like `load('main')`. (Note that we remove the `.ink` file extension when we call `load`.)
 
 Additionally, you can also invoke an Ink script with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)). Mark the _first line_ of your Ink program file with this directive, which tells the operating system to run the program file with `ink`, which will then accept this file and run it for you when you execute the file.
@@ -104,7 +104,7 @@ Additionally, you can also invoke an Ink script with a [shebang](https://en.wiki
 ```ink
 #!/usr/bin/env ink
 
-... the rest of your program
+`` ... the rest of your program
 ```
 
 You can find an example of this in `samples/fileserver.ink`, which you can start by simply running `./samples/fileserver.ink` (without having to specifically call `ink samples/fileserver.ink`).
@@ -202,4 +202,4 @@ func main() {
 
 ### IDE support
 
-Ink currently has a vim syntax definition file, under `utils/ink.vim`. I'm also hoping to support Monaco / VSCode's language definition format soon with LSP support.
+Ink currently has a vim syntax definition file, under `utils/ink.vim`. I'm also hoping to support Monaco / VSCode's language definition format soon with LSP support, but those are on the backburner as I use vim full-time and don't have a personal need for more advanced LSP support.
