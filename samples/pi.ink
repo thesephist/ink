@@ -2,7 +2,11 @@
 
 log := load('std').log
 
-COUNT := 50000
+` take count from CLI, defaulting to 250k `
+Count := (c := number(args().2) :: {
+	0 -> 250000
+	_ -> c
+})
 
 ` pick a random point in [0, 1) in x and y `
 randCoord := () => [rand(), rand()]
@@ -22,9 +26,13 @@ iteration := iterCount => (
 		true -> state.inCount := state.inCount + 1
 	}
 
-	iterCount % 5000 :: {
-		1 -> log(string(iterCount) + ' runs left, Pi at ' +
-			string(4 * state.inCount / (COUNT - iterCount)))
+	` log progress at 100k intervals `
+	iterCount :: {
+		Count -> ()
+		_ -> iterCount % 100000 :: {
+			0 -> log(string(iterCount) + ' runs left, Pi at ' +
+				string(4 * state.inCount / (Count - iterCount)))
+		}
 	}
 )
 
@@ -46,7 +54,7 @@ state := {
 
 ` estimation routine `
 repeatableIteration := loop(iteration)
-repeatableIteration(COUNT) `` do COUNT times
+repeatableIteration(Count) `` do Count times
 
-log('Estimate of Pi after ' + string(COUNT) + ' runs: ' +
-	string(4 * state.inCount / COUNT))
+log('Estimate of Pi after ' + string(Count) + ' runs: ' +
+	string(4 * state.inCount / Count))
