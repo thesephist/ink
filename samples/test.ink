@@ -558,43 +558,42 @@ m('type() builtin function')
 m('std.range/slice/append/join/cat and stringList')
 (
 	stringList := std.stringList
-	sliceList := std.sliceList
 	range := std.range
 	reverse := std.reverse
 	slice := std.slice
 	join := std.join
 	cat := std.cat
 
-	` slice/sliceList returns copies `
+	` slice returns copies `
 	(
 		st := '12345'
 		li := [1, 2, 3, 4, 5]
 
 		stc := slice(st, 0, len(st))
-		lic := sliceList(li, 0, len(li))
+		lic := slice(li, 0, len(li))
 		stc.2 := 'x'
 		lic.2 := 'x'
 
 		t('slice(string) should make a copy', st, '12345')
 		t('slice(string) should return a copy', stc, '12x45')
-		t('sliceList(list) should make a copy', li, [1, 2, 3, 4, 5])
-		t('sliceList(list) should return a copy', lic, [1, 2, 'x', 4, 5])
+		t('slice(list) should make a copy', li, [1, 2, 3, 4, 5])
+		t('slice(list) should return a copy', lic, [1, 2, 'x', 4, 5])
 	)
 
-	sl := (l, s, e) => stringList(sliceList(l, s, e))
+	sl := (l, s, e) => stringList(slice(l, s, e))
 	list := range(10, ~1, ~1)
 	str := 'abracadabra'
 
-	t('sliceList(list)', sl(list, 0, 5), '[10, 9, 8, 7, 6]')
-	t('sliceList with OOB lower bound', sl(list, ~5, 2), '[10, 9]')
-	t('sliceList with OOB upper bound', sl(list, 7, 20), '[3, 2, 1, 0]')
-	t('sliceList with OOB both bounds', sl(list, 20, 1), '[]')
+	t('slice(list)', sl(list, 0, 5), '[10, 9, 8, 7, 6]')
+	t('slice with OOB lower bound', sl(list, ~5, 2), '[10, 9]')
+	t('slice with OOB upper bound', sl(list, 7, 20), '[3, 2, 1, 0]')
+	t('slice with OOB both bounds', sl(list, 20, 1), '[]')
 
 	` redefine list using range and reverse, to t those `
 	list := reverse(range(0, 11, 1))
 
 	t('join() homogeneous lists', stringList(join(
-		sliceList(list, 0, 5), sliceList(list, 5, 200)
+		slice(list, 0, 5), slice(list, 5, 200)
 	)), '[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]')
 	t('join() heterogeneous lists', stringList(join(
 		[1, 2, 3]

@@ -5,7 +5,7 @@ std := load('std')
 log := std.log
 scan := std.scan
 f := std.format
-sliceList := std.sliceList
+slice := std.slice
 map := std.map
 reduce := std.reduce
 filter := std.filter
@@ -88,7 +88,7 @@ checkBoard := bd => (
 			true -> Result.O
 			_ -> (
 				` check if game ended in a tie `
-				takenCells := filter(sliceList(bd, 1, 10), val => ~(val = 0))
+				takenCells := filter(slice(bd, 1, 10), val => ~(val = 0))
 				len(takenCells) :: {
 					9 -> Result.Tie
 					_ -> Result.None
