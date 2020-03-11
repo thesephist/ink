@@ -133,14 +133,10 @@ clone := x => type(x) :: {
 stringList := list => '[' + cat(map(list, string), ', ') + ']'
 
 ` tail recursive reversing a list `
-reverse := list => (
-	state := [len(list) - 1]
-	reduce(list, (acc, item) => (
-		acc.(state.0) := item
-		state.0 := state.0 - 1
-		acc
-	), {})
-)
+reverse := list => (sub := (acc, i, j) => j :: {
+	0 -> acc.(i) := list.0
+	_ -> sub(acc.(i) := list.(j), i + 1, j - 1)
+})([], 0, len(list) - 1)
 
 ` tail recursive map `
 map := (list, f) => reduce(list, (l, item, i) => l.(i) := f(item, i), {})
@@ -169,12 +165,10 @@ reduce := (list, f, acc) => (
 )
 
 ` tail recursive reduce from list end `
-reduceBack := (list, f, acc) => (
-	(sub := (i, acc) => i :: {
-		~1 -> acc
-		_ -> sub(i - 1, f(acc, list.(i), i))
-	})(len(list) - 1, acc)
-)
+reduceBack := (list, f, acc) => (sub := (i, acc) => i :: {
+	~1 -> acc
+	_ -> sub(i - 1, f(acc, list.(i), i))
+})(len(list) - 1, acc)
 
 ` flatten by depth 1 `
 flatten := list => reduce(list, join, [])
@@ -186,15 +180,13 @@ some := list => reduce(list, (acc, x) => acc | x, false)
 every := list => reduce(list, (acc, x) => acc & x, true)
 
 ` concatenate (join) a list of strings into a string `
-cat := (list, joiner) => (
-	max := len(list) :: {
-		0 -> ''
-		_ -> (sub := (i, acc) => i :: {
-			max -> acc
-			_ -> sub(i + 1, acc.len(acc) := joiner + list.(i))
-		})(1, clone(list.0))
-	}
-)
+cat := (list, joiner) => max := len(list) :: {
+	0 -> ''
+	_ -> (sub := (i, acc) => i :: {
+		max -> acc
+		_ -> sub(i + 1, acc.len(acc) := joiner + list.(i))
+	})(1, clone(list.0))
+}
 
 ` for-each loop over a list `
 each := (list, f) => (
@@ -222,51 +214,32 @@ decode := data => reduce(data, (acc, cp) => acc.len(acc) := char(cp), '')
 
 ` utility for reading an entire file `
 readFile := (path, cb) => (
-	BUFSIZE := 4096 ` bytes `
-	sent := [false]
-	(accumulate := (offset, acc) => read(path, offset, BUFSIZE, evt => (
-		sent.0 :: {false -> (
-			evt.type :: {
-				'error' -> (
-					sent.0 := true
-					cb(())
-				)
-				'data' -> (
-					dataLen := len(evt.data)
-					dataLen = BUFSIZE :: {
-						true -> accumulate(offset + dataLen, acc.len(acc) := evt.data)
-						false -> (
-							sent.0 := true
-							cb(acc.len(acc) := evt.data)
-						)
-					}
-				)
+	BufSize := 4096 ` bytes `
+	(sub := (offset, acc) => read(path, offset, BufSize, evt => evt.type :: {
+		'error' -> cb(())
+		'data' -> (
+			dataLen := len(evt.data)
+			dataLen = BufSize :: {
+				true -> sub(offset + dataLen, acc.len(acc) := evt.data)
+				false -> cb(acc.len(acc) := evt.data)
 			}
-		)}
-	)))(0, '')
+		)
+	}))(0, '')
 )
 
 ` utility for writing an entire file
 	it's not buffered, because it's simpler, but may cause jank later
 	we'll address that if/when it becomes a performance issue `
-writeFile := (path, data, cb) => (
-	sent := [false]
+writeFile := (path, data, cb) => delete(path, evt => evt.type :: {
 	` write() by itself will not truncate files that are too long,
 		so we delete the file and re-write. Not efficient, but writeFile
 		is not meant for large files `
-	delete(path, evt => evt.type :: {
-		'end' -> write(path, 0, data, evt => (
-			sent.0 :: {false -> (
-				sent.0 := true
-				evt.type :: {
-					'error' -> cb(())
-					'end' -> cb(true)
-				}
-			)}
-		))
-		_ -> cb(())
+	'end' -> write(path, 0, data, evt => evt.type :: {
+		'error' -> cb(())
+		'end' -> cb(true)
 	})
-)
+	_ -> cb(())
+})
 
 ` template formatting with {{ key }} constructs `
 format := (raw, values) => (
