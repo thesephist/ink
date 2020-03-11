@@ -15,10 +15,10 @@ CENTERX := ~0.540015
 CENTERY := 0.59468
 
 ` rendering configurations `
-WIDTH := 120
-HEIGHT := 120
+WIDTH := 300
+HEIGHT := 300
 SCALE := 50000 ` pixels for 1 unit `
-MAXITER := 500
+MAXITER := 600
 
 ` set the correct "escape" threshold for sequence `
 ESCAPE := (WIDTH > HEIGHT :: {
