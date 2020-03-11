@@ -130,7 +130,7 @@ clone := x => type(x) :: {
 }
 
 ` tail recursive numeric list -> string converter `
-stringList := list => '[' + cat(map(list, x => string(x)), ', ') + ']'
+stringList := list => '[' + cat(map(list, string), ', ') + ']'
 
 ` tail recursive reversing a list `
 reverse := list => (
@@ -191,8 +191,8 @@ cat := (list, joiner) => (
 		0 -> ''
 		_ -> (sub := (i, acc) => i :: {
 			max -> acc
-			_ -> sub(i + 1, acc + joiner + list.(i))
-		})(1, list.0)
+			_ -> sub(i + 1, acc.len(acc) := joiner + list.(i))
+		})(1, clone(list.0))
 	}
 )
 
@@ -218,7 +218,7 @@ encode := str => (
 )
 
 ` decode number list into an ascii string `
-decode := data => reduce(data, (acc, cp) => acc + char(cp), '')
+decode := data => reduce(data, (acc, cp) => acc.len(acc) := char(cp), '')
 
 ` utility for reading an entire file `
 readFile := (path, cb) => (
@@ -234,10 +234,10 @@ readFile := (path, cb) => (
 				'data' -> (
 					dataLen := len(evt.data)
 					dataLen = BUFSIZE :: {
-						true -> accumulate(offset + dataLen, acc + evt.data)
+						true -> accumulate(offset + dataLen, acc.len(acc) := evt.data)
 						false -> (
 							sent.0 := true
-							cb(acc + evt.data)
+							cb(acc.len(acc) := evt.data)
 						)
 					}
 				)
