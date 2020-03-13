@@ -171,7 +171,7 @@ reduceBack := (list, f, acc) => (sub := (i, acc) => i :: {
 })(len(list) - 1, acc)
 
 ` flatten by depth 1 `
-flatten := list => reduce(list, join, [])
+flatten := list => reduce(list, append, [])
 
 ` true iff some items in list are true `
 some := list => reduce(list, (acc, x) => acc | x, false)
