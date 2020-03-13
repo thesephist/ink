@@ -20,7 +20,7 @@ Ink is a minimal, powerful, functional programming language.
 By default, ink interprets from stdin.
 	ink < main.ink
 Run Ink programs from source files by passing it to the interpreter.
-	ink main.ink other.ink
+	ink main.ink
 Start an interactive repl.
 	ink
 	>
