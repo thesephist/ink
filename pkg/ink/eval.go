@@ -1050,6 +1050,20 @@ func (ctx *Context) Eval(nodes <-chan Node, dumpFrame bool) (val Value, err erro
 	return
 }
 
+// EvalFunc allows calling a FunctionValue or NativeFunctionValue from Go code.
+func (ctx *Context) EvalFunc(fn Value, allowThunk bool, args ...Value) (val Value, err error) {
+	if fnv, ok := fn.(FunctionValue); ok {
+		return evalInkFunction(fnv, allowThunk, args...)
+	} else if nfnv, ok := fn.(NativeFunctionValue); ok {
+		return nfnv.exec(ctx, args)
+	} else {
+		return nil, Err{
+			ErrRuntime,
+			fmt.Sprintf("%s is not a function", fn),
+		}
+	}
+}
+
 // ExecListener queues an asynchronous callback task to the Engine behind the Context.
 // Callbacks registered this way will also run with the Engine's execution lock.
 func (ctx *Context) ExecListener(callback func()) {
