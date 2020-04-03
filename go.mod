@@ -1,3 +1,3 @@
-module github.com/thesephist/ink
+module github.com/superloach/ink
 
 go 1.14

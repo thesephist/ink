@@ -1,9 +1,9 @@
 # Ink programming language 🖋
 
-[![GoDoc](https://godoc.org/github.com/thesephist/ink?status.svg)](https://godoc.org/github.com/thesephist/ink)
-[![Build Status](https://travis-ci.com/thesephist/ink.svg?branch=master)](https://travis-ci.com/thesephist/ink)
+[![GoDoc](https://godoc.org/github.com/superloach/ink?status.svg)](https://godoc.org/github.com/superloach/ink)
+[![Build Status](https://travis-ci.com/superloach/ink.svg?branch=master)](https://travis-ci.com/superloach/ink)
 
-Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API. Ink is used to write my current personal productivity suite, [Polyx](https://github.com/thesephist/polyx).
+Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API. Ink is used to write my current personal productivity suite, [Polyx](https://github.com/superloach/polyx).
 
 Ink has a few goals. In order, they are
 
@@ -157,7 +157,7 @@ package main
 import (
 	"os"
 
-	"github.com/thesephist/ink/pkg/ink"
+	"github.com/superloach/ink/pkg/ink"
 )
 
 func main() {
@@ -182,7 +182,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/thesephist/ink/pkg/ink"
+	"github.com/superloach/ink/pkg/ink"
 )
 
 func main() {

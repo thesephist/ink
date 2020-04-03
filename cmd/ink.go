@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/thesephist/ink/pkg/ink"
+	"github.com/superloach/ink/pkg/ink"
 )
 
 const cliVersion = "0.1.7"
