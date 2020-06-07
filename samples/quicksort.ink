@@ -4,6 +4,7 @@
 std := load('std')
 
 map := std.map
+clone := std.clone
 
 sortBy := (v, pred) => (
 	vPred := map(v, pred)
@@ -56,10 +57,13 @@ sort := v => sort!(clone(v))
 ` TEST `
 range := std.range
 log := std.log
-clone := std.clone
 list := std.stringList
 
 rint := () => floor(rand() * 500)
 L := map(range(0, 250, 1), rint)
+Before := clone(L)
 log('before quicksort: ' + list(L))
 log('after quicksort: ' + list(sort(L)))
+log('before intact?: ' + (L :: {Before -> 'yes', _ -> 'no'}))
+sort!(L)
+log('after mutable sort: ' + list(L))
