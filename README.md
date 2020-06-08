@@ -1,9 +1,16 @@
-# Ink programming language 🖋
+<div align="center">
+	<img width="256" height="256" src="assets/logo.png" alt="Ink programming language logo">
+
+# Ink programming language
 
 [![GoDoc](https://godoc.org/github.com/thesephist/ink?status.svg)](https://godoc.org/github.com/thesephist/ink)
 [![Build Status](https://travis-ci.com/thesephist/ink.svg?branch=master)](https://travis-ci.com/thesephist/ink)
 
 Ink is a minimal programming language inspired by modern JavaScript and Go, with functional style. Ink can be embedded in Go applications with a simple interpreter API. Ink is used to write my current personal productivity suite, [Polyx](https://github.com/thesephist/polyx).
+
+</div>
+
+---
 
 Ink has a few goals. In order, they are
 
