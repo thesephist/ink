@@ -500,11 +500,11 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 
 		// open
 		file, err := os.OpenFile(string(filePath), os.O_RDONLY, 0644)
-		defer file.Close()
 		if err != nil {
 			sendErr(fmt.Sprintf("error opening requested file in read(), %s", err.Error()))
 			return
 		}
+		defer file.Close()
 
 		// seek
 		ofs := int64(offset)
@@ -605,11 +605,11 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 			flag = os.O_CREATE | os.O_WRONLY
 		}
 		file, err := os.OpenFile(string(filePath), flag, 0644)
-		defer file.Close()
 		if err != nil {
 			sendErr(fmt.Sprintf("error opening requested file in write(), %s", err.Error()))
 			return
 		}
+		defer file.Close()
 
 		// seek
 		if offset != -1 {
@@ -1058,6 +1058,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 			sendErr(fmt.Sprintf("error processing request in req(), %s", err.Error()))
 			return
 		}
+		defer resp.Body.Close()
 
 		resStatus := NumberValue(resp.StatusCode)
 		resHeaders := CompositeValue{}
