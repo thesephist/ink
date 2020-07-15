@@ -31,12 +31,12 @@ ws? := c => point(c) :: {
 }
 
 ` hasPrefix? checks if a string begins with the given prefix substring `
-hasPrefix? := (s, prefix) => reduce(prefix, (sofar, c, i) => s.(i) = c, true)
+hasPrefix? := (s, prefix) => reduce(prefix, (acc, c, i) => acc & (s.(i) = c), true)
 
 ` hasSuffix? checks if a string ends with the given suffix substring `
 hasSuffix? := (s, suffix) => (
 	diff := len(s) - len(suffix)
-	reduceBack(suffix, (sofar, c, i) => s.(i + diff) = c, true)
+	reduce(suffix, (acc, c, i) => acc & (s.(i + diff) = c), true)
 )
 
 ` mostly used for internal bookkeeping, matchesAt? reports if a string contains

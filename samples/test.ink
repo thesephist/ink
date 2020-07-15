@@ -934,6 +934,10 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 		hasPrefix?('programming', 'programming'), true)
 	t('hasPrefix? returns false if not prefix'
 		hasPrefix?('programming', 'progx'), false)
+	t('hasPrefix? accumulates equality correctly, pos 2'
+		hasPrefix?('d: test', '::'), false)
+	t('hasPrefix? accumulates equality correctly, pos 5'
+		hasPrefix?('e123e test', 'e321e'), false)
 
 	t('hasSuffix? detects suffix'
 		hasSuffix?('programming', 'mming'), true)
@@ -943,6 +947,10 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 		hasSuffix?('programming', 'programming'), true)
 	t('hasSuffix? returns false if not suffix'
 		hasSuffix?('programming', 'science'), false)
+	t('hasSuffix? accumulates equality correctly, pos 2'
+		hasSuffix?('test: xa', 'xb'), false)
+	t('hasSuffix? accumulates equality correctly, pos 5'
+		hasSuffix?('__ e123e', 'e321e'), false)
 
 	matchesAt? := str.matchesAt?
 
