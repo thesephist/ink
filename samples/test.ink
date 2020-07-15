@@ -19,7 +19,8 @@ str := load('str')
 m('eval with #!/usr/bin/env ink')
 (
 	` check that the line immediately following #!/... still runs okay `
-	t('eval with #!/usr/bin/env ink does not miss lines', clear, '__cleared')
+	t('eval with #!/usr/bin/env ink does not miss lines'
+		clear, '__cleared')
 )
 
 m('value equality')
@@ -952,6 +953,11 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	t('hasSuffix? accumulates equality correctly, pos 5'
 		hasSuffix?('__ e123e', 'e321e'), false)
 
+	both := '_x_init()_x_'
+	piece := '_x_'
+	t('hasPrefix? and hasSuffix? used together'
+		hasPrefix?(both, piece) & hasSuffix?(both, piece), true)
+
 	matchesAt? := str.matchesAt?
 
 	t('matchesAt? returns true for empty substring'
@@ -1060,7 +1066,6 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 		trimSuffix('abacdefabcabab', 'ab'), 'abacdefabc')
 	t('trimSuffix only trims whole multiples of suffix'
 		trimSuffix('xxxyyyyyyyy', 'yyy'), 'xxxyy')
-
 
 	t('trim trims given string from both sides'
 		trim('????what?????', '?'), 'what')
