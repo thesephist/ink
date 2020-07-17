@@ -282,21 +282,21 @@ m('order of operations')
 (
 	t('addition/subtraction', 1 + 2 - 3 + 5 - 3, 2)
 	t('multiplication over addition/subtraction', 1 + 2 * 3 + 5 - 3, 9)
-	t('multiplication/division', 10 - 2 * 16/4 + 3, 5)
+	t('multiplication/division', 10 - 2 * 16 / 4 + 3, 5)
 	t('parentheses', 3 + (10 - 2) * 4, 35)
 	t('parentheses and negation', 1 + 2 + (4 - 2) * 3 - (~1), 10)
 	t('negating parenthesized expressions', 1 - ~(10 - 3 * 3), 2)
-	t('modulus in bare expressions', 10 - 2 * 24 % 20 / 8 - 1 + 5 + 10/10, 14)
+	t('modulus in bare expressions', 10 - 2 * 24 % 20 / 8 - 1 + 5 + 10 / 10, 14)
 	t('logical operators', 1 & 5 | 4 ^ 1, (1 & 5) | (4 ^ 1))
 	t('logical operators, arithmetic, and parentheses', 1 + 1 & 5 % 3 * 10, (1 + 1) & ((5 % 3) * 10))
 )
 
 m('string lexicographical comparisons')
 (
-	t('less-than, I','a' < 'b', true)
-	t('less-than, II','x' < 'A', false)
+	t('less-than, I', 'a' < 'b', true)
+	t('less-than, II', 'x' < 'A', false)
 	` shorter strings are lesser `
-	t('less-than, III','x long str' < 'A', false)
+	t('less-than, III', 'x long str' < 'A', false)
 
 	t('greater-than, I', 'E' > 'A', true)
 	t('greater-than, II', '0' > '_', false)
@@ -691,7 +691,7 @@ m('std list: map/filter/reduce[Back]/each/reverse/flatten, join/append')
 	t('std.flatten', flatten([[1, 2, 3], [4], [], [[5], 6, 7, [8, 9, 10]]])
 		[1, 2, 3, 4, [5], 6, 7, [8, 9, 10]])
 	t('std.reverse', reverse(list), [10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
-	t('std.join', join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+	t('std.join', join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
 	` passing index in callback `
@@ -709,7 +709,7 @@ m('std list: map/filter/reduce[Back]/each/reverse/flatten, join/append')
 		t('std.each passes index to callback', eachAcc
 			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 	)
-	
+
 	` each doesn't return anything meaningful `
 	acc := {
 		str: ''
@@ -720,7 +720,7 @@ m('std list: map/filter/reduce[Back]/each/reverse/flatten, join/append')
 
 	` append mutates `
 	append(list, list)
-	t('std.append', list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+	t('std.append', list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 )
 
@@ -895,7 +895,7 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	lower? := str.lower?
 	digit? := str.digit?
 	letter? := str.letter?
-	ws? := str.ws? 
+	ws? := str.ws?
 
 	every := std.every
 	some := std.some
@@ -1049,7 +1049,7 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	trimSuffix := str.trimSuffix
 	trim := str.trim
 
-	t('trimPrefix is a no-op with empty string', 
+	t('trimPrefix is a no-op with empty string'
 		trimPrefix('???????what???', ''), '???????what???')
 	t('trimPrefix trims given prefix until it does not prefix'
 		trimPrefix('???????what???', '?'), 'what???')
@@ -1058,7 +1058,7 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	t('trimPrefix only trims whole multiples of prefix'
 		trimPrefix('aaaaaaaadef', 'aaa'), 'aadef')
 
-	t('trimSuffix is a no-op with empty string', 
+	t('trimSuffix is a no-op with empty string'
 		trimSuffix('???????what???', ''), '???????what???')
 	t('trimSuffix trims given suffix until it does not suffix'
 		trimSuffix('???????what???', '?'), '???????what')

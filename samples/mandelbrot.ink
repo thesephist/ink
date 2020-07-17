@@ -26,8 +26,8 @@ ESCAPE := (WIDTH > HEIGHT :: {
 	false -> HEIGHT / SCALE
 })
 ESCAPE := (ESCAPE < 2 :: {
-	 true -> 2
-	 false -> ESCAPE
+	true -> 2
+	false -> ESCAPE
 })
 
 ` complex arithmetic functions `
@@ -84,10 +84,10 @@ hsl := (h, s, l) => (
 			false -> t
 		})
 
-		[t < 1/6, t < 1/2, t < 2/3] :: {
+		[t < 1 / 6, t < 1 / 2, t < 2 / 3] :: {
 			[true, _, _] -> p + (q - p) * 6 * t
 			[_, true, _] -> q
-			[_, _, true] -> p + (q - p) * (2/3 - t) * 6
+			[_, _, true] -> p + (q - p) * (2 / 3 - t) * 6
 			_ -> p
 		}
 	)
@@ -99,9 +99,9 @@ hsl := (h, s, l) => (
 	p := 2 * l - q
 
 	[
-		255 * h2rgb(p, q, h + 1/3)
+		255 * h2rgb(p, q, h + 1 / 3)
 		255 * h2rgb(p, q, h)
-		255 * h2rgb(p, q, h - 1/3)
+		255 * h2rgb(p, q, h - 1 / 3)
 	]
 )
 
