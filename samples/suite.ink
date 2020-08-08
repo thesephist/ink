@@ -57,7 +57,7 @@ suite := label => (
 			onFail(msg)
 		)
 	}
-	
+
 	` expose API functions `
 	{
 		mark: mark

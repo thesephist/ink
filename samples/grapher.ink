@@ -25,19 +25,24 @@ white := [250, 250, 250]
 grey := [200, 200, 200]
 
 ` functions we're going to graph `
-FUNCTIONS := [{
-	f: x => x * x / 2 - 1.5
-	color: [0, 0, 0]
-}, {
-	f: x => sin(x)
-	color: [255, 0, 100]
-}, {
-	f: x => 2 * cos(x)
-	color: [120, 0, 250]
-}, {
-	f: x => pow(x, 3) / 3 + x * x - 2
-	color: [0, 210, 170]
-}]
+FUNCTIONS := [
+	{
+		f: x => x * x / 2 - 1.5
+		color: [0, 0, 0]
+	}
+	{
+		f: x => sin(x)
+		color: [255, 0, 100]
+	}
+	{
+		f: x => 2 * cos(x)
+		color: [120, 0, 250]
+	}
+	{
+		f: x => pow(x, 3) / 3 + x * x - 2
+		color: [0, 210, 170]
+	}
+]
 
 ` scaling to and from canvas <-> graph dimensions `
 scaleXToCanvas := x => floor(x * SCALE + halfWidth)
