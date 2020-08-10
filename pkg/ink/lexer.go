@@ -15,7 +15,6 @@ type Kind int
 const (
 	Separator Kind = iota
 
-	Block
 	UnaryExpr
 	BinaryExpr
 	MatchExpr
@@ -412,27 +411,8 @@ func Tokenize(
 	ensureSeparator()
 }
 
-func isValidIdentifierStartChar(char rune) bool {
-	if unicode.IsLetter(char) {
-		return true
-	}
-
-	switch char {
-	case '@', '!', '?':
-		return true
-	default:
-		return false
-	}
-}
-
-func isValidIdentifierChar(char rune) bool {
-	return isValidIdentifierStartChar(char) || unicode.IsDigit(char)
-}
-
 func (kind Kind) String() string {
 	switch kind {
-	case Block:
-		return "expression block"
 	case UnaryExpr:
 		return "unary expression"
 	case BinaryExpr:
