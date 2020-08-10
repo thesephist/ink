@@ -142,18 +142,10 @@ reverse := list => (sub := (acc, i, j) => j :: {
 map := (list, f) => reduce(list, (l, item, i) => l.(i) := f(item, i), {})
 
 ` tail recursive filter `
-filter := (list, f) => (
-	idx := [0]
-	reduce(list, (l, item, i) => (
-		f(item, i) :: {
-			true -> (
-				l.(idx.0) := item
-				idx.0 := idx.0 + 1
-			)
-		}
-		l
-	), {})
-)
+filter := (list, f) => reduce(list, (l, item, i) => f(item, i) :: {
+	true -> l.len(l) := item
+	_ -> l
+}, [])
 
 ` tail recursive reduce `
 reduce := (list, f, acc) => (
