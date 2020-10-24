@@ -818,8 +818,8 @@ m('json ser/de')
 	t('ser null', ser(()), 'null')
 	t('ser ""', ser(''), '""')
 	t('ser string', ser('world'), '"world"')
-	t('ser escaped string', ser('es"c a"pe
-me'), '"es\\"c a\\"pe\\nme"')
+	t('ser escaped string', ser('es"c \\a"pe
+me'), '"es\\"c \\\\a\\"pe\\nme"')
 	t('ser true', ser(true), 'true')
 	t('ser false', ser(false), 'false')
 	t('ser number', ser(12), '12')
