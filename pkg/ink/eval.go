@@ -45,6 +45,26 @@ func nvToS(v NumberValue) string {
 	return nToS(float64(v))
 }
 
+// zero-extend a slice of bytes to given length
+func zeroExtend(s []byte, max int) []byte {
+	if max <= len(s) {
+		return s
+	}
+
+	extended := make([]byte, max)
+	copy(extended, s)
+	return extended
+}
+
+// return the max length of two slices
+func maxLen(a, b []byte) int {
+	if alen, blen := len(a), len(b); alen < blen {
+		return blen
+	} else {
+		return alen
+	}
+}
+
 // EmptyValue is the value of the empty identifier.
 // it is globally unique and matches everything in equality.
 type EmptyValue struct{}
@@ -587,6 +607,17 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if rightBool, ok := rightValue.(BooleanValue); ok {
 				return BooleanValue(leftBool && rightBool), nil
 			}
+		} else if leftStr, isStr := leftValue.(StringValue); isStr {
+			if rightStr, ok := rightValue.(StringValue); ok {
+				max := maxLen(leftStr, rightStr)
+
+				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				c := make([]byte, max)
+				for i := range c {
+					c[i] = a[i] & b[i]
+				}
+				return StringValue(c), nil
+			}
 		}
 		return nil, Err{
 			ErrRuntime,
@@ -610,6 +641,17 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 			if rightBool, ok := rightValue.(BooleanValue); ok {
 				return BooleanValue(leftBool || rightBool), nil
 			}
+		} else if leftStr, isStr := leftValue.(StringValue); isStr {
+			if rightStr, ok := rightValue.(StringValue); ok {
+				max := maxLen(leftStr, rightStr)
+
+				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				c := make([]byte, max)
+				for i := range c {
+					c[i] = a[i] | b[i]
+				}
+				return StringValue(c), nil
+			}
 		}
 		return nil, Err{
 			ErrRuntime,
@@ -632,6 +674,17 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
 			if rightBool, ok := rightValue.(BooleanValue); ok {
 				return BooleanValue(leftBool != rightBool), nil
+			}
+		} else if leftStr, isStr := leftValue.(StringValue); isStr {
+			if rightStr, ok := rightValue.(StringValue); ok {
+				max := maxLen(leftStr, rightStr)
+
+				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				c := make([]byte, max)
+				for i := range c {
+					c[i] = a[i] ^ b[i]
+				}
+				return StringValue(c), nil
 			}
 		}
 		return nil, Err{
@@ -1079,7 +1132,7 @@ func (ctx *Context) Exec(input io.Reader) (Value, error) {
 }
 
 // ExecPath is a convenience function to Exec() a program file in a given Context.
-func (ctx *Context) ExecPath(filePath string) {
+func (ctx *Context) ExecPath(filePath string) error {
 	// update Cwd for any potential load() calls this file will make
 	ctx.Cwd = path.Dir(filePath)
 	ctx.File = filePath
@@ -1093,5 +1146,6 @@ func (ctx *Context) ExecPath(filePath string) {
 		)
 	}
 
-	ctx.Exec(file)
+	_, err = ctx.Exec(file)
+	return err
 }

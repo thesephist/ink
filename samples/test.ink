@@ -307,6 +307,52 @@ m('string lexicographical comparisons')
 	t('non-printed byte arrays', char(253) > char(252), true)
 )
 
+m('bitwise operations on byte strings')
+(
+	Z := char(0)
+	ZZ := Z + Z
+	ZZZ := ZZ + Z
+
+	` of the same lengths `
+	a := 'ABCDEFG'
+	b := 'abcdEFg'
+
+	t('bitwise & of byte strings'
+		a & b, 'ABCDEFG')
+	t('bitwise | of byte strings'
+		a | b, 'abcdEFg')
+	t('bitwise ^ of byte strings'
+		a ^ b, '    ' + ZZ + ' ')
+
+	` of different lengths (byte strings are zero-extended at lower bytes) `
+	a := 'ABCD'
+	b := 'abcdXYZ'
+
+	t('bitwise & of diff length byte strings'
+		a & b, 'ABCD' + ZZZ)
+	t('bitwise | of diff length byte strings'
+		a | b, 'abcdXYZ')
+	t('bitwise ^ of diff length byte strings'
+		a ^ b, '    XYZ')
+
+	t('bitwise & of diff length byte strings, reverse order'
+		b & a, 'ABCD' + ZZZ)
+	t('bitwise | of diff length byte strings, reverse order'
+		b | a, 'abcdXYZ')
+	t('bitwise ^ of diff length byte strings, reverse order'
+		b ^ a, '    XYZ')
+
+	` of same byte strings `
+	a := 'some_byte'
+
+	t('bitwise & of same byte string'
+		a & a, a)
+	t('bitwise | of same byte string'
+		a | a, a)
+	t('bitwise ^ of same byte string'
+		a ^ a, ZZZ + ZZZ + ZZZ)
+)
+
 m('min/max')
 (
 	min := std.min
@@ -914,8 +960,7 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	t('digit? rejects non-digits, including punctuations'
 		some(map('~@!#@$%^()&?!.;,-', digit?)), false)
 	t('letter? verifies all alphabet letters'
-		every(map('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', letter?))
-		true)
+		every(map('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', letter?)), true)
 	t('letter? rejects non-letters'
 		some(map('913043?-~\'!/.,;()$@)%', upper?)), false)
 	t('ws? verifies whitespace characters'

@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -114,7 +115,10 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 	if len(in) >= 1 {
 		if givenPath, ok := in[0].(StringValue); ok && len(givenPath) > 0 {
 			// imports via load() are assumed to be relative
-			importPath := path.Join(ctx.Cwd, string(givenPath)+".ink")
+			importPath := string(givenPath) + ".ink"
+			if !filepath.IsAbs(importPath) {
+				importPath = path.Join(ctx.Cwd, importPath)
+			}
 
 			// evalLock blocks file eval; temporary unlock it for the load to run.
 			// Calling load() from within a running program is not supported, so we
@@ -133,7 +137,13 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 				// Execution here follows updating ctx.Engine.Contexts
 				// to behave correctly in the case where A loads B loads A again,
 				// and still only import one instance of A.
-				childCtx.ExecPath(importPath)
+				err := childCtx.ExecPath(importPath)
+				if err != nil {
+					return nil, Err{
+						ErrRuntime,
+						"error evaluating load",
+					}
+				}
 			}
 
 			return CompositeValue(childCtx.Frame.vt), nil
