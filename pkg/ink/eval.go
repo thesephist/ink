@@ -591,32 +591,33 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue, poss(n)),
 		}
 	case LogicalAndOp:
-		if leftNum, isNum := leftValue.(NumberValue); isNum {
-			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum) && isIntable(rightNum) {
-					return NumberValue(int64(leftNum) & int64(rightNum)), nil
+		switch left := leftValue.(type) {
+		case NumberValue:
+			if right, ok := rightValue.(NumberValue); ok {
+				if isIntable(left) && isIntable(right) {
+					return NumberValue(int64(left) & int64(right)), nil
 				}
 
 				return nil, Err{
 					ErrRuntime,
-					fmt.Sprintf("cannot take bitwise & of non-integer values %s, %s [%s]",
-						nvToS(rightNum), nvToS(leftNum), poss(n)),
+					fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
+						nvToS(right), nvToS(left), poss(n)),
 				}
 			}
-		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
-			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue(leftBool && rightBool), nil
-			}
-		} else if leftStr, isStr := leftValue.(StringValue); isStr {
-			if rightStr, ok := rightValue.(StringValue); ok {
-				max := maxLen(leftStr, rightStr)
+		case StringValue:
+			if right, ok := rightValue.(StringValue); ok {
+				max := maxLen(left, right)
 
-				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				a, b := zeroExtend(left, max), zeroExtend(right, max)
 				c := make([]byte, max)
 				for i := range c {
 					c[i] = a[i] & b[i]
 				}
 				return StringValue(c), nil
+			}
+		case BooleanValue:
+			if right, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue(left && right), nil
 			}
 		}
 		return nil, Err{
@@ -625,32 +626,33 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue, poss(n)),
 		}
 	case LogicalOrOp:
-		if leftNum, isNum := leftValue.(NumberValue); isNum {
-			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum) && isIntable(rightNum) {
-					return NumberValue(int64(leftNum) | int64(rightNum)), nil
+		switch left := leftValue.(type) {
+		case NumberValue:
+			if right, ok := rightValue.(NumberValue); ok {
+				if isIntable(left) && isIntable(left) {
+					return NumberValue(int64(left) | int64(right)), nil
 				}
 
 				return nil, Err{
 					ErrRuntime,
 					fmt.Sprintf("cannot take bitwise | of non-integer values %s, %s [%s]",
-						nvToS(rightNum), nvToS(leftNum), poss(n)),
+						nvToS(right), nvToS(left), poss(n)),
 				}
 			}
-		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
-			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue(leftBool || rightBool), nil
-			}
-		} else if leftStr, isStr := leftValue.(StringValue); isStr {
-			if rightStr, ok := rightValue.(StringValue); ok {
-				max := maxLen(leftStr, rightStr)
+		case StringValue:
+			if right, ok := rightValue.(StringValue); ok {
+				max := maxLen(left, right)
 
-				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				a, b := zeroExtend(left, max), zeroExtend(right, max)
 				c := make([]byte, max)
 				for i := range c {
 					c[i] = a[i] | b[i]
 				}
 				return StringValue(c), nil
+			}
+		case BooleanValue:
+			if right, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue(left || right), nil
 			}
 		}
 		return nil, Err{
@@ -659,32 +661,33 @@ func (n BinaryExprNode) Eval(frame *StackFrame, allowThunk bool) (Value, error) 
 				leftValue, rightValue, poss(n)),
 		}
 	case LogicalXorOp:
-		if leftNum, isNum := leftValue.(NumberValue); isNum {
-			if rightNum, ok := rightValue.(NumberValue); ok {
-				if isIntable(leftNum) && isIntable(rightNum) {
-					return NumberValue(int64(leftNum) ^ int64(rightNum)), nil
+		switch left := leftValue.(type) {
+		case NumberValue:
+			if right, ok := rightValue.(NumberValue); ok {
+				if isIntable(left) && isIntable(right) {
+					return NumberValue(int64(left) ^ int64(right)), nil
 				}
 
 				return nil, Err{
 					ErrRuntime,
-					fmt.Sprintf("cannot take logical & of non-integer values %s, %s [%s]",
-						nvToS(rightNum), nvToS(leftNum), poss(n)),
+					fmt.Sprintf("cannot take logical ^ of non-integer values %s, %s [%s]",
+						nvToS(right), nvToS(left), poss(n)),
 				}
 			}
-		} else if leftBool, isBool := leftValue.(BooleanValue); isBool {
-			if rightBool, ok := rightValue.(BooleanValue); ok {
-				return BooleanValue(leftBool != rightBool), nil
-			}
-		} else if leftStr, isStr := leftValue.(StringValue); isStr {
-			if rightStr, ok := rightValue.(StringValue); ok {
-				max := maxLen(leftStr, rightStr)
+		case StringValue:
+			if right, ok := rightValue.(StringValue); ok {
+				max := maxLen(left, right)
 
-				a, b := zeroExtend(leftStr, max), zeroExtend(rightStr, max)
+				a, b := zeroExtend(left, max), zeroExtend(right, max)
 				c := make([]byte, max)
 				for i := range c {
 					c[i] = a[i] ^ b[i]
 				}
 				return StringValue(c), nil
+			}
+		case BooleanValue:
+			if right, ok := rightValue.(BooleanValue); ok {
+				return BooleanValue(left != right), nil
 			}
 		}
 		return nil, Err{
