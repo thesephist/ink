@@ -168,6 +168,7 @@ These are the right primitives, but we can build much more sophisticated systems
 - `urand(length) => string`: a string of given length containing random bits, safe for cryptography work
 - `time() => number`: number of seconds in floating point in UNIX epoch.
 - `exec(string, [list], string, callback) => callback`: Exec the command at a given path with given arguments, with a given stdin, call given callback with stdout when exited.
+- `exit(number)`: Exit the current process with the given exit code.
 
 ### Math
 

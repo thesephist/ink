@@ -66,6 +66,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
 	ctx.LoadFunc("exec", inkExec)
+	ctx.LoadFunc("exit", inkExit)
 
 	// math
 	ctx.LoadFunc("sin", inkSin)
@@ -1360,6 +1361,29 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 		},
 		ctx: ctx,
 	}, nil
+}
+
+func inkExit(ctx *Context, in []Value) (Value, error) {
+	if len(in) < 1 {
+		return nil, Err{
+			ErrRuntime,
+			"exit() takes one argument",
+		}
+	}
+
+	code, isNum := in[0].(NumberValue)
+
+	if !isNum {
+		return nil, Err{
+			ErrRuntime,
+			"argument to exit() must be an exit code number",
+		}
+	}
+
+	os.Exit(int(float64(code)))
+
+	// unreachable
+	return Null, nil
 }
 
 func inkSin(ctx *Context, in []Value) (Value, error) {
