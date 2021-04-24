@@ -25,7 +25,10 @@ suite := label => (
 		each(s.msgs, m => log('  ' + m))
 		s.passed :: {
 			(s.all) -> log(f('ALL {{ passed }} / {{ all }} PASSED', s))
-			_ -> log(f('PARTIAL: {{ passed }} / {{ all }} PASSED', s))
+			_ -> (
+				log(f('PARTIAL: {{ passed }} / {{ all }} PASSED', s))
+				exit(1)
+			)
 		}
 	)
 
