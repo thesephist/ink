@@ -46,7 +46,7 @@ BinaryExpr: (Atom | BinaryExpr) BinaryOp (Atom | BinaryExpr)
 
 
 MatchExpr: (Atom | BinaryExpr) '::' '{' MatchClause* '}'
-MatchClause: Atom '->' Expression
+MatchClause: Expression '->' Expression
 
 
 UnaryOp: (

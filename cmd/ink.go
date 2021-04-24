@@ -11,7 +11,7 @@ import (
 	"github.com/thesephist/ink/pkg/ink"
 )
 
-const cliVersion = "0.1.7"
+const cliVersion = "0.1.9"
 
 const helpMessage = `
 Ink is a minimal, powerful, functional programming language.

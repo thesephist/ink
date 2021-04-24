@@ -458,7 +458,7 @@ func parseExpression(tokens []Tok) (Node, int, error) {
 		// consuming dangling separator
 		return atom, idx, nil
 
-	case KeyValueSeparator, RightParen:
+	case RightParen, KeyValueSeparator, CaseArrow:
 		// these belong to the parent atom that contains this expression,
 		// so return without consuming token (idx - 1)
 		return atom, idx - 1, nil
@@ -758,7 +758,7 @@ func parseMatchBody(tokens []Tok) ([]MatchClauseNode, int, error) {
 }
 
 func parseMatchClause(tokens []Tok) (MatchClauseNode, int, error) {
-	atom, idx, err := parseAtom(tokens)
+	atom, idx, err := parseExpression(tokens)
 	if err != nil {
 		return MatchClauseNode{}, 0, err
 	}
