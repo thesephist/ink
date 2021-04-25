@@ -142,7 +142,7 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 				if err != nil {
 					return nil, Err{
 						ErrRuntime,
-						"error evaluating load",
+						fmt.Sprintf("error importing file %s", importPath),
 					}
 				}
 			}
@@ -153,7 +153,7 @@ func inkLoad(ctx *Context, in []Value) (Value, error) {
 
 	return nil, Err{
 		ErrRuntime,
-		"load() takes one string argument, without the .ink suffix",
+		"load() takes 1 string argument, without the .ink suffix",
 	}
 }
 
@@ -169,7 +169,7 @@ func inkIn(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"in() takes one callback argument",
+			"in() takes 1 callback argument",
 		}
 	}
 
@@ -233,7 +233,7 @@ func inkOut(ctx *Context, in []Value) (Value, error) {
 
 	return nil, Err{
 		ErrRuntime,
-		"out() takes one string argument",
+		"out() takes 1 string argument",
 	}
 }
 
@@ -241,7 +241,7 @@ func inkDir(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("dir() expects two arguments: path and callback, but got %d", len(in)),
+			fmt.Sprintf("dir() takes 2 arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -315,7 +315,7 @@ func inkMake(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("make() expects two arguments: path and callback, but got %d", len(in)),
+			fmt.Sprintf("make() takes 2 arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -377,7 +377,7 @@ func inkStat(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("stat() expects two arguments: path and callback, but got %d", len(in)),
+			fmt.Sprintf("stat() takes 2 arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -463,7 +463,7 @@ func inkRead(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("read() expects four arguments: path, offset, length, and callback, but got %d", len(in)),
+			fmt.Sprintf("read() takes 4 arguments: path, offset, length, and callback, but got %d", len(in)),
 		}
 	}
 
@@ -561,7 +561,7 @@ func inkWrite(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 4 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("write() expects four arguments: path, offset, length, and callback, but got %d", len(in)),
+			fmt.Sprintf("write() takes 4 arguments: path, offset, length, and callback, but got %d", len(in)),
 		}
 	}
 
@@ -654,7 +654,7 @@ func inkDelete(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("delete() expects two arguments: path and callback, but got %d", len(in)),
+			fmt.Sprintf("delete() takes 2 arguments: path and callback, but got %d", len(in)),
 		}
 	}
 
@@ -870,7 +870,7 @@ func inkListen(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("listen() expects two arguments: host and handler, but got %d", len(in)),
+			fmt.Sprintf("listen() takes 2 arguments: host and handler, but got %d", len(in)),
 		}
 	}
 
@@ -951,7 +951,7 @@ func inkReq(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("req() expects two arguments: data and callback, but got %d", len(in)),
+			fmt.Sprintf("req() takes 2 arguments: data and callback, but got %d", len(in)),
 		}
 	}
 
@@ -1122,7 +1122,7 @@ func inkUrand(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("urand() expects one argument: length, but got %d", len(in)),
+			fmt.Sprintf("urand() takes 1 argument: length, but got %d", len(in)),
 		}
 	}
 
@@ -1152,7 +1152,7 @@ func inkWait(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			"wait() takes two arguments",
+			"wait() takes 2 arguments",
 		}
 	}
 
@@ -1194,7 +1194,7 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 4 {
 		return nil, Err{
 			ErrRuntime,
-			"exec() takes four arguments",
+			fmt.Sprintf("exec() takes 4 arguments, but got %d", len(in)),
 		}
 	}
 
@@ -1367,7 +1367,7 @@ func inkExit(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"exit() takes one argument",
+			"exit() takes 1 number argument",
 		}
 	}
 
@@ -1390,7 +1390,7 @@ func inkSin(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"sin() takes one number argument",
+			"sin() takes 1 number argument",
 		}
 	}
 	inNum, isNum := in[0].(NumberValue)
@@ -1408,7 +1408,7 @@ func inkCos(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"cos() takes one number argument",
+			"cos() takes 1 number argument",
 		}
 	}
 	inNum, isNum := in[0].(NumberValue)
@@ -1426,7 +1426,7 @@ func inkAsin(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"asin() takes one number argument",
+			"asin() takes 1 number argument",
 		}
 	}
 	inNum, isNum := in[0].(NumberValue)
@@ -1451,7 +1451,7 @@ func inkAcos(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"acos() takes one number argument",
+			"acos() takes 1 number argument",
 		}
 	}
 	inNum, isNum := in[0].(NumberValue)
@@ -1476,7 +1476,7 @@ func inkPow(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 2 {
 		return nil, Err{
 			ErrRuntime,
-			"pow() takes two number arguments",
+			"pow() takes 2 number arguments",
 		}
 	}
 
@@ -1499,7 +1499,7 @@ func inkPow(ctx *Context, in []Value) (Value, error) {
 
 	return nil, Err{
 		ErrRuntime,
-		fmt.Sprintf("pow() takes two number arguments, but got %s, %s", in[0], in[1]),
+		fmt.Sprintf("pow() takes 2 number arguments, but got %s, %s", in[0], in[1]),
 	}
 }
 
@@ -1507,7 +1507,7 @@ func inkLn(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"ln() takes one argument",
+			"ln() takes 1 argument",
 		}
 	}
 
@@ -1515,7 +1515,7 @@ func inkLn(ctx *Context, in []Value) (Value, error) {
 	if !isNumber {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("ln() takes one number argument, but got %s", in[0]),
+			fmt.Sprintf("ln() takes 1 number argument, but got %s", in[0]),
 		}
 	}
 
@@ -1533,7 +1533,7 @@ func inkFloor(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"floor() takes one argument",
+			"floor() takes 1 argument",
 		}
 	}
 
@@ -1541,7 +1541,7 @@ func inkFloor(ctx *Context, in []Value) (Value, error) {
 	if !isNumber {
 		return nil, Err{
 			ErrRuntime,
-			fmt.Sprintf("floor() takes one number argument, but got %s", in[0]),
+			fmt.Sprintf("floor() takes 1 number argument, but got %s", in[0]),
 		}
 	}
 
@@ -1552,7 +1552,7 @@ func inkString(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"string() takes one argument",
+			"string() takes 1 argument",
 		}
 	}
 
@@ -1582,7 +1582,7 @@ func inkNumber(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"number() takes one argument",
+			"number() takes 1 argument",
 		}
 	}
 
@@ -1610,7 +1610,7 @@ func inkPoint(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"point() takes one argument",
+			"point() takes 1 argument",
 		}
 	}
 	str, isString := in[0].(StringValue)
@@ -1628,7 +1628,7 @@ func inkChar(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"char() takes one argument",
+			"char() takes 1 argument",
 		}
 	}
 	cp, isNumber := in[0].(NumberValue)
@@ -1646,7 +1646,7 @@ func inkType(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"type() takes one argument",
+			"type() takes 1 argument",
 		}
 	}
 
@@ -1672,7 +1672,7 @@ func inkLen(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"len() takes one argument",
+			"len() takes 1 argument",
 		}
 	}
 
@@ -1692,7 +1692,7 @@ func inkKeys(ctx *Context, in []Value) (Value, error) {
 	if len(in) < 1 {
 		return nil, Err{
 			ErrRuntime,
-			"keys() takes one argument",
+			"keys() takes 1 argument",
 		}
 	}
 
