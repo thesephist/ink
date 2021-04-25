@@ -32,17 +32,20 @@ handleRequest := (data, end) => (
 		` check that proxy prefix matches exactly.
 			i.e. /gh/ should match but /ghub should not`
 		slice(data.url + '/', 0, len(prefix) + 1) :: {
-			(prefix + '/') -> (
+			prefix + '/' -> (
 				dest := PROXIES.(prefix) + slice(data.url, len(prefix), len(data.url))
-				req({
-					method: data.method
-					url: dest
-					headers: data.headers.('X-Proxied-By') := 'ink-proxy'
-					body: data.body
-				}, evt => evt.type :: {
-					'error' -> handleProxyError(dest, evt.data, end)
-					'resp' -> handleProxyResponse(dest, evt.data, end)
-				})
+				req(
+					{
+						method: data.method
+						url: dest
+						headers: data.headers.('X-Proxied-By') := 'ink-proxy'
+						body: data.body
+					}
+					evt => evt.type :: {
+						'error' -> handleProxyError(dest, evt.data, end)
+						'resp' -> handleProxyResponse(dest, evt.data, end)
+					}
+				)
 			)
 			_ -> i :: {
 				max -> end({

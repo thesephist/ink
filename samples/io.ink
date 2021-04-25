@@ -53,8 +53,8 @@ wait(1, () => (
 	delete(TARGET, evt => evt.type :: {
 		'error' -> log('Encountered an error deleting: ' + evt.message)
 		'end' -> log('Safely deleted the generated file')
-	}))
-)
+	})
+))
 log('Delete scheduled at ' + string(time()))
 
 ` as concurrency test, schedule a copy-back task in between copy and delete `

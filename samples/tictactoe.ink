@@ -33,8 +33,7 @@ newBoard := () => [
 ]
 
 ` format string to print board state `
-BoardFormat :=
-'{{ 1 }} │ {{ 2 }} │ {{ 3 }}
+BoardFormat := '{{ 1 }} │ {{ 2 }} │ {{ 3 }}
 ──┼───┼──
 {{ 4 }} │ {{ 5 }} │ {{ 6 }}
 ──┼───┼──
@@ -149,13 +148,13 @@ log('Welcome to Ink tic-tac-toe!')
 bd := newBoard()
 asyncWhile(
 	() => checkBoard(bd) :: {
-		(Result.None) -> true
+		Result.None -> true
 		_ -> (
 			log(Divider)
 			checkBoard(bd) :: {
-				(Result.Tie) -> log('x and o tied!')
-				(Result.X) -> log('x won!')
-				(Result.O) -> log('o won!')
+				Result.Tie -> log('x and o tied!')
+				Result.X -> log('x won!')
+				Result.O -> log('o won!')
 			}
 			log('')
 			log(stringBoard(bd))

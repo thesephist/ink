@@ -122,8 +122,8 @@ file := bmp(WIDTH, HEIGHT, map(range(0, WIDTH * HEIGHT, 1), x => (
 		}))
 	}
 
-	mrgb(mcompute(idxToCpx(x)))))
-)
+	mrgb(mcompute(idxToCpx(x)))
+)))
 
 ` save file `
 wf('mandelbrot.bmp', file, result => result :: {

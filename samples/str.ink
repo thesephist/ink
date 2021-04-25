@@ -46,7 +46,7 @@ matchesAt? := (s, substring, idx) => (
 	(sub := i => i :: {
 		max -> true
 		_ -> s.(idx + i) :: {
-			(substring.(i)) -> sub(i + 1)
+			substring.(i) -> sub(i + 1)
 			_ -> false
 		}
 	})(0)

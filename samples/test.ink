@@ -193,6 +193,40 @@ m('match expressions')
 	})
 	t('match expression follows through to empty identifier', x, '??')
 
+	x := (
+		y := {z: 9}
+		12 :: {
+			y.z + 1 + 5 - 3 -> 'correct'
+			12 -> 'incorrect'
+			10 -> 'incorrect'
+			_ -> 'wrong'
+		}
+	)
+	t('match expression target can be complex binary expressions', x, 'correct')
+
+	x := ('a' :: {
+		1 :: {
+			2 -> 'b'
+			1 -> 'a'
+		} -> 'c'
+		_ -> 'd'
+	})
+	t('match expression in match target position', x, 'c')
+
+	N := {
+		A: 1
+		B: 2
+		C: 3
+		D: 4
+	}
+	x := (3 :: {
+		N.A -> 'a'
+		N.B -> 'b'
+		N.C -> 'c'
+		N.D -> 'd'
+	})
+	t('match expression target can be object property', x, 'c')
+
 	x := [1, 2, [3, 4, ['thing']], {a: ['b']}]
 	t('composite deep equality after match expression'
 		x, [1, 2, [3, 4, ['thing']], {a: ['b']}])
@@ -263,17 +297,21 @@ m('comment syntaxes')
 m('more complex pattern matching')
 (
 	t('nested list pattern matches correctly', [_, [2, _], 6], [10, [2, 7], 6])
-	t('nested composite pattern matches correctly', {
-		hi: 'hello'
-		bye: {
-			good: 'goodbye'
+	t(
+		'nested composite pattern matches correctly'
+		{
+			hi: 'hello'
+			bye: {
+				good: 'goodbye'
+			}
 		}
-	}, {
-		hi: _
-		bye: {
-			good: _
+		{
+			hi: _
+			bye: {
+				good: _
+			}
 		}
-	})
+	)
 	t('nested list pattern matches with empty identifiers', [_, [2, _], 6, _], [10, [2, 7], 6, _])
 	t('composite pattern matches with empty identifiers', {6: 9, 7: _}, {6: _, 7: _})
 )
@@ -1054,41 +1092,30 @@ m('str.upper/lower/digit/letter/ws? -- checked char ranges')
 	replace := str.replace
 
 	t('replace is no-op if empty string'
-		replace('he stared in amazement', '', '__')
-		'he stared in amazement')
+		replace('he stared in amazement', '', '__'), 'he stared in amazement')
 	t('replace replaces all instances of given substring'
-		replace('he stared in amazement', 'e', 'j')
-		'hj starjd in amazjmjnt')
+		replace('he stared in amazement', 'e', 'j'), 'hj starjd in amazjmjnt')
 	t('replace works for multi-character substring'
-		replace('he is staring in amazement', 'in', 'xx')
-		'he is starxxg xx amazement')
+		replace('he is staring in amazement', 'in', 'xx'), 'he is starxxg xx amazement')
 	t('replace accounts for different old/new substring lengths'
-		replace('he is staring in amazement', 'in', 'wonder')
-		'he is starwonderg wonder amazement')
+		replace('he is staring in amazement', 'in', 'wonder'), 'he is starwonderg wonder amazement')
 	t('replace deals gracefully with overlapping matches'
-		replace('wow what a sight, wow', 'ow', 'wow')
-		'wwow what a sight, wwow')
+		replace('wow what a sight, wow', 'ow', 'wow'), 'wwow what a sight, wwow')
 	t('replace works if new substring is empty'
-		replace('wow what a sight, wow', 'wow', '')
-		' what a sight, ')
+		replace('wow what a sight, wow', 'wow', ''), ' what a sight, ')
 	t('replace works even if new str contains recursive match'
-		replace('a {} b {} c {}', '{}', '{}-{}')
-		'a {}-{} b {}-{} c {}-{}')
+		replace('a {} b {} c {}', '{}', '{}-{}'), 'a {}-{} b {}-{} c {}-{}')
 
 	split := str.split
 
 	t('split splits string into letters if empty'
-		split('alphabet', '')
-		['a', 'l', 'p', 'h', 'a', 'b', 'e', 't'])
+		split('alphabet', ''), ['a', 'l', 'p', 'h', 'a', 'b', 'e', 't'])
 	t('splits with given delimiter'
-		split('a,b,cde,fg', ',')
-		['a', 'b', 'cde', 'fg'])
+		split('a,b,cde,fg', ','), ['a', 'b', 'cde', 'fg'])
 	t('splits with empty strings if delimiter in start or end'
-		split(', original taste, ', ', ')
-		['', 'original taste', ''])
+		split(', original taste, ', ', '), ['', 'original taste', ''])
 	t('returns one chunk if no match of delimiter found'
-		split('no taste whatsoever!', 'grand')
-		['no taste whatsoever!'])
+		split('no taste whatsoever!', 'grand'), ['no taste whatsoever!'])
 
 	trimPrefix := str.trimPrefix
 	trimSuffix := str.trimSuffix
