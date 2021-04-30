@@ -148,6 +148,23 @@ m('function, expression, and lexical scope')
 	t('function body with expression list forms a new scope', fn3(), ~3)
 	t('assignment in child frames are isolated', thing, 3)
 	t('modifying composites in scope from child frames causes mutation', state.thing, 100)
+
+	x := 100
+	y := 100
+	z := 100
+	w := 100
+	x := 200 :: {
+		y := 200 -> 1000
+		(w := 200) -> 2000
+	}
+	nop := () => ()
+	nop(nop(z := 300, z := 400), z := 500, (w := 300))
+
+	t('assignment in match expression condition stays in scope', x, 200)
+	t('assignment in match expression target stays in scope', y, 200)
+	t('assignment in argument position stays in scope', z, 500)
+	t('assignment in exprlist in match expression target is in inner scope', w, 100)
+	t('assignment in exprlist in argument position is in inner scope', w, 100)
 )
 
 m('tail call optimizations and thunk unwrap order')
