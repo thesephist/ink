@@ -133,10 +133,10 @@ clone := x => type(x) :: {
 stringList := list => '[' + cat(map(list, string), ', ') + ']'
 
 ` tail recursive reversing a list `
-reverse := list => (sub := (acc, i, j) => j :: {
-	0 -> acc.(i) := list.0
-	_ -> sub(acc.(i) := list.(j), i + 1, j - 1)
-})([], 0, len(list) - 1)
+reverse := list => (sub := (acc, i) => i < 0 :: {
+	true -> acc
+	_ -> sub(acc.len(acc) := list.(i), i - 1)
+})([], len(list) - 1)
 
 ` tail recursive map `
 map := (list, f) => reduce(list, (l, item, i) => l.(i) := f(item, i), {})

@@ -795,6 +795,12 @@ m('std list: map/filter/reduce[Back]/each/reverse/flatten, join/append')
 	t('std.join', join(list, list), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
+	` degenerate cases on reverse `
+	t('std.reverse on empty', reverse([]), [])
+	t('std.reverse on len 1', reverse(['a']), ['a'])
+	t('std.reverse on len 2', reverse(['b', 'a']), ['a', 'b'])
+	t('std.reverse on reversed', reverse(reverse(list)), list)
+
 	` passing index in callback `
 	t('std.map passes index to callback', map(list, (_, i) => i)
 		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
