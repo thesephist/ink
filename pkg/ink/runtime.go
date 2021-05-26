@@ -66,6 +66,7 @@ func (ctx *Context) LoadEnvironment() {
 	ctx.LoadFunc("time", inkTime)
 	ctx.LoadFunc("wait", inkWait)
 	ctx.LoadFunc("exec", inkExec)
+	ctx.LoadFunc("env", inkEnv)
 	ctx.LoadFunc("exit", inkExit)
 
 	// math
@@ -1361,6 +1362,15 @@ func inkExec(ctx *Context, in []Value) (Value, error) {
 		},
 		ctx: ctx,
 	}, nil
+}
+
+func inkEnv(ctx *Context, in []Value) (Value, error) {
+	envVars := CompositeValue{}
+	for _, e := range os.Environ() {
+		kv := strings.SplitN(e, "=", 2)
+		envVars[kv[0]] = StringValue(kv[1])
+	}
+	return envVars, nil
 }
 
 func inkExit(ctx *Context, in []Value) (Value, error) {
