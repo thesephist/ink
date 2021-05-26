@@ -33,6 +33,11 @@ func isIntable(n NumberValue) bool {
 // Utility func to get a consistent, language spec-compliant
 // string representation of numbers
 func nToS(f float64) string {
+	// Prefer exact integer form if possible
+	if i := int64(f); f == float64(i) {
+		return strconv.FormatInt(i, 10)
+	}
+
 	return strconv.FormatFloat(f, 'g', -1, 64)
 }
 
