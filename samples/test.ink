@@ -603,7 +603,7 @@ m('number & composite/list -> string conversions')
 	t('string(number) uses least number of digits necessary, small exponential'
 		string(0.0000000001), '1e-10')
 	t('string(number) uses least number of digits necessary, big exponential'
-		string(299792458000000000000), '2.99792458e+20')
+		string(2997924580000000000000), '2.99792458e+21')
 	t('string(true)', string(true), 'true')
 	t('string(false)', string(false), 'false')
 	t('string(string) returns itself', string('hello'), 'hello')

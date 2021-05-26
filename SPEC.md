@@ -30,7 +30,7 @@ Literal: NumberLiteral | StringLiteral
   | BooleanLiteral | FunctionLiteral
   | ObjectLiteral | ListLiteral
 
-NumberLiteral: (0-9)+ ['.' (0-9)+] ['e' [+-]? (0-9)+]
+NumberLiteral: (0-9)+ ['.' (0-9)+] ['e' (0-9)+]
 StringLiteral: '\'' (.*) '\''
 
 BooleanLiteral: 'true' | 'false'
