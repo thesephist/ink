@@ -591,8 +591,19 @@ m('number & composite/list -> string conversions')
 (
 	stringList := std.stringList
 
-	t('string(number) truncates to 8th decimal digit', string(3.14), '3.14000000')
-	t('string(number) truncates decimal point for integers', string(42), '42')
+	t('string(number) uses least number of digits necessary, integer'
+		string(42), '42')
+	t('string(number) uses least number of digits necessary, short decimal'
+		string(3.14), '3.14')
+	t('string(number) uses least number of digits necessary, long decimal'
+		string(5 / 3), '1.6666666666666667')
+	` speed of light in microns per second `
+	t('string(number) uses least number of digits necessary, large number'
+		string(299792458000000), '299792458000000')
+	t('string(number) uses least number of digits necessary, small exponential'
+		string(0.0000000001), '1e-10')
+	t('string(number) uses least number of digits necessary, big exponential'
+		string(299792458000000000000), '2.99792458e+20')
 	t('string(true)', string(true), 'true')
 	t('string(false)', string(false), 'false')
 	t('string(string) returns itself', string('hello'), 'hello')
@@ -601,13 +612,15 @@ m('number & composite/list -> string conversions')
 	t('number(string) correctly parses decimal number', number('3.14'), 3.14)
 	t('number(string) deals with leading and trailing zeroes', number('03.140000'), 3.14)
 	t('number(string) deals with negative numbers', number('-42'), ~42)
+	t('number(string) with large exponent', number('3e10'), 30000000000)
+	t('number(string) with small exponent', number('3e-9'), 0.000000003)
 	t('number(true) = 1', number(true), 1)
 	t('number(false) = 0', number(false), 0)
 	t('number(composite) = 0', number([]), 0)
 	t('number(function) = 0', number(() => 100), 0)
 	t('number(builtin fn) = 0', number(len), 0)
 
-	t('string(composite)', string({a: 3.14}), '{a: 3.14000000}')
+	t('string(composite)', string({a: 3.14}), '{a: 3.14}')
 
 	result := string([3, 'two'])
 	p1 := '{0: 3, 1: \'two\'}'
@@ -966,8 +979,8 @@ me')
 
 	` serialize light object `
 	s := ser({a: 'b', c: ~4.251})
-	first := '{"a":"b","c":-4.25100000}'
-	second := '{"c":-4.25100000,"a":"b"}'
+	first := '{"a":"b","c":-4.251}'
+	second := '{"c":-4.251,"a":"b"}'
 	t('ser composite', s = first | s = second, true)
 
 	s := ser([2, false])
