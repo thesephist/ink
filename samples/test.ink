@@ -991,6 +991,8 @@ me')
 	` complex serde `
 	obj := {
 		ser: 'de'
+		'\\': 3
+		'esc\\': 'back\\slash'
 		apple: 'dessert'
 		func: () => ()
 		x: ['train', false, 'car', true, {x: ['y', 'z']}]
